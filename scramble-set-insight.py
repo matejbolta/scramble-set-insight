@@ -4,6 +4,9 @@ from backend import alg_counter_main
 # Scramble input
 scrambles = st.text_area('''Input scrambles from either of: \n - csTimer ScrambleGenerator (all prefixes supported) \n - or csTimer Session Statistics (no edits necessary).''', height=150, help="Paste scrambles here")
 
+# Tracing orientation input (string)
+tracing_orientation = st.text_input("Tracing orientation is ___ away from scrambling orientation:", value="")
+
 # Edge method selection using radio buttons
 edge_method = st.radio(
     "Edge Tracing:",
@@ -36,7 +39,7 @@ if st.button("Insight"):
                 total_two_flips,
                 total_two_twists,
                 alg_count_list
-            ) = alg_counter_main(scrambles, edge_method=edge_method, flip_weight=flip_weight, twist_weight=twist_weight, ltct=ltct, dnf=dnf)
+            ) = alg_counter_main(scrambles, tracing_orientation, edge_method, flip_weight, twist_weight, ltct, dnf)
 
             # Display the results
             st.success(f"Success! Scrambles: **{number_of_solves}**")
