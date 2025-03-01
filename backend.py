@@ -75,6 +75,37 @@ def scramble_transform(scr):
     return new_scr
 
 
+### SCRAMBLEING/TRACING ORIENTATION
+
+def orientation_to_orientation_list(orientation):
+    '''Receives x y z rotations string and returns list of them.'''
+    return [e for e in orientation.strip().split(' ') if e] if orientation else []
+
+def inverse_orientation(orientation):
+    '''Receives x y z rotations and inverses them, returns list.'''
+    orientation_list = orientation_to_orientation_list(orientation)
+    inversed_orientation_list = []
+    for e in orientation_list[::-1]:
+        if e == 'x':
+            inversed_orientation_list.append("x'")
+        elif e == "x'":
+            inversed_orientation_list.append("x")
+        elif e == 'y':
+            inversed_orientation_list.append("y'")
+        elif e == "y'":
+            inversed_orientation_list.append("y")
+        elif e == 'z':
+            inversed_orientation_list.append("z'")
+        elif e == "z'":
+            inversed_orientation_list.append("z")
+        elif e in "x2 y2 z2":
+            inversed_orientation_list.append(e)
+        else:
+            assert(False)
+
+    return inversed_orientation_list
+
+
 ### EDGES GENERAL
 
 SOLVED_STATE_EDG = {
@@ -176,8 +207,9 @@ def apply_move_edg(move, state):
     elif move == "B'":
         return apply_move_edg('B', apply_move_edg('B', apply_move_edg('B', old_state)))
     
-def apply_scramble_edg(scramble):
-    state = SOLVED_STATE_EDG.copy()
+def apply_scramble_edg(scramble, state):
+    '''Receives scramble and state, returns state.'''
+    state = state.copy()
     scr = scramble.split(' ')
     for move in scr:
         state = apply_move_edg(move, state)
@@ -200,6 +232,98 @@ def switch_with_buffer_edg(target, state):
     new_state[target] = state['UF']
     new_state[target[::-1]] = state['FU']
     return new_state
+
+def apply_rotation_edg(state, rotation):
+    '''Receives state and applies single rotation.'''
+    old_state = state.copy()
+    new_state = state.copy()
+    if rotation == 'x':
+        new_state['UF'] = old_state['FD']
+        new_state['FU'] = old_state['DF']
+        new_state['UR'] = old_state['FR']
+        new_state['RU'] = old_state['RF']
+        new_state['UB'] = old_state['FU']
+        new_state['BU'] = old_state['UF']
+        new_state['UL'] = old_state['FL']
+        new_state['LU'] = old_state['LF']
+        new_state['DF'] = old_state['BD']
+        new_state['FD'] = old_state['DB']
+        new_state['DR'] = old_state['BR']
+        new_state['RD'] = old_state['RB']
+        new_state['DB'] = old_state['BU']
+        new_state['BD'] = old_state['UB']
+        new_state['DL'] = old_state['BL']
+        new_state['LD'] = old_state['LB']
+        new_state['FR'] = old_state['DR']
+        new_state['RF'] = old_state['RD']
+        new_state['FL'] = old_state['DL']
+        new_state['LF'] = old_state['LD']
+        new_state['BR'] = old_state['UR']
+        new_state['RB'] = old_state['RU']
+        new_state['BL'] = old_state['UL']
+        new_state['LB'] = old_state['LU']
+    elif rotation == 'y':
+        new_state['UF'] = old_state['UR']
+        new_state['FU'] = old_state['RU']
+        new_state['UR'] = old_state['UB']
+        new_state['RU'] = old_state['BU']
+        new_state['UB'] = old_state['UL']
+        new_state['BU'] = old_state['LU']
+        new_state['UL'] = old_state['UF']
+        new_state['LU'] = old_state['FU']
+        new_state['DF'] = old_state['DR']
+        new_state['FD'] = old_state['RD']
+        new_state['DR'] = old_state['DB']
+        new_state['RD'] = old_state['BD']
+        new_state['DB'] = old_state['DL']
+        new_state['BD'] = old_state['LD']
+        new_state['DL'] = old_state['DF']
+        new_state['LD'] = old_state['FD']
+        new_state['FR'] = old_state['RB']
+        new_state['RF'] = old_state['BR']
+        new_state['FL'] = old_state['RF']
+        new_state['LF'] = old_state['FR']
+        new_state['BR'] = old_state['LB']
+        new_state['RB'] = old_state['BL']
+        new_state['BL'] = old_state['LF']
+        new_state['LB'] = old_state['FL']
+    elif rotation == "x2":
+        return apply_rotation_edg(apply_rotation_edg(old_state, 'x'), 'x')
+    elif rotation == "x'":
+        return apply_rotation_edg(apply_rotation_edg(apply_rotation_edg(old_state, 'x'), 'x'), 'x')
+    elif rotation == "y2":
+        return apply_rotation_edg(apply_rotation_edg(old_state, 'y'), 'y')
+    elif rotation == "y'":
+        return apply_rotation_edg(apply_rotation_edg(apply_rotation_edg(old_state, 'y'), 'y'), 'y')
+    elif rotation == 'z':
+        return apply_rotation_edg(apply_rotation_edg(apply_rotation_edg(old_state, 'y'), "x'"), "y'")
+    elif rotation == 'z2':
+        return apply_rotation_edg(apply_rotation_edg(old_state, 'z'), 'z')
+    elif rotation == "z'":
+        return apply_rotation_edg(apply_rotation_edg(apply_rotation_edg(old_state, 'z'), 'z'), 'z')
+    else:
+        assert(False)
+
+    return new_state
+
+def rotate_edg(state, orientation_list):
+    '''Receives state and orientation list, returns rotated state.'''
+    state = state.copy()
+    for rotation in orientation_list:
+        state = apply_rotation_edg(state, rotation)
+    return state
+
+def scr_to_scrambled_state_edg(scr, tracing_orientation):
+    '''Receives scramble and tracing orientation and returns scrambled state of edges.'''
+    initial_state = SOLVED_STATE_EDG.copy()
+    inversed_rotated_state = rotate_edg(initial_state, inverse_orientation(tracing_orientation))
+
+    rotated_scrambled_state = apply_scramble_edg(scramble_transform(scr), inversed_rotated_state)
+
+    # We need to rotate the state back to the initial orientation
+    rotated_back_state = rotate_edg(rotated_scrambled_state, orientation_to_orientation_list(tracing_orientation))
+
+    return rotated_back_state
 
 
 ### EDGES WEAKSWAP
@@ -287,9 +411,9 @@ def trace_state_edg_weakswap(state):
 
     return traced_letters, flipped_list
 
-def trace_scr_edg_weakswap(scr):
+def trace_scr_edg_weakswap(scr, tracing_orientation):
     '''Receives scramble and returns list with traced targets.'''
-    traced_list, flipped_list = trace_state_edg_weakswap(apply_scramble_edg(scramble_transform(scr)))
+    traced_list, flipped_list = trace_state_edg_weakswap(scr_to_scrambled_state_edg(scr, tracing_orientation))
     return traced_list, flipped_list
 
 
@@ -362,9 +486,9 @@ def trace_state_edg_pseudoswap(state, parity):
     
     return traced_letters
 
-def trace_scr_edg_pseudoswap(scr, parity):
+def trace_scr_edg_pseudoswap(scr, parity, tracing_orientation):
     '''Receives scramble and returns list with traced targets.'''
-    traced_list = trace_state_edg_pseudoswap(apply_scramble_edg(scramble_transform(scr)), parity=parity)
+    traced_list = trace_state_edg_pseudoswap(scr_to_scrambled_state_edg(scr, tracing_orientation), parity)
     return traced_list
 
 
@@ -492,9 +616,9 @@ def apply_move_cor(move, state):
     elif move == "B'":
         return apply_move_cor('B', apply_move_cor('B', apply_move_cor('B', old_state)))
 
-def apply_scramble_cor(scramble):
+def apply_scramble_cor(scramble, state):
     '''Returns cube state, on which the given scramble is performed.'''
-    state = SOLVED_STATE_COR.copy()
+    state = state.copy()
     scr = scramble.split(' ')
     for move in scr:
         state = apply_move_cor(move, state)
@@ -594,17 +718,17 @@ def trace_state_cor(state):
 
     return traced_letters
 
-def trace_scr_cor(scr):
+def trace_scr_cor(scr, tracing_orientation):
     '''Receives scramble and returns list with traced targets.'''
-    traced_list = trace_state_cor(apply_scramble_cor(scramble_transform(scr)))
+    traced_list = trace_state_cor(scr_to_scrambled_state_cor(scramble_transform(scr), tracing_orientation))
     return traced_list
 
-def twist_direction_indentifier(scr):
+def twist_direction_indentifier(scr, tracing_orientation):
     '''Receives scramble, returns the number of CW and CCW twists.'''
     cw_stickers = ['LUF', 'BUL', 'RUB', 'RDF', 'FDL', 'LDB', 'BDR']
     # ccw_stickers = ['FUL', 'LUB', 'BUR', 'FDR', 'LDF', 'BDL', 'RDB']
     cw, ccw = 0, 0
-    state = apply_scramble_cor(scramble_transform(scr))
+    state = scr_to_scrambled_state_cor(scramble_transform(scr), tracing_orientation)
     twist_list = twisted_cor(state)
     for twist in twist_list:
         if twist in cw_stickers:
@@ -613,22 +737,114 @@ def twist_direction_indentifier(scr):
             ccw += 1
     return cw, ccw
 
+def apply_rotation_cor(state, rotation):
+    '''Receives state and applies single rotation.'''
+    old_state = state.copy()
+    new_state = state.copy()
+    if rotation == 'x':
+        new_state['UFR'] = old_state['FDR']
+        new_state['UBR'] = old_state['FUR']
+        new_state['UBL'] = old_state['FUL']
+        new_state['UFL'] = old_state['FDL']
+        new_state['FUL'] = old_state['DFL']
+        new_state['FUR'] = old_state['DFR']
+        new_state['RUF'] = old_state['RDF']
+        new_state['RUB'] = old_state['RUF']
+        new_state['BUR'] = old_state['UFR']
+        new_state['BUL'] = old_state['UFL']
+        new_state['LUB'] = old_state['LUF']
+        new_state['LUF'] = old_state['LDF']
+        new_state['FDL'] = old_state['DBL']
+        new_state['FDR'] = old_state['DBR']
+        new_state['RDF'] = old_state['RDB']
+        new_state['RDB'] = old_state['RUB']
+        new_state['BDR'] = old_state['UBR']
+        new_state['BDL'] = old_state['UBL']
+        new_state['LDB'] = old_state['LUB']
+        new_state['LDF'] = old_state['LDB']
+        new_state['DFL'] = old_state['BDL']
+        new_state['DFR'] = old_state['BDR']
+        new_state['DBR'] = old_state['BUR']
+        new_state['DBL'] = old_state['BUL']
+    elif rotation == 'y':
+        new_state['UFR'] = old_state['UBR']
+        new_state['UBR'] = old_state['UBL']
+        new_state['UBL'] = old_state['UFL']
+        new_state['UFL'] = old_state['UFR']
+        new_state['FUL'] = old_state['RUF']
+        new_state['FUR'] = old_state['RUB']
+        new_state['RUF'] = old_state['BUR']
+        new_state['RUB'] = old_state['BUL']
+        new_state['BUR'] = old_state['LUB']
+        new_state['BUL'] = old_state['LUF']
+        new_state['LUB'] = old_state['FUL']
+        new_state['LUF'] = old_state['FUR']
+        new_state['FDL'] = old_state['RDF']
+        new_state['FDR'] = old_state['RDB']
+        new_state['RDF'] = old_state['BDR']
+        new_state['RDB'] = old_state['BDL']
+        new_state['BDR'] = old_state['LDB']
+        new_state['BDL'] = old_state['LDF']
+        new_state['LDB'] = old_state['FDL']
+        new_state['LDF'] = old_state['FDR']
+        new_state['DFL'] = old_state['DFR']
+        new_state['DFR'] = old_state['DBR']
+        new_state['DBR'] = old_state['DBL']
+        new_state['DBL'] = old_state['DFL']
+    elif rotation == "x2":
+        return apply_rotation_cor(apply_rotation_cor(old_state, 'x'), 'x')
+    elif rotation == "x'":
+        return apply_rotation_cor(apply_rotation_cor(apply_rotation_cor(old_state, 'x'), 'x'), 'x')
+    elif rotation == "y2":
+        return apply_rotation_cor(apply_rotation_cor(old_state, 'y'), 'y')
+    elif rotation == "y'":
+        return apply_rotation_cor(apply_rotation_cor(apply_rotation_cor(old_state, 'y'), 'y'), 'y')
+    elif rotation == 'z':
+        return apply_rotation_cor(apply_rotation_cor(apply_rotation_cor(old_state, 'y'), "x'"), "y'")
+    elif rotation == 'z2':
+        return apply_rotation_cor(apply_rotation_cor(old_state, 'z'), 'z')
+    elif rotation == "z'":
+        return apply_rotation_cor(apply_rotation_cor(apply_rotation_cor(old_state, 'z'), 'z'), 'z')
+    else:
+        assert(False)
+
+    return new_state
+
+def rotate_cor(state, orientation_list):
+    '''Receives state and orientation list, returns rotated state.'''
+    state = state.copy()
+    for rotation in orientation_list:
+        state = apply_rotation_cor(state, rotation)
+    return state
+
+def scr_to_scrambled_state_cor(scr, tracing_orientation):
+    '''Receives scramble and tracing orientation and returns scrambled state of corners.'''
+    initial_state = SOLVED_STATE_COR.copy()
+    inversed_rotated_state = rotate_cor(initial_state, inverse_orientation(tracing_orientation))
+
+    rotated_scrambled_state = apply_scramble_cor(scramble_transform(scr), inversed_rotated_state)
+
+    # We need to rotate the state back to the initial orientation
+    rotated_back_state = rotate_cor(rotated_scrambled_state, orientation_to_orientation_list(tracing_orientation))
+
+    return rotated_back_state
+
 
 ### FINISHING UP
 
-def count_scramble_algs(scr, edge_method, flip_weight, twist_weight, ltct):
+def count_scramble_algs(scr, tracing_orientation, edge_method, flip_weight, twist_weight, ltct):
     algs = 0
-    corner_list = trace_scr_cor(scr) # Odd or Even length
-    twist_number = len(twisted_cor(apply_scramble_cor(scramble_transform(scr))))
+    corner_list = trace_scr_cor(scr, tracing_orientation) # Odd or Even length
+    twist_number = len(twisted_cor(scr_to_scrambled_state_cor(scramble_transform(scr), tracing_orientation)))
 
     parity = bool(len(corner_list) % 2)
 
     if edge_method == 'weakswap':
-        edge_list, flipped_list = trace_scr_edg_weakswap(scr)
+        edge_list, flipped_list = trace_scr_edg_weakswap(scr, tracing_orientation)
         flip_number = len(flipped_list)
     else: # edge_method == 'pseudoswap':
-        edge_list = trace_scr_edg_pseudoswap(scr, parity=parity)
-        flip_number = len(flipped_edg_pseudoswap(apply_scramble_edg(scramble_transform(scr)), parity=parity))
+        edge_list = trace_scr_edg_pseudoswap(scr, parity, tracing_orientation)
+        flip_number = len(flipped_edg_pseudoswap(scr_to_scrambled_state_edg(scr, tracing_orientation), parity))
 
     # Counting edge algs
     algs += len(edge_list) // 2
@@ -644,7 +860,7 @@ def count_scramble_algs(scr, edge_method, flip_weight, twist_weight, ltct):
     # Counting twist algs
     two_twists = 0
     if twist_number:
-        cw, ccw = twist_direction_indentifier(scr)
+        cw, ccw = twist_direction_indentifier(scr, tracing_orientation)
         floating_two_twists = min(cw, ccw)
         remaining_single_twists = abs(cw - ccw)
         two_twists += floating_two_twists
@@ -701,10 +917,10 @@ def extract_scramble_list(text, dnf):
     
     return scrambles
 
-def alg_counter_main(text, edge_method, flip_weight=1, twist_weight=1, ltct=False, dnf=False):
+def alg_counter_main(text, tracing_orientation='', edge_method='weakswap', flip_weight=1, twist_weight=1, ltct=False, dnf=False):
     '''Receives scramble list and returns aggregated alg counts.'''
-    scr_list = extract_scramble_list(text, dnf=dnf)
-    alg_count_list = [count_scramble_algs(scr, edge_method=edge_method, flip_weight=flip_weight, twist_weight=twist_weight, ltct=ltct) for scr in scr_list]
+    scr_list = extract_scramble_list(text, dnf)
+    alg_count_list = [count_scramble_algs(scr, tracing_orientation, edge_method, flip_weight, twist_weight, ltct) for scr in scr_list]
 
     final_count = {}
     total_two_flips, total_two_twists = 0, 0
