@@ -2,7 +2,7 @@ import streamlit as st
 from backend import alg_counter_main
 
 # Scramble input
-scrambles = st.text_area('''Input scrambles from either of: \n - csTimer ScrambleGenerator (all prefixes supported) \n - or csTimer Session Statistics (no edits necessary).''', height=150, help="Paste scrambles here")
+scrambles = st.text_area("Input scrambles:", height=150, help="Paste from csTimer's ScrambleGenerator or Session Statistics.")
 
 # Tracing orientation input (string)
 tracing_orientation = st.text_input("Tracing orientation is ___ away from scrambling orientation:", value="")
