@@ -2,12 +2,14 @@ name: Keep Streamlit Alive
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Every 15 minutes
-  workflow_dispatch:        # Allows manual triggering
+    - cron: '*/45 * * * *'  # Every 45 minutes (UTC)
+  workflow_dispatch:        # Manual trigger support
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Curl Streamlit App
-        run: curl https://scramble-set-insight.streamlit.app
+      - name: Curl Streamlit App with User-Agent
+        run: |
+          echo "Pinging Streamlit app..."
+          curl -A "Mozilla/5.0" -I https://scramble-set-insight.streamlit.app
