@@ -1,15 +1,20 @@
-name: Keep Streamlit Alive
+name: Keep Streamlit Awake
 
 on:
   schedule:
-    - cron: '*/45 * * * *'  # Every 45 minutes (UTC)
-  workflow_dispatch:        # Manual trigger support
+    - cron: '0 */4 * * *'  # Every 4 hours (UTC)
+  workflow_dispatch:
 
 jobs:
-  ping:
+  keepalive:
     runs-on: ubuntu-latest
     steps:
-      - name: Curl Streamlit App with User-Agent
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make empty commit
         run: |
-          echo "Pinging Streamlit app..."
-          curl -A "Mozilla/5.0" -I https://scramble-set-insight.streamlit.app
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "Keep Streamlit awake"
+          git push
