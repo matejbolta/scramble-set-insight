@@ -1,23 +1,22 @@
-name: Keep Streamlit Awake (Debug)
+name: Keep Streamlit Awake
 
 on:
   schedule:
-    - cron: '*/2 * * * *'  # every 2 minutes
+    - cron: '0 */2 * * *'  # every 2 hours
   workflow_dispatch:
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
       - name: Make empty commit
         run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "github-actions"
           git commit --allow-empty -m "Keep Streamlit awake"
-          git push https://x-access-token:${{ secrets.PAT }}@github.com/${{ github.repository }} HEAD:$(git rev-parse --abbrev-ref HEAD)
+          git remote set-url origin https://x-access-token:${{ secrets.PAT }}@github.com/${{ github.repository }}
+          git push origin HEAD
