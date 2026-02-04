@@ -5,16 +5,23 @@ on:
     - cron: '0 */10 * * *' # Every 10 hours
   workflow_dispatch:       # Allows manual trigger from GitHub UI
 
+permissions:
+  contents: write
+
 jobs:
   auto-commit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Create empty commit to prevent app from sleeping
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit --allow-empty -m "chore: keep awake - empty commit"
-          git push
+          git push origin HEAD:main
+          
