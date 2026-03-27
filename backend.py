@@ -75,7 +75,7 @@ def scramble_transform(scr):
     return new_scr
 
 
-### SCRAMBLEING/TRACING ORIENTATION
+### SCRAMBLING/TRACING ORIENTATION
 
 def orientation_to_orientation_list(orientation):
     '''Receives x y z rotations string and returns list of them.'''
