@@ -1,5 +1,5 @@
 import streamlit as st
-from backend import alg_counter_main
+from python.ssi_core import alg_counter_main
 
 # Scramble input
 scrambles = st.text_area("Input scrambles:", height=150, help="Paste from csTimer's ScrambleGenerator or Session Statistics.")
@@ -26,35 +26,60 @@ ltct = st.checkbox("I use LTCT", value=False)
 # DNF toggle
 dnf = st.checkbox("Include DNFs", value=False)
 
+corner_buffers = st.multiselect(
+    'Corner buffers:',
+    options=['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'],
+    default=['UFR'],
+)
+
+edge_buffers = st.multiselect(
+    'Edge buffers:',
+    options=['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
+    default=['UF'],
+)
+
 # Button to calculate alg counts
 if st.button("Insight"):
     if scrambles.strip():
-        try:
+        if not corner_buffers or not edge_buffers:
+            st.warning('Select at least one corner buffer and one edge buffer.')
+        else:
+            try:
             # Call the main backend function
-            (
-                number_of_solves,
-                number_of_cases_with_n_algs_dict,
-                average_algs_per,
-                total_algs,
-                total_two_flips,
-                total_two_twists,
-                alg_count_list
-            ) = alg_counter_main(scrambles, tracing_orientation, edge_method, flip_weight, twist_weight, ltct, dnf)
+                (
+                    number_of_solves,
+                    number_of_cases_with_n_algs_dict,
+                    average_algs_per,
+                    total_algs,
+                    total_two_flips,
+                    total_two_twists,
+                    alg_count_list
+                ) = alg_counter_main(
+                    scrambles,
+                    tracing_orientation,
+                    edge_method,
+                    flip_weight,
+                    twist_weight,
+                    ltct,
+                    dnf,
+                    corner_buffers,
+                    edge_buffers,
+                )
 
-            # Display the results
-            st.success(f"Success! Scrambles: **{number_of_solves}**")
-            for algs, count in number_of_cases_with_n_algs_dict.items():
-                st.write(f"{algs}: **{count}**")
-            st.write("---")
-            st.write(f"Average Algs per Scramble: **{average_algs_per}**")
-            st.write(f"Total Algs: **{total_algs}**")
-            st.write("---")
-            st.write(f"Floating 2-Flips: **{total_two_flips}**")
-            st.write(f"Floating 2-Twists: **{total_two_twists}**")
-            st.write("---")
-            st.write("Algs per Scramble:")
-            st.write(f"**{alg_count_list}**")
-        except: # Exception as e:
-            st.error("Paste text from csTimer Session Statistics or from csTimer tool ScrambleGenerator.")
+                # Display the results
+                st.success(f"Success! Scrambles: **{number_of_solves}**")
+                for algs, count in number_of_cases_with_n_algs_dict.items():
+                    st.write(f"{algs}: **{count}**")
+                st.write("---")
+                st.write(f"Average Algs per Scramble: **{average_algs_per}**")
+                st.write(f"Total Algs: **{total_algs}**")
+                st.write("---")
+                st.write(f"Floating 2-Flips: **{total_two_flips}**")
+                st.write(f"Floating 2-Twists: **{total_two_twists}**")
+                st.write("---")
+                st.write("Algs per Scramble:")
+                st.write(f"**{alg_count_list}**")
+            except: # Exception as e:
+                st.error("Paste text from csTimer Session Statistics or from csTimer tool ScrambleGenerator.")
     else:
         st.warning("Paste some scrambles first!")

@@ -1,0 +1,12 @@
+{
+  "input_file": "/Users/matejbolta/Documents/Dev/scramble-set-insight/baseline/testing-10k-scrams.txt",
+  "number_of_solves": 10000,
+  "edge_method": "weakswap",
+  "tracing_orientation": "",
+  "flip_weight": 1,
+  "twist_weight": 1,
+  "ltct": false,
+  "dnf": false,
+  "alg_count_list_length": 10000,
+  "output_file": "/Users/matejbolta/Documents/Dev/scramble-set-insight/baseline/truth-weakswap.json"
+}
