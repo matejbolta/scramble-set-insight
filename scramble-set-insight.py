@@ -9,76 +9,93 @@ EDGE_BUFFER_OPTIONS = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL
 EDGE_METHOD_OPTIONS = {'Weak Swap': 'weakswap', 'Pseudo Swap': 'pseudoswap'}
 LEGACY_CORNER_BUFFERS = ['UFR']
 LEGACY_EDGE_BUFFERS = ['UF']
+BUFFER_MODES = ['Standard', 'Custom']
 
 st.set_page_config(page_title='Scramble Set Insight', layout='wide')
 
 st.title('Scramble Set Insight')
-st.caption('Legacy Streamlit edition powered by the current `ssi_core` backend.')
+st.caption('Analyze a scramble set, compare edge methods, and estimate total tracing load.')
 
-st.info(
-    'Legacy mode is `UFR` for corners and `UF` for edges. '
-    'Add more buffers if you want floating-aware counting.'
-)
+with st.sidebar:
+    st.header('Settings')
 
-st.subheader('Scrambles')
-scrambles = st.text_area(
-    'Input scrambles',
-    height=180,
-    help="Paste from csTimer ScrambleGenerator or Session Statistics.",
-)
-
-left_col, right_col = st.columns(2)
-
-with left_col:
-    st.subheader('Method')
-    tracing_orientation = st.text_input(
-        'Tracing orientation is ___ away from scrambling orientation',
-        value='',
-        placeholder="e.g. x2 or z x y'",
-    )
     edge_method_label = st.radio(
-        'Edge tracing',
+        'Edge method',
         options=list(EDGE_METHOD_OPTIONS.keys()),
         index=0,
     )
     edge_method = EDGE_METHOD_OPTIONS[edge_method_label]
 
-    weight_col_1, weight_col_2 = st.columns(2)
-    with weight_col_1:
-        flip_weight = st.number_input('Algs per Floating 2-Flip', min_value=0.0, step=0.5, value=1.0)
-    with weight_col_2:
-        twist_weight = st.number_input('Algs per Floating 2-Twist', min_value=0.0, step=0.5, value=1.0)
+    tracing_orientation = st.text_input(
+        'Tracing orientation',
+        value='',
+        placeholder="Leave empty for normal home practice. Example: x2",
+        help='Use this when the scramble was applied from a different cube orientation than the one you trace from.',
+    )
 
-with right_col:
-    st.subheader('Advanced')
-    toggle_col_1, toggle_col_2 = st.columns(2)
-    with toggle_col_1:
+    dnf = st.checkbox('Include DNFs', value=False)
+
+    st.subheader('Buffers')
+    buffer_mode = st.radio(
+        'Tracing setup',
+        options=BUFFER_MODES,
+        index=0,
+        help='Standard uses the classic UFR / UF setup. Custom lets you choose floating buffers.',
+    )
+
+    if buffer_mode == 'Standard':
+        corner_buffers = LEGACY_CORNER_BUFFERS.copy()
+        edge_buffers = LEGACY_EDGE_BUFFERS.copy()
+        st.caption('Standard setup: corners UFR, edges UF.')
+    else:
+        corner_buffers = st.multiselect(
+            'Corner buffers you know',
+            options=CORNER_BUFFER_OPTIONS,
+            default=LEGACY_CORNER_BUFFERS,
+        )
+        edge_buffers = st.multiselect(
+            'Edge buffers you know',
+            options=EDGE_BUFFER_OPTIONS,
+            default=LEGACY_EDGE_BUFFERS,
+        )
+
+    with st.expander('Advanced options'):
+        flip_weight = st.number_input(
+            'Algs per floating 2-flip',
+            min_value=0.0,
+            step=0.5,
+            value=1.0,
+        )
+        twist_weight = st.number_input(
+            'Algs per floating 2-twist',
+            min_value=0.0,
+            step=0.5,
+            value=1.0,
+        )
         ltct = st.checkbox('I use LTCT', value=False)
-    with toggle_col_2:
-        dnf = st.checkbox('Include DNFs', value=False)
 
-    corner_buffers = st.multiselect(
-        'Corner buffers',
-        options=CORNER_BUFFER_OPTIONS,
-        default=LEGACY_CORNER_BUFFERS,
-        help='Leave only UFR selected for legacy corner tracing.',
-    )
-    edge_buffers = st.multiselect(
-        'Edge buffers',
-        options=EDGE_BUFFER_OPTIONS,
-        default=LEGACY_EDGE_BUFFERS,
-        help='Leave only UF selected for legacy edge tracing.',
-    )
+st.subheader('Scrambles')
+scrambles = st.text_area(
+    'Paste scrambles here',
+    height=240,
+    placeholder='Paste from csTimer ScrambleGenerator or Session Statistics.',
+    label_visibility='collapsed',
+)
 
 parsed_scrambles = extract_scramble_list(scrambles, dnf=dnf) if scrambles.strip() else []
-legacy_mode = corner_buffers == LEGACY_CORNER_BUFFERS and edge_buffers == LEGACY_EDGE_BUFFERS
-st.caption(
-    f'Parsed scrambles preview count: {len(parsed_scrambles)} '
-    f'({"DNFs included" if dnf else "DNFs excluded"})'
-)
-st.caption(f'Mode: {"Legacy-compatible" if legacy_mode else "Floating-enabled"}')
+custom_mode = buffer_mode == 'Custom'
 
-run_analysis = st.button('Insight', type='primary', use_container_width=True)
+status_col_1, status_col_2, status_col_3 = st.columns(3)
+status_col_1.metric('Parsed scrambles', len(parsed_scrambles))
+status_col_2.metric('Edge method', edge_method_label)
+status_col_3.metric('Buffer mode', 'Custom' if custom_mode else 'Standard')
+
+with st.expander('Input tips'):
+    st.write('- Paste directly from csTimer ScrambleGenerator or Session Statistics.')
+    st.write('- Leave tracing orientation empty for normal home practice.')
+    st.write('- Use Custom buffers only if you want floating-aware counting.')
+
+run_analysis = st.button('Analyze Set', type='primary', use_container_width=True)
 
 if run_analysis:
     if not scrambles.strip():
@@ -113,31 +130,38 @@ if run_analysis:
             metric_col_1.metric('Scrambles', number_of_solves)
             metric_col_2.metric('Average algs', average_algs_per)
             metric_col_3.metric('Total algs', total_algs)
-            metric_col_4.metric('Floating 2-flips', total_two_flips)
-            metric_col_5.metric('Floating 2-twists', total_two_twists)
+            metric_col_4.metric('2-flips', total_two_flips)
+            metric_col_5.metric('2-twists', total_two_twists)
 
             st.divider()
-            results_col_1, results_col_2 = st.columns([1.2, 1])
+            results_col_1, results_col_2 = st.columns([1.35, 1])
 
             with results_col_1:
                 st.subheader('Distribution')
                 st.bar_chart(number_of_cases_with_n_algs_dict)
 
             with results_col_2:
-                st.subheader('Settings used')
-                st.write(f'Edge method: **{edge_method}**')
-                st.write(f'Tracing orientation: **{tracing_orientation or "(identity)"}**')
-                st.write(f'Corner buffers: **{", ".join(corner_buffers)}**')
-                st.write(f'Edge buffers: **{", ".join(edge_buffers)}**')
-                st.write(f'LTCT: **{ltct}**')
-                st.write(f'Include DNFs: **{dnf}**')
+                st.subheader('Run summary')
+                st.write(f'**Method:** {edge_method_label}')
+                st.write(f'**Tracing orientation:** {tracing_orientation or "None"}')
+                st.write(f'**Corner buffers:** {", ".join(corner_buffers)}')
+                st.write(f'**Edge buffers:** {", ".join(edge_buffers)}')
+                if ltct:
+                    st.write('**LTCT:** On')
+                if dnf:
+                    st.write('**DNFs:** Included')
+                if custom_mode:
+                    st.write('**Floating:** Enabled')
 
-            st.subheader('Count table')
-            for algs, count in number_of_cases_with_n_algs_dict.items():
-                st.write(f'{algs}: **{count}**')
+            st.subheader('Counts by alg total')
+            count_table = [
+                {'Algs': algs, 'Scrambles': count}
+                for algs, count in number_of_cases_with_n_algs_dict.items()
+            ]
+            st.dataframe(count_table, use_container_width=True, hide_index=True)
 
             with st.expander('Raw alg_count_list'):
                 st.code(json.dumps(alg_count_list), language='json')
 
         except Exception:
-            st.error('Paste text from csTimer Session Statistics or from csTimer ScrambleGenerator.')
+            st.error('Could not parse the input. Paste text from csTimer ScrambleGenerator or Session Statistics.')
