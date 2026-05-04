@@ -1,5 +1,3 @@
-import json
-
 import streamlit as st
 
 from python.ssi_core import alg_counter_main, extract_scramble_list
@@ -202,11 +200,28 @@ if run_analysis:
                 st.vega_lite_chart(distribution_data, distribution_chart_spec, use_container_width=True)
 
             st.subheader('Algs per each scramble')
-            algs_per_scramble_rows = [
-                {'Scramble': index + 1, 'Algs': algs}
-                for index, algs in enumerate(alg_count_list)
-            ]
-            st.dataframe(algs_per_scramble_rows, use_container_width=True, hide_index=True)
+            cells_html = []
+            for index, algs in enumerate(alg_count_list, start=1):
+                cells_html.append(
+                    (
+                        "<div style=\""
+                        "border: 1px solid #3d444d; border-radius: 8px; padding: 0.45rem 0.2rem; "
+                        "text-align: center; background: #161b22; min-height: 58px; "
+                        "display: flex; flex-direction: column; justify-content: center; gap: 0.15rem;\">"
+                        f"<div style=\"font-size: 0.72rem; color: #8b949e;\">{index}</div>"
+                        f"<div style=\"font-size: 1rem; font-weight: 700; color: #e6edf3;\">{algs}</div>"
+                        "</div>"
+                    )
+                )
+            st.markdown(
+                (
+                    "<div style=\"display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); "
+                    "gap: 0.45rem;\">"
+                    + "".join(cells_html)
+                    + "</div>"
+                ),
+                unsafe_allow_html=True,
+            )
 
         except Exception:
             st.error('Could not parse the input. Paste text from csTimer ScrambleGenerator or Session Statistics.')
