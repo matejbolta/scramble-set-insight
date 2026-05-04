@@ -9,7 +9,7 @@ EDGE_BUFFER_OPTIONS = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL
 EDGE_METHOD_OPTIONS = {'Weak Swap': 'weakswap', 'Pseudo Swap': 'pseudoswap'}
 LEGACY_CORNER_BUFFERS = ['UFR']
 LEGACY_EDGE_BUFFERS = ['UF']
-BUFFER_MODES = ['UF/UFR', 'Partial floating', 'Full floating']
+BUFFER_MODES = ['UF/UFR', 'Full floating', 'Partial floating']
 
 st.set_page_config(page_title='Scramble Set Insight', layout='wide')
 
@@ -38,9 +38,9 @@ with st.sidebar:
     edge_method = EDGE_METHOD_OPTIONS[edge_method_label]
 
     tracing_orientation = st.text_input(
-        '? Tracing orientation is ___ away from scrambling orientation',
+        'Tracing orientation is ___ away from scrambling orientation',
         value='',
-        placeholder='eg x2',
+        placeholder='e.g. x2',
     )
 
     dnf = st.checkbox('Include DNFs', value=False)
@@ -60,9 +60,10 @@ with st.sidebar:
 
     st.subheader('Buffers')
     buffer_mode = st.radio(
-        'Mode',
+        'Select setup',
         options=BUFFER_MODES,
         index=0,
+        label_visibility='collapsed',
     )
 
     if buffer_mode == 'UF/UFR':
@@ -72,6 +73,7 @@ with st.sidebar:
         corner_buffers = CORNER_BUFFER_OPTIONS.copy()
         edge_buffers = EDGE_BUFFER_OPTIONS.copy()
     else:
+        st.caption('Choose the buffers you want to use.')
         corner_buffers = checkbox_grid(
             'Corner buffers',
             CORNER_BUFFER_OPTIONS,
@@ -97,7 +99,7 @@ parsed_scrambles = extract_scramble_list(scrambles, dnf=dnf) if scrambles.strip(
 status_col_1, status_col_2, status_col_3 = st.columns(3)
 status_col_1.metric('Parsed scrambles', len(parsed_scrambles))
 status_col_2.metric('Edge tracing', edge_method_label)
-status_col_3.metric('Buffers', buffer_mode)
+status_col_3.metric('Buffers', 'Partial' if buffer_mode == 'Partial floating' else buffer_mode)
 
 run_analysis = st.button('Analyze Set', type='primary', use_container_width=True)
 
