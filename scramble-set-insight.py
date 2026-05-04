@@ -111,8 +111,9 @@ with param_col_3:
         )
 
 scrambles = st.text_area(
-    'Scrambles: paste from csTimer ScrambleGenerator or Session Statistics',
+    'Scrambles',
     height=280,
+    placeholder='Paste from csTimer ScrambleGenerator or Session Statistics',
 )
 
 run_analysis = st.button('Analyze Set', type='primary', use_container_width=True)
