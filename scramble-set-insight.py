@@ -14,6 +14,29 @@ BUFFER_MODES = ['UF/UFR', 'Full floating', 'Partial floating']
 st.set_page_config(page_title='Scramble Set Insight', layout='wide')
 
 
+def compact_buffer_picker(label, options, default_selected, key_prefix, columns_count):
+    pills = getattr(st, 'pills', None)
+    if callable(pills):
+        selected = pills(
+            label,
+            options=options,
+            default=default_selected,
+            selection_mode='multi',
+            key=f'{key_prefix}_pills',
+        )
+        return selected or []
+
+    selected = []
+    columns = st.columns(columns_count)
+    default_selected_set = set(default_selected)
+    for index, option in enumerate(options):
+        with columns[index % columns_count]:
+            checked = st.checkbox(option, value=option in default_selected_set, key=f'{key_prefix}_{option}')
+            if checked:
+                selected.append(option)
+    return selected
+
+
 with st.sidebar:
     st.header('Parameters')
 
@@ -60,17 +83,19 @@ with st.sidebar:
         corner_buffers = CORNER_BUFFER_OPTIONS.copy()
         edge_buffers = EDGE_BUFFER_OPTIONS.copy()
     else:
-        corner_buffers = st.multiselect(
+        corner_buffers = compact_buffer_picker(
             'Corner buffers',
             CORNER_BUFFER_OPTIONS,
-            default=LEGACY_CORNER_BUFFERS,
-            placeholder='Select corner buffers',
+            LEGACY_CORNER_BUFFERS,
+            'corner_buffer',
+            columns_count=2,
         )
-        edge_buffers = st.multiselect(
+        edge_buffers = compact_buffer_picker(
             'Edge buffers',
             EDGE_BUFFER_OPTIONS,
-            default=LEGACY_EDGE_BUFFERS,
-            placeholder='Select edge buffers',
+            LEGACY_EDGE_BUFFERS,
+            'edge_buffer',
+            columns_count=2,
         )
 
 scrambles = st.text_area(
