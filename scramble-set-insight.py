@@ -16,6 +16,7 @@ st.set_page_config(page_title='Scramble Set Insight', layout='wide')
 
 def compact_buffer_picker(label, options, default_selected, key_prefix, columns_count):
     pills = getattr(st, 'pills', None)
+    st.caption(label)
     if callable(pills):
         selected = pills(
             label,
@@ -23,6 +24,7 @@ def compact_buffer_picker(label, options, default_selected, key_prefix, columns_
             default=default_selected,
             selection_mode='multi',
             key=f'{key_prefix}_pills',
+            label_visibility='collapsed',
         )
         return selected or []
 
@@ -92,14 +94,14 @@ with st.sidebar:
             CORNER_BUFFER_OPTIONS,
             LEGACY_CORNER_BUFFERS,
             'corner_buffer',
-            columns_count=2,
+            columns_count=3,
         )
         edge_buffers = compact_buffer_picker(
             'Edge buffers',
             EDGE_BUFFER_OPTIONS,
             LEGACY_EDGE_BUFFERS,
             'edge_buffer',
-            columns_count=2,
+            columns_count=3,
         )
         st.markdown('</div>', unsafe_allow_html=True)
 
