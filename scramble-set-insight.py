@@ -199,7 +199,7 @@ if run_analysis:
             with chart_col:
                 st.vega_lite_chart(distribution_data, distribution_chart_spec, use_container_width=True)
 
-            st.subheader('Algs per each scramble')
+            st.subheader('Algs per scramble')
             cells_html = []
             for index, algs in enumerate(alg_count_list, start=1):
                 cells_html.append(
