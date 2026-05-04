@@ -147,10 +147,12 @@ if run_analysis:
 
             rounded_average_algs = round(average_algs_per, 2)
 
-            metric_col_1, metric_col_2, metric_col_3 = st.columns(3)
+            metric_col_1, metric_col_2, metric_col_3, metric_col_4, metric_col_5 = st.columns(5)
             metric_col_1.metric('Scrambles', number_of_solves)
             metric_col_2.metric('Total algs', total_algs)
             metric_col_3.metric('Average algs', rounded_average_algs)
+            metric_col_4.metric('2-flips', total_two_flips)
+            metric_col_5.metric('2-twists', total_two_twists)
 
             st.divider()
             st.subheader('Distribution')
