@@ -55,20 +55,26 @@ with st.sidebar:
 
     dnf = st.checkbox('Include DNFs', value=False)
     ltct = st.checkbox('I use LTCT', value=False)
-    flip_weight = st.number_input(
-        'Algs per floating 2-flip',
-        min_value=0.0,
-        step=0.5,
-        value=1.0,
-    )
-    twist_weight = st.number_input(
-        'Algs per floating 2-twist',
-        min_value=0.0,
-        step=0.5,
-        value=1.0,
-    )
+    st.caption('Floating costs')
+    floating_col_1, floating_col_2 = st.columns(2)
+    with floating_col_1:
+        flip_weight = st.number_input(
+            '2-flip',
+            min_value=0.0,
+            step=0.5,
+            value=1.0,
+            help='How many algs you count for one floating 2-flip.',
+        )
+    with floating_col_2:
+        twist_weight = st.number_input(
+            '2-twist',
+            min_value=0.0,
+            step=0.5,
+            value=1.0,
+            help='How many algs you count for one floating 2-twist.',
+        )
 
-    st.subheader('Buffers')
+    st.write('Buffers')
     buffer_mode = st.radio(
         'Select setup',
         options=BUFFER_MODES,
