@@ -16,7 +16,10 @@ st.set_page_config(page_title='Scramble Set Insight', layout='wide')
 
 def compact_buffer_picker(label, options, default_selected, key_prefix, columns_count):
     pills = getattr(st, 'pills', None)
-    st.caption(label)
+    st.markdown(
+        f"<div style='margin: -0.35rem 0 0.15rem 0; font-size: 0.9rem; font-weight: 600;'>{label}</div>",
+        unsafe_allow_html=True,
+    )
     if callable(pills):
         selected = pills(
             label,
