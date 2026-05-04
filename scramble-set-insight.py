@@ -14,19 +14,6 @@ BUFFER_MODES = ['UF/UFR', 'Full floating', 'Partial floating']
 st.set_page_config(page_title='Scramble Set Insight', layout='wide')
 
 
-def checkbox_grid(label, options, default_selected, key_prefix, columns_count=3):
-    st.write(label)
-    selected = []
-    columns = st.columns(columns_count)
-    selected_set = set(default_selected)
-    for index, option in enumerate(options):
-        with columns[index % columns_count]:
-            checked = st.checkbox(option, value=option in selected_set, key=f'{key_prefix}_{option}')
-            if checked:
-                selected.append(option)
-    return selected
-
-
 with st.sidebar:
     st.header('Parameters')
 
@@ -73,20 +60,17 @@ with st.sidebar:
         corner_buffers = CORNER_BUFFER_OPTIONS.copy()
         edge_buffers = EDGE_BUFFER_OPTIONS.copy()
     else:
-        st.caption('Choose the buffers you want to use.')
-        corner_buffers = checkbox_grid(
+        corner_buffers = st.multiselect(
             'Corner buffers',
             CORNER_BUFFER_OPTIONS,
-            LEGACY_CORNER_BUFFERS,
-            'corner_buffer',
-            columns_count=2,
+            default=LEGACY_CORNER_BUFFERS,
+            placeholder='Select corner buffers',
         )
-        edge_buffers = checkbox_grid(
+        edge_buffers = st.multiselect(
             'Edge buffers',
             EDGE_BUFFER_OPTIONS,
-            LEGACY_EDGE_BUFFERS,
-            'edge_buffer',
-            columns_count=2,
+            default=LEGACY_EDGE_BUFFERS,
+            placeholder='Select edge buffers',
         )
 
 scrambles = st.text_area(
