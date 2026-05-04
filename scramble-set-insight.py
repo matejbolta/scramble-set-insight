@@ -55,7 +55,7 @@ with st.sidebar:
 
     dnf = st.checkbox('Include DNFs', value=False)
     ltct = st.checkbox('I use LTCT', value=False)
-    st.caption('Floating 2-flip/2-twist weights')
+    st.write('Floating 2-flip/2-twist weights')
     floating_col_1, floating_col_2 = st.columns(2)
     with floating_col_1:
         flip_weight = st.number_input(
@@ -74,12 +74,10 @@ with st.sidebar:
             help='How many algs you count for one floating 2-twist.',
         )
 
-    st.write('Buffers')
     buffer_mode = st.radio(
-        'Select setup',
+        'Buffers',
         options=BUFFER_MODES,
         index=0,
-        label_visibility='collapsed',
     )
 
     if buffer_mode == 'UF/UFR':
