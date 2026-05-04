@@ -54,13 +54,12 @@ with param_col_1:
     )
     edge_method = EDGE_METHOD_OPTIONS[edge_method_label]
 
-    orientation_col, _ = st.columns([3, 2])
-    with orientation_col:
-        tracing_orientation = st.text_input(
-            'Tracing orientation is ___ away from scrambling orientation',
-            value='',
-            placeholder='e.g. x2',
-        )
+    tracing_orientation = st.text_input(
+        'Tracing orientation',
+        value='',
+        placeholder='e.g. x2',
+        help='Tracing orientation is ___ away from scrambling orientation.',
+    )
 
 with param_col_2:
     dnf = st.checkbox('Include DNFs', value=False)
