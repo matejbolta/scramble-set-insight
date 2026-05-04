@@ -8,56 +8,13 @@ EDGE_METHOD_OPTIONS = {'Weak Swap': 'weakswap', 'Pseudo Swap': 'pseudoswap'}
 LEGACY_CORNER_BUFFERS = ['UFR']
 LEGACY_EDGE_BUFFERS = ['UF']
 BUFFER_MODES = ['UF/UFR', 'Full floating', 'Partial floating']
-ACCENT_COLOR = '#79b8ea'
-ACCENT_COLOR_STRONG = '#9ad1ff'
-ACCENT_SOFT = 'rgba(121, 184, 234, 0.18)'
-ACCENT_BORDER = 'rgba(121, 184, 234, 0.45)'
+STREAMLIT_PRIMARY = '#FF4B4B'
+COMPLEMENT_COLOR = '#59C0C0'
+COMPLEMENT_COLOR_STRONG = '#6BC7C7'
+COMPLEMENT_SOFT = 'rgba(89, 192, 192, 0.18)'
+COMPLEMENT_BORDER = 'rgba(89, 192, 192, 0.45)'
 
 st.set_page_config(page_title='Scramble Set Insight', layout='wide')
-
-st.markdown(
-    f"""
-    <style>
-    :root {{
-        --primary-color: {ACCENT_COLOR};
-    }}
-
-    .stButton > button {{
-        background: {ACCENT_COLOR};
-        border: 1px solid {ACCENT_COLOR};
-        color: #0d1117;
-        font-weight: 600;
-    }}
-
-    .stButton > button:hover {{
-        background: {ACCENT_COLOR_STRONG};
-        border-color: {ACCENT_COLOR_STRONG};
-        color: #0d1117;
-    }}
-
-    .stButton > button:focus {{
-        box-shadow: 0 0 0 0.2rem {ACCENT_SOFT};
-    }}
-
-    [data-baseweb="radio"] input:checked + div,
-    [data-baseweb="checkbox"] input:checked + div {{
-        background-color: {ACCENT_COLOR} !important;
-        border-color: {ACCENT_COLOR} !important;
-    }}
-
-    [data-baseweb="tag"][aria-selected="true"] {{
-        background-color: {ACCENT_SOFT} !important;
-        border-color: {ACCENT_COLOR} !important;
-        color: {ACCENT_COLOR_STRONG} !important;
-    }}
-
-    [data-baseweb="tag"] {{
-        border-color: {ACCENT_BORDER};
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 
 def compact_buffer_picker(label, options, default_selected, key_prefix, columns_count):
@@ -193,8 +150,8 @@ if run_analysis:
 
             st.markdown(
                 (
-                    f"<div style='background: {ACCENT_SOFT}; border: 1px solid {ACCENT_BORDER}; "
-                    f"color: {ACCENT_COLOR_STRONG}; padding: 0.9rem 1rem; border-radius: 0.6rem; "
+                    f"<div style='background: {COMPLEMENT_SOFT}; border: 1px solid {COMPLEMENT_BORDER}; "
+                    f"color: {COMPLEMENT_COLOR_STRONG}; padding: 0.9rem 1rem; border-radius: 0.6rem; "
                     "font-weight: 600; margin-bottom: 0.5rem;'>"
                     f"Processed {number_of_solves} scramble{'s' if number_of_solves != 1 else ''}."
                     "</div>"
@@ -222,7 +179,7 @@ if run_analysis:
                     {
                         'mark': {
                             'type': 'bar',
-                            'color': ACCENT_COLOR,
+                            'color': COMPLEMENT_COLOR,
                             'cornerRadiusTopLeft': 2,
                             'cornerRadiusTopRight': 2,
                         },
