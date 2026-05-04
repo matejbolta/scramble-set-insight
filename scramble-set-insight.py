@@ -165,8 +165,8 @@ if run_analysis:
             metric_col_1.metric('Scrambles', number_of_solves)
             metric_col_2.metric('Total algs', total_algs)
             metric_col_3.metric('Average algs', rounded_average_algs)
-            metric_col_4.metric('f-2-flips', total_two_flips)
-            metric_col_5.metric('f-2-twists', total_two_twists)
+            metric_col_4.metric('F-2-flips', total_two_flips)
+            metric_col_5.metric('F-2-twists', total_two_twists)
 
             st.divider()
             st.subheader('Distribution')
