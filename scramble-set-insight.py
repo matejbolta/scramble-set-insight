@@ -42,8 +42,6 @@ def compact_buffer_picker(label, options, default_selected, key_prefix, columns_
     return selected
 
 
-st.write('Parameters')
-
 param_col_1, param_col_2, param_col_3 = st.columns(3)
 
 with param_col_1:
