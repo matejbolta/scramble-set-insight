@@ -155,38 +155,29 @@ if run_analysis:
             metric_col_3.metric('Average algs', rounded_average_algs)
 
             st.divider()
-            st.subheader('Run summary')
-            st.write(f'**Edge tracing:** {edge_method_label}')
-            if tracing_orientation:
-                st.write(f'**Tracing orientation:** {tracing_orientation}')
-            if buffer_mode == 'UF/UFR':
-                st.write('**Buffers:** UF/UFR')
-            else:
-                st.write(f'**Corner buffers:** {", ".join(corner_buffers)}')
-                st.write(f'**Edge buffers:** {", ".join(edge_buffers)}')
-            if ltct:
-                st.write('**LTCT:** On')
-            if dnf:
-                st.write('**DNFs:** Included')
-
             st.subheader('Distribution')
             distribution_data = [
-                {'Algs': str(algs), 'Scrambles': count}
-                for algs, count in number_of_cases_with_n_algs_dict.items()
+                {'Algs': algs, 'Scrambles': count}
+                for algs, count in sorted(number_of_cases_with_n_algs_dict.items())
             ]
             distribution_chart_spec = {
                 'layer': [
                     {
                         'mark': {'type': 'bar', 'color': '#79b8ea', 'cornerRadiusTopLeft': 2, 'cornerRadiusTopRight': 2},
                         'encoding': {
-                            'x': {'field': 'Algs', 'type': 'nominal', 'axis': {'labelAngle': 0, 'title': None}},
+                            'x': {
+                                'field': 'Algs',
+                                'type': 'ordinal',
+                                'sort': 'ascending',
+                                'axis': {'labelAngle': 0, 'title': None},
+                            },
                             'y': {'field': 'Scrambles', 'type': 'quantitative', 'title': None},
                         },
                     },
                     {
                         'mark': {'type': 'text', 'dy': -10, 'color': '#e6edf3', 'fontSize': 14, 'fontWeight': 600},
                         'encoding': {
-                            'x': {'field': 'Algs', 'type': 'nominal'},
+                            'x': {'field': 'Algs', 'type': 'ordinal', 'sort': 'ascending'},
                             'y': {'field': 'Scrambles', 'type': 'quantitative'},
                             'text': {'field': 'Scrambles', 'type': 'quantitative'},
                         },
@@ -209,13 +200,6 @@ if run_analysis:
             _, chart_col, _ = st.columns([1, 2, 1])
             with chart_col:
                 st.vega_lite_chart(distribution_data, distribution_chart_spec, use_container_width=True)
-
-            st.subheader('Counts by alg total')
-            count_table = [
-                {'Algs': algs, 'Scrambles': count}
-                for algs, count in number_of_cases_with_n_algs_dict.items()
-            ]
-            st.table(count_table)
 
             st.subheader('Raw alg_count_list')
             st.code(json.dumps(alg_count_list), language='json')
