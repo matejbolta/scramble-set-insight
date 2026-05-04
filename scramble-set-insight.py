@@ -147,40 +147,38 @@ if run_analysis:
 
             st.success(f'Processed {number_of_solves} scramble{"s" if number_of_solves != 1 else ""}.')
 
-            metric_col_1, metric_col_2, metric_col_3, metric_col_4, metric_col_5 = st.columns(5)
+            rounded_average_algs = round(average_algs_per, 2)
+
+            metric_col_1, metric_col_2, metric_col_3 = st.columns(3)
             metric_col_1.metric('Scrambles', number_of_solves)
-            metric_col_2.metric('Average algs', average_algs_per)
-            metric_col_3.metric('Total algs', total_algs)
-            metric_col_4.metric('2-flips', total_two_flips)
-            metric_col_5.metric('2-twists', total_two_twists)
+            metric_col_2.metric('Total algs', total_algs)
+            metric_col_3.metric('Average algs', rounded_average_algs)
 
             st.divider()
-            results_col_1, results_col_2 = st.columns([1.35, 1])
+            st.subheader('Run summary')
+            st.write(f'**Edge tracing:** {edge_method_label}')
+            st.write(f'**Tracing orientation:** {tracing_orientation or "None"}')
+            st.write(f'**Corner buffers:** {", ".join(corner_buffers)}')
+            st.write(f'**Edge buffers:** {", ".join(edge_buffers)}')
+            if ltct:
+                st.write('**LTCT:** On')
+            if dnf:
+                st.write('**DNFs:** Included')
 
-            with results_col_1:
-                st.subheader('Distribution')
+            st.subheader('Distribution')
+            _, chart_col, _ = st.columns([1, 2, 1])
+            with chart_col:
                 st.bar_chart(number_of_cases_with_n_algs_dict)
-
-            with results_col_2:
-                st.subheader('Run summary')
-                st.write(f'**Edge tracing:** {edge_method_label}')
-                st.write(f'**Tracing orientation:** {tracing_orientation or "None"}')
-                st.write(f'**Corner buffers:** {", ".join(corner_buffers)}')
-                st.write(f'**Edge buffers:** {", ".join(edge_buffers)}')
-                if ltct:
-                    st.write('**LTCT:** On')
-                if dnf:
-                    st.write('**DNFs:** Included')
 
             st.subheader('Counts by alg total')
             count_table = [
                 {'Algs': algs, 'Scrambles': count}
                 for algs, count in number_of_cases_with_n_algs_dict.items()
             ]
-            st.dataframe(count_table, use_container_width=True, hide_index=True)
+            st.table(count_table)
 
-            with st.expander('Raw alg_count_list'):
-                st.code(json.dumps(alg_count_list), language='json')
+            st.subheader('Raw alg_count_list')
+            st.code(json.dumps(alg_count_list), language='json')
 
         except Exception:
             st.error('Could not parse the input. Paste text from csTimer ScrambleGenerator or Session Statistics.')
