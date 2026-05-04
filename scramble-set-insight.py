@@ -42,9 +42,11 @@ def compact_buffer_picker(label, options, default_selected, key_prefix, columns_
     return selected
 
 
-with st.sidebar:
-    st.header('Parameters')
+st.write('Parameters')
 
+param_col_1, param_col_2, param_col_3 = st.columns(3)
+
+with param_col_1:
     edge_method_label = st.radio(
         'Edge tracing',
         options=list(EDGE_METHOD_OPTIONS.keys()),
@@ -58,10 +60,12 @@ with st.sidebar:
         placeholder='e.g. x2',
     )
 
+with param_col_2:
     dnf = st.checkbox('Include DNFs', value=False)
     ltct = st.checkbox('I use LTCT', value=False)
-    floating_col_1, floating_col_2 = st.columns(2)
-    with floating_col_1:
+
+    weight_col_1, weight_col_2 = st.columns(2)
+    with weight_col_1:
         flip_weight = st.number_input(
             '2-flip weight',
             min_value=0.0,
@@ -69,7 +73,7 @@ with st.sidebar:
             value=1.0,
             help='Algs per floating 2-flip',
         )
-    with floating_col_2:
+    with weight_col_2:
         twist_weight = st.number_input(
             '2-twist weight',
             min_value=0.0,
@@ -78,6 +82,7 @@ with st.sidebar:
             help='Algs per floating 2-twist',
         )
 
+with param_col_3:
     buffer_mode = st.radio(
         'Buffers',
         options=BUFFER_MODES,
@@ -91,7 +96,6 @@ with st.sidebar:
         corner_buffers = CORNER_BUFFER_OPTIONS.copy()
         edge_buffers = EDGE_BUFFER_OPTIONS.copy()
     else:
-        st.markdown("<div style='padding-left: 1rem;'>", unsafe_allow_html=True)
         corner_buffers = compact_buffer_picker(
             'Corner buffers',
             CORNER_BUFFER_OPTIONS,
@@ -106,19 +110,11 @@ with st.sidebar:
             'edge_buffer',
             columns_count=3,
         )
-        st.markdown('</div>', unsafe_allow_html=True)
 
 scrambles = st.text_area(
     'Scrambles: paste from csTimer ScrambleGenerator or Session Statistics',
     height=280,
 )
-
-parsed_scrambles = extract_scramble_list(scrambles, dnf=dnf) if scrambles.strip() else []
-
-status_col_1, status_col_2, status_col_3 = st.columns(3)
-status_col_1.metric('Parsed scrambles', len(parsed_scrambles))
-status_col_2.metric('Edge tracing', edge_method_label)
-status_col_3.metric('Buffers', 'Partial' if buffer_mode == 'Partial floating' else buffer_mode)
 
 run_analysis = st.button('Analyze Set', type='primary', use_container_width=True)
 
