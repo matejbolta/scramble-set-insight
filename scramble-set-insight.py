@@ -201,8 +201,12 @@ if run_analysis:
             with chart_col:
                 st.vega_lite_chart(distribution_data, distribution_chart_spec, use_container_width=True)
 
-            st.subheader('Raw alg_count_list')
-            st.code(json.dumps(alg_count_list), language='json')
+            st.subheader('Algs per each scramble')
+            algs_per_scramble_rows = [
+                {'Scramble': index + 1, 'Algs': algs}
+                for index, algs in enumerate(alg_count_list)
+            ]
+            st.dataframe(algs_per_scramble_rows, use_container_width=True, hide_index=True)
 
         except Exception:
             st.error('Could not parse the input. Paste text from csTimer ScrambleGenerator or Session Statistics.')
