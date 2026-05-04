@@ -157,7 +157,7 @@ if run_analysis:
             st.divider()
             st.subheader('Distribution')
             distribution_data = [
-                {'Algs': algs, 'Scrambles': count}
+                {'Algs': algs, 'Algs label': f'{algs} algs', 'Scrambles': count}
                 for algs, count in sorted(number_of_cases_with_n_algs_dict.items())
             ]
             distribution_chart_spec = {
@@ -166,18 +166,23 @@ if run_analysis:
                         'mark': {'type': 'bar', 'color': '#79b8ea', 'cornerRadiusTopLeft': 2, 'cornerRadiusTopRight': 2},
                         'encoding': {
                             'x': {
-                                'field': 'Algs',
+                                'field': 'Algs label',
                                 'type': 'ordinal',
                                 'sort': 'ascending',
                                 'axis': {'labelAngle': 0, 'title': None},
                             },
-                            'y': {'field': 'Scrambles', 'type': 'quantitative', 'title': None},
+                            'y': {
+                                'field': 'Scrambles',
+                                'type': 'quantitative',
+                                'title': None,
+                                'axis': {'labels': False, 'ticks': False, 'domain': False, 'grid': True},
+                            },
                         },
                     },
                     {
                         'mark': {'type': 'text', 'dy': -10, 'color': '#e6edf3', 'fontSize': 14, 'fontWeight': 600},
                         'encoding': {
-                            'x': {'field': 'Algs', 'type': 'ordinal', 'sort': 'ascending'},
+                            'x': {'field': 'Algs label', 'type': 'ordinal', 'sort': 'ascending'},
                             'y': {'field': 'Scrambles', 'type': 'quantitative'},
                             'text': {'field': 'Scrambles', 'type': 'quantitative'},
                         },
