@@ -12,207 +12,128 @@
   </head>
   <body>
     <div class="page-shell">
-      <header class="hero">
-        <div class="hero__copy">
-          <p class="eyebrow">Blindfolded Analysis Tool</p>
-          <h1>Scramble Set Insight</h1>
-          <p class="hero__lede">
-            Paste a csTimer scramble block, tune your tracing assumptions, and get a clean analytical readout without Streamlit in the middle.
-          </p>
-        </div>
-        <div class="hero__status" id="hero-status">
-          <div class="status-chip status-chip--idle" id="run-status">Idle</div>
-          <div class="hero__meta">
-            <span id="parsed-count">0 scrambles parsed</span>
-            <span id="worker-mode">Running locally in your browser</span>
-          </div>
-        </div>
-      </header>
+      <main class="app-shell">
+        <section class="parameter-grid">
+          <div class="parameter-group">
+            <label class="field-label">Edge tracing</label>
+            <div class="radio-group" id="edge-method-group">
+              <label class="radio-option">
+                <input type="radio" name="edge-method" value="weakswap" checked />
+                <span>Weak Swap</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="edge-method" value="pseudoswap" />
+                <span>Pseudo Swap</span>
+              </label>
+            </div>
 
-      <main class="layout">
-        <section class="panel panel--input">
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Input</p>
-              <h2>Scramble Source</h2>
-            </div>
-            <div class="panel__tools">
-              <button class="ghost-button" id="load-example-button" type="button">Load 10k Example</button>
-              <button class="ghost-button" id="clear-button" type="button">Clear</button>
+            <label class="field-label" for="tracing-orientation">Tracing orientation</label>
+            <input id="tracing-orientation" class="text-input" type="text" placeholder="e.g. x2" />
+          </div>
+
+          <div class="parameter-group">
+            <label class="checkbox-option">
+              <input id="dnf" type="checkbox" />
+              <span>Include DNFs</span>
+            </label>
+            <label class="checkbox-option">
+              <input id="ltct" type="checkbox" />
+              <span>I use LTCT</span>
+            </label>
+
+            <div class="weight-grid">
+              <label class="field-label field-label--compact" for="flip-weight" title="Algs per floating 2-flip">2-flip weight</label>
+              <label class="field-label field-label--compact" for="twist-weight" title="Algs per floating 2-twist">2-twist weight</label>
+              <input id="flip-weight" class="number-input" type="number" min="0" step="0.5" value="1" />
+              <input id="twist-weight" class="number-input" type="number" min="0" step="0.5" value="1" />
             </div>
           </div>
-          <label class="input-label" for="scramble-input">csTimer Scrambles or Session Statistics</label>
-          <textarea
-            id="scramble-input"
-            class="scramble-textarea"
-            placeholder="Paste csTimer ScrambleGenerator output or Session Statistics here..."
-          ></textarea>
-          <div class="input-footnote" id="parse-hint">
-            Parser understands both csTimer ScrambleGenerator blocks and Session Statistics dumps.
+
+          <div class="parameter-group">
+            <label class="field-label">Buffers</label>
+            <div class="radio-group" id="buffer-mode-group">
+              <label class="radio-option">
+                <input type="radio" name="buffer-mode" value="standard" checked />
+                <span>UF/UFR</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="buffer-mode" value="full" />
+                <span>Full floating</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="buffer-mode" value="partial" />
+                <span>Partial floating</span>
+              </label>
+            </div>
+
+            <div class="partial-buffers is-hidden" id="partial-buffers">
+              <div class="buffer-subgroup">
+                <div class="buffer-subtitle">Corner buffers</div>
+                <div class="pill-grid" id="corner-pills"></div>
+              </div>
+              <div class="buffer-subgroup">
+                <div class="buffer-subtitle">Edge buffers</div>
+                <div class="pill-grid" id="edge-pills"></div>
+              </div>
+            </div>
           </div>
         </section>
 
-        <aside class="panel panel--settings">
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Method</p>
-              <h2>Analysis Settings</h2>
-            </div>
+        <section class="scramble-section">
+          <label class="field-label" for="scramble-input">Scrambles</label>
+          <textarea
+            id="scramble-input"
+            class="scramble-textarea"
+            placeholder="Paste from csTimer's ScrambleGenerator or Session Statistics"
+          ></textarea>
+        </section>
+
+        <section class="action-row">
+          <button class="secondary-button" id="load-example-button" type="button">Load 10k Example</button>
+          <button class="secondary-button" id="clear-button" type="button">Clear</button>
+          <button class="primary-button" id="analyze-button" type="button">Analyze Set</button>
+        </section>
+
+        <section class="results-section is-hidden" id="results-section">
+          <div class="notice-banner" id="processed-banner"></div>
+
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span class="metric-label">Scrambles</span>
+              <strong class="metric-value" id="stat-solves">0</strong>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">Total algs</span>
+              <strong class="metric-value" id="stat-total">0</strong>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">Average algs</span>
+              <strong class="metric-value" id="stat-average">0.00</strong>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">F-2-flips</span>
+              <strong class="metric-value" id="stat-two-flips">0</strong>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">F-2-twists</span>
+              <strong class="metric-value" id="stat-two-twists">0</strong>
+            </article>
           </div>
 
-          <div class="settings-grid">
-            <label class="field">
-              <span>Edge tracing</span>
-              <select id="edge-method">
-                <option value="weakswap">Weak Swap</option>
-                <option value="pseudoswap">Pseudo Swap</option>
-              </select>
-            </label>
+          <div class="divider"></div>
 
-            <label class="field">
-              <span>Tracing orientation</span>
-              <input id="tracing-orientation" type="text" placeholder="e.g. x2 or z x y'" />
-            </label>
+          <section class="result-block">
+            <h2>Distribution</h2>
+            <div id="distribution-chart" class="distribution-chart empty-state">Run an analysis to see the distribution.</div>
+          </section>
 
-            <label class="field">
-              <span>Algs per floating 2-flip</span>
-              <input id="flip-weight" type="number" min="0" step="0.5" value="1" />
-            </label>
-
-            <label class="field">
-              <span>Algs per floating 2-twist</span>
-              <input id="twist-weight" type="number" min="0" step="0.5" value="1" />
-            </label>
-          </div>
-
-          <details class="advanced-box">
-            <summary>Advanced options</summary>
-            <div class="advanced-box__content">
-              <label class="checkbox-row">
-                <input id="ltct" type="checkbox" />
-                <span>I use LTCT</span>
-              </label>
-              <label class="checkbox-row">
-                <input id="dnf" type="checkbox" />
-                <span>Include DNFs</span>
-              </label>
-              <label class="field">
-                <span>Corner buffers</span>
-                <select id="corner-buffers" multiple size="6">
-                  <option value="UFR" selected>UFR</option>
-                  <option value="UFL">UFL</option>
-                  <option value="UBR">UBR</option>
-                  <option value="UBL">UBL</option>
-                  <option value="RDF">RDF</option>
-                  <option value="FDL">FDL</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Edge buffers</span>
-                <select id="edge-buffers" multiple size="10">
-                  <option value="UF" selected>UF</option>
-                  <option value="UR">UR</option>
-                  <option value="UB">UB</option>
-                  <option value="UL">UL</option>
-                  <option value="FR">FR</option>
-                  <option value="FL">FL</option>
-                  <option value="DF">DF</option>
-                  <option value="DB">DB</option>
-                  <option value="DR">DR</option>
-                  <option value="DL">DL</option>
-                </select>
-              </label>
-              <div class="advanced-note">
-                Leave only <code>UFR</code> and <code>UF</code> selected for legacy-compatible mode. Add buffers to explore floating behavior.
-              </div>
-            </div>
-          </details>
-
-          <div class="action-bar">
-            <button class="primary-button" id="analyze-button" type="button">Analyze</button>
-            <button class="secondary-button" id="copy-summary-button" type="button" disabled>Copy Summary</button>
-          </div>
-        </aside>
+          <section class="result-block">
+            <h2>Algs per scramble</h2>
+            <div id="alg-grid" class="alg-grid empty-state">Run an analysis to see per-scramble alg counts.</div>
+          </section>
+        </section>
       </main>
-
-      <section class="results-grid">
-        <div class="panel panel--results panel--summary">
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Overview</p>
-              <h2>Result Snapshot</h2>
-            </div>
-          </div>
-          <div class="stat-grid">
-            <article class="stat-card">
-              <span class="stat-card__label">Scrambles</span>
-              <strong class="stat-card__value" id="stat-solves">0</strong>
-            </article>
-            <article class="stat-card">
-              <span class="stat-card__label">Average algs</span>
-              <strong class="stat-card__value" id="stat-average">0</strong>
-            </article>
-            <article class="stat-card">
-              <span class="stat-card__label">Total algs</span>
-              <strong class="stat-card__value" id="stat-total">0</strong>
-            </article>
-            <article class="stat-card">
-              <span class="stat-card__label">Floating 2-flips</span>
-              <strong class="stat-card__value" id="stat-two-flips">0</strong>
-            </article>
-            <article class="stat-card">
-              <span class="stat-card__label">Floating 2-twists</span>
-              <strong class="stat-card__value" id="stat-two-twists">0</strong>
-            </article>
-            <article class="stat-card">
-              <span class="stat-card__label">Range</span>
-              <strong class="stat-card__value" id="stat-range">0-0</strong>
-            </article>
-          </div>
-        </div>
-
-        <div class="panel panel--results panel--chart">
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Distribution</p>
-              <h2>Algs per Scramble</h2>
-            </div>
-          </div>
-          <div id="distribution-chart" class="distribution-chart empty-state">
-            Run an analysis to see the distribution.
-          </div>
-        </div>
-
-        <div class="panel panel--results panel--table">
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Breakdown</p>
-              <h2>Count Table</h2>
-            </div>
-          </div>
-          <div class="distribution-table" id="distribution-table">
-            <div class="empty-state">No breakdown yet.</div>
-          </div>
-        </div>
-
-        <div class="panel panel--results panel--raw">
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Raw Output</p>
-              <h2>Per-Scramble Alg List</h2>
-            </div>
-          </div>
-          <pre id="alg-list" class="code-block">[]</pre>
-        </div>
-      </section>
     </div>
-
-    <template id="table-row-template">
-      <div class="distribution-row">
-        <span class="distribution-row__key"></span>
-        <span class="distribution-row__value"></span>
-      </div>
-    </template>
 
     <script src="./wide-move-translator.js"></script>
     <script src="./scrambling.js"></script>

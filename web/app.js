@@ -1,86 +1,114 @@
 const worker = new Worker('./worker.js');
 let requestId = 0;
-let lastSummary = '';
+
+const CORNER_BUFFER_OPTIONS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
+const EDGE_BUFFER_OPTIONS = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
+const LEGACY_CORNER_BUFFERS = ['UFR'];
+const LEGACY_EDGE_BUFFERS = ['UF'];
 
 const elements = {
   scrambleInput: document.getElementById('scramble-input'),
   tracingOrientation: document.getElementById('tracing-orientation'),
-  edgeMethod: document.getElementById('edge-method'),
+  dnf: document.getElementById('dnf'),
+  ltct: document.getElementById('ltct'),
   flipWeight: document.getElementById('flip-weight'),
   twistWeight: document.getElementById('twist-weight'),
-  ltct: document.getElementById('ltct'),
-  dnf: document.getElementById('dnf'),
-  cornerBuffers: document.getElementById('corner-buffers'),
-  edgeBuffers: document.getElementById('edge-buffers'),
   analyzeButton: document.getElementById('analyze-button'),
   loadExampleButton: document.getElementById('load-example-button'),
   clearButton: document.getElementById('clear-button'),
-  copySummaryButton: document.getElementById('copy-summary-button'),
-  runStatus: document.getElementById('run-status'),
-  parsedCount: document.getElementById('parsed-count'),
-  parseHint: document.getElementById('parse-hint'),
+  processedBanner: document.getElementById('processed-banner'),
+  resultsSection: document.getElementById('results-section'),
   statSolves: document.getElementById('stat-solves'),
   statAverage: document.getElementById('stat-average'),
   statTotal: document.getElementById('stat-total'),
   statTwoFlips: document.getElementById('stat-two-flips'),
   statTwoTwists: document.getElementById('stat-two-twists'),
-  statRange: document.getElementById('stat-range'),
   distributionChart: document.getElementById('distribution-chart'),
-  distributionTable: document.getElementById('distribution-table'),
-  algList: document.getElementById('alg-list'),
-  tableRowTemplate: document.getElementById('table-row-template'),
+  algGrid: document.getElementById('alg-grid'),
+  partialBuffers: document.getElementById('partial-buffers'),
+  cornerPills: document.getElementById('corner-pills'),
+  edgePills: document.getElementById('edge-pills'),
 };
 
-function setStatus(label, mode) {
-  elements.runStatus.textContent = label;
-  elements.runStatus.className = `status-chip status-chip--${mode}`;
+const state = {
+  cornerBuffers: [...LEGACY_CORNER_BUFFERS],
+  edgeBuffers: [...LEGACY_EDGE_BUFFERS],
+};
+
+function getEdgeMethod() {
+  return document.querySelector('input[name="edge-method"]:checked').value;
 }
 
-function getSelectedValues(select) {
-  return Array.from(select.selectedOptions).map((option) => option.value);
+function getBufferMode() {
+  return document.querySelector('input[name="buffer-mode"]:checked').value;
 }
 
-function updateParsedCount() {
-  const count = window.SsiCore.extractScrambleList(elements.scrambleInput.value, elements.dnf.checked).length;
-  elements.parsedCount.textContent = `${count} scramble${count === 1 ? '' : 's'} parsed`;
-  elements.parseHint.textContent = count
-    ? `Parser found ${count} valid scramble${count === 1 ? '' : 's'}.`
-    : 'Paste csTimer ScrambleGenerator output or Session Statistics here.';
+function updateBufferModeUI() {
+  const mode = getBufferMode();
+  elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
+
+  if (mode === 'standard') {
+    state.cornerBuffers = [...LEGACY_CORNER_BUFFERS];
+    state.edgeBuffers = [...LEGACY_EDGE_BUFFERS];
+  } else if (mode === 'full') {
+    state.cornerBuffers = [...CORNER_BUFFER_OPTIONS];
+    state.edgeBuffers = [...EDGE_BUFFER_OPTIONS];
+  }
+
+  syncPills();
+}
+
+function createPills(container, options, selectedValues, group) {
+  container.innerHTML = '';
+  for (const option of options) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `pill${selectedValues.includes(option) ? ' is-active' : ''}`;
+    button.textContent = option;
+    button.dataset.value = option;
+    button.dataset.group = group;
+    button.addEventListener('click', () => toggleBuffer(group, option));
+    container.appendChild(button);
+  }
+}
+
+function syncPills() {
+  createPills(elements.cornerPills, CORNER_BUFFER_OPTIONS, state.cornerBuffers, 'corner');
+  createPills(elements.edgePills, EDGE_BUFFER_OPTIONS, state.edgeBuffers, 'edge');
+}
+
+function toggleBuffer(group, value) {
+  const current = group === 'corner' ? state.cornerBuffers : state.edgeBuffers;
+  const index = current.indexOf(value);
+
+  if (index >= 0) {
+    current.splice(index, 1);
+  } else {
+    current.push(value);
+  }
+
+  syncPills();
 }
 
 function resetResults() {
+  elements.resultsSection.classList.add('is-hidden');
+  elements.processedBanner.textContent = '';
   elements.statSolves.textContent = '0';
-  elements.statAverage.textContent = '0';
+  elements.statAverage.textContent = '0.00';
   elements.statTotal.textContent = '0';
   elements.statTwoFlips.textContent = '0';
   elements.statTwoTwists.textContent = '0';
-  elements.statRange.textContent = '0-0';
   elements.distributionChart.className = 'distribution-chart empty-state';
   elements.distributionChart.textContent = 'Run an analysis to see the distribution.';
-  elements.distributionTable.innerHTML = '<div class="empty-state">No breakdown yet.</div>';
-  elements.algList.textContent = '[]';
-  elements.copySummaryButton.disabled = true;
-  lastSummary = '';
-}
-
-function buildSummary(result, settings) {
-  return [
-    'Scramble Set Insight',
-    `Edge method: ${settings.edgeMethod}`,
-    `Tracing orientation: ${settings.tracingOrientation || '(identity)'}`,
-    `Corner buffers: ${settings.cornerBuffers.join(', ')}`,
-    `Edge buffers: ${settings.edgeBuffers.join(', ')}`,
-    '',
-    `Scrambles: ${result.numberOfSolves}`,
-    `Average algs: ${result.average}`,
-    `Total algs: ${result.total}`,
-    `Floating 2-flips: ${result.totalTwoFlips}`,
-    `Floating 2-twists: ${result.totalTwoTwists}`,
-  ].join('\n');
+  elements.algGrid.className = 'alg-grid empty-state';
+  elements.algGrid.textContent = 'Run an analysis to see per-scramble alg counts.';
 }
 
 function renderDistributionChart(distribution) {
-  const entries = Object.entries(distribution).map(([key, value]) => ({ key, value }));
+  const entries = Object.entries(distribution)
+    .map(([key, value]) => ({ algs: Number(key), value }))
+    .sort((a, b) => a.algs - b.algs);
+
   if (!entries.length) {
     elements.distributionChart.className = 'distribution-chart empty-state';
     elements.distributionChart.textContent = 'No distribution data.';
@@ -89,14 +117,19 @@ function renderDistributionChart(distribution) {
 
   const width = 780;
   const height = 280;
-  const paddingLeft = 44;
-  const paddingBottom = 36;
+  const paddingLeft = 18;
+  const paddingBottom = 38;
   const paddingTop = 18;
-  const gap = 8;
-  const plotWidth = width - paddingLeft - 14;
+  const gap = 12;
+  const plotWidth = width - paddingLeft - 18;
   const plotHeight = height - paddingTop - paddingBottom;
   const maxValue = Math.max(...entries.map((entry) => entry.value));
   const barWidth = Math.max(18, (plotWidth - gap * (entries.length - 1)) / entries.length);
+
+  const gridLines = Array.from({ length: 5 }, (_, index) => {
+    const y = paddingTop + (plotHeight / 4) * index;
+    return `<line x1="${paddingLeft}" y1="${y}" x2="${width - 8}" y2="${y}" stroke="rgba(255,255,255,0.12)"></line>`;
+  }).join('');
 
   const bars = entries.map((entry, index) => {
     const barHeight = maxValue === 0 ? 0 : (entry.value / maxValue) * plotHeight;
@@ -104,69 +137,65 @@ function renderDistributionChart(distribution) {
     const y = paddingTop + plotHeight - barHeight;
     return `
       <g>
-        <rect class="chart-bar" x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="8"></rect>
-        <text class="chart-axis-label" x="${x + barWidth / 2}" y="${height - 10}" text-anchor="middle">${entry.key}</text>
-        <text class="chart-value-label" x="${x + barWidth / 2}" y="${Math.max(y - 6, 12)}" text-anchor="middle">${entry.value}</text>
+        <rect class="chart-bar" x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="6"></rect>
+        <text class="chart-axis-label" x="${x + barWidth / 2}" y="${height - 8}" text-anchor="middle">${entry.algs} algs</text>
+        <text class="chart-value-label" x="${x + barWidth / 2}" y="${Math.max(y - 8, 12)}" text-anchor="middle">${entry.value}</text>
       </g>`;
   }).join('');
 
   elements.distributionChart.className = 'distribution-chart';
   elements.distributionChart.innerHTML = `
     <svg class="chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Distribution chart">
-      <defs>
-        <linearGradient id="barGradient" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stop-color="#0f5bd8"></stop>
-          <stop offset="100%" stop-color="#c45416"></stop>
-        </linearGradient>
-      </defs>
-      <line x1="${paddingLeft}" y1="${paddingTop + plotHeight}" x2="${width - 8}" y2="${paddingTop + plotHeight}" stroke="rgba(29,36,48,0.18)"></line>
+      ${gridLines}
       ${bars}
     </svg>`;
 }
 
-function renderDistributionTable(distribution) {
-  const entries = Object.entries(distribution);
-  if (!entries.length) {
-    elements.distributionTable.innerHTML = '<div class="empty-state">No breakdown yet.</div>';
+function renderAlgGrid(algCountList) {
+  if (!algCountList.length) {
+    elements.algGrid.className = 'alg-grid empty-state';
+    elements.algGrid.textContent = 'No per-scramble data.';
     return;
   }
-  elements.distributionTable.innerHTML = '';
-  for (const [key, value] of entries) {
-    const row = elements.tableRowTemplate.content.firstElementChild.cloneNode(true);
-    row.querySelector('.distribution-row__key').textContent = key;
-    row.querySelector('.distribution-row__value').textContent = value;
-    elements.distributionTable.appendChild(row);
-  }
+
+  elements.algGrid.className = 'alg-grid';
+  elements.algGrid.innerHTML = algCountList
+    .map(
+      (algs, index) => `
+        <div class="alg-cell">
+          <div class="alg-cell__index">${index + 1}</div>
+          <div class="alg-cell__value">${algs}</div>
+        </div>`
+    )
+    .join('');
 }
 
-function renderResult(rawResult, settings) {
+function renderResult(rawResult) {
   const [numberOfSolves, distribution, average, total, totalTwoFlips, totalTwoTwists, algCountList] = rawResult;
-  const keys = Object.keys(distribution).map(Number);
-  const range = keys.length ? `${Math.min(...keys)}-${Math.max(...keys)}` : '0-0';
 
+  elements.resultsSection.classList.remove('is-hidden');
+  elements.processedBanner.textContent = `Processed ${numberOfSolves} scramble${numberOfSolves === 1 ? '' : 's'}.`;
   elements.statSolves.textContent = String(numberOfSolves);
-  elements.statAverage.textContent = String(average);
   elements.statTotal.textContent = String(total);
+  elements.statAverage.textContent = Number(average).toFixed(2);
   elements.statTwoFlips.textContent = String(totalTwoFlips);
   elements.statTwoTwists.textContent = String(totalTwoTwists);
-  elements.statRange.textContent = range;
   renderDistributionChart(distribution);
-  renderDistributionTable(distribution);
-  elements.algList.textContent = JSON.stringify(algCountList);
-
-  lastSummary = buildSummary({ numberOfSolves, average, total, totalTwoFlips, totalTwoTwists }, settings);
-  elements.copySummaryButton.disabled = false;
+  renderAlgGrid(algCountList);
 }
 
 function collectSettings() {
-  const cornerBuffers = getSelectedValues(elements.cornerBuffers);
-  const edgeBuffers = getSelectedValues(elements.edgeBuffers);
+  const bufferMode = getBufferMode();
+  const cornerBuffers = bufferMode === 'partial' ? state.cornerBuffers : [...state.cornerBuffers];
+  const edgeBuffers = bufferMode === 'partial' ? state.edgeBuffers : [...state.edgeBuffers];
+
   if (!cornerBuffers.length) throw new Error('Select at least one corner buffer.');
   if (!edgeBuffers.length) throw new Error('Select at least one edge buffer.');
+
   return {
     scrambles: elements.scrambleInput.value,
     tracingOrientation: elements.tracingOrientation.value.trim(),
-    edgeMethod: elements.edgeMethod.value,
+    edgeMethod: getEdgeMethod(),
     flipWeight: Number(elements.flipWeight.value),
     twistWeight: Number(elements.twistWeight.value),
     ltct: elements.ltct.checked,
@@ -179,8 +208,6 @@ function collectSettings() {
 async function analyze() {
   const settings = collectSettings();
   if (!settings.scrambles.trim()) throw new Error('Paste some scrambles first.');
-  updateParsedCount();
-  setStatus('Analyzing', 'running');
   elements.analyzeButton.disabled = true;
   const id = ++requestId;
 
@@ -190,11 +217,9 @@ async function analyze() {
       worker.removeEventListener('message', handleMessage);
       elements.analyzeButton.disabled = false;
       if (event.data.ok) {
-        renderResult(event.data.result, settings);
-        setStatus('Analysis complete', 'success');
+        renderResult(event.data.result);
         resolve();
       } else {
-        setStatus('Input error', 'error');
         reject(new Error(event.data.error));
       }
     };
@@ -208,34 +233,27 @@ async function loadExample() {
   const response = await fetch('./examples/testing-10k-scrams.txt');
   if (!response.ok) throw new Error('Could not load bundled example scrambles.');
   elements.scrambleInput.value = await response.text();
-  updateParsedCount();
 }
 
-window.SsiCore = window.SsiCore || {};
-
-backendReady();
-
-function backendReady() {
+function initialize() {
   resetResults();
-  updateParsedCount();
+  syncPills();
+  updateBufferModeUI();
 
-  elements.scrambleInput.addEventListener('input', updateParsedCount);
-  elements.dnf.addEventListener('change', updateParsedCount);
+  document.querySelectorAll('input[name="buffer-mode"]').forEach((input) => {
+    input.addEventListener('change', updateBufferModeUI);
+  });
+
   elements.clearButton.addEventListener('click', () => {
     elements.scrambleInput.value = '';
-    updateParsedCount();
     resetResults();
-    setStatus('Idle', 'idle');
   });
 
   elements.loadExampleButton.addEventListener('click', async () => {
     try {
-      setStatus('Loading example', 'running');
       await loadExample();
-      setStatus('Example loaded', 'success');
     } catch (error) {
-      setStatus('Example failed', 'error');
-      elements.parseHint.textContent = error.message;
+      alert(error.message);
     }
   });
 
@@ -243,13 +261,9 @@ function backendReady() {
     try {
       await analyze();
     } catch (error) {
-      elements.parseHint.textContent = error.message;
+      alert(error.message);
     }
   });
-
-  elements.copySummaryButton.addEventListener('click', async () => {
-    if (!lastSummary) return;
-    await navigator.clipboard.writeText(lastSummary);
-    setStatus('Summary copied', 'success');
-  });
 }
+
+initialize();
