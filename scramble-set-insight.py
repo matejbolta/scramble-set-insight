@@ -202,7 +202,7 @@ if run_analysis:
                 unsafe_allow_html=True,
             )
 
-            rounded_average_algs = round(average_algs_per, 2)
+            rounded_average_algs = f'{average_algs_per:.2f}'
 
             metric_col_1, metric_col_2, metric_col_3, metric_col_4, metric_col_5 = st.columns(5)
             metric_col_1.metric('Scrambles', number_of_solves)
