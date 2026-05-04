@@ -86,6 +86,7 @@ with st.sidebar:
         corner_buffers = CORNER_BUFFER_OPTIONS.copy()
         edge_buffers = EDGE_BUFFER_OPTIONS.copy()
     else:
+        st.markdown("<div style='padding-left: 1rem;'>", unsafe_allow_html=True)
         corner_buffers = compact_buffer_picker(
             'Corner buffers',
             CORNER_BUFFER_OPTIONS,
@@ -100,6 +101,7 @@ with st.sidebar:
             'edge_buffer',
             columns_count=2,
         )
+        st.markdown('</div>', unsafe_allow_html=True)
 
 scrambles = st.text_area(
     'Scrambles: paste from csTimer ScrambleGenerator or Session Statistics',
