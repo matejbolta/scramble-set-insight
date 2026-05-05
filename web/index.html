@@ -17,12 +17,14 @@
           <p class="eyebrow">Blindfolded Analysis Tool</p>
           <h1>Scramble Set Insight</h1>
           <p class="hero-card__lede">
-            Tune your tracing assumptions, paste a scramble set, and get a clean read on the alg load without relying on a backend server.
+            Use the same tracing assumptions as the legacy app, but with a cleaner static frontend that runs entirely in the browser.
           </p>
         </div>
         <div class="hero-card__side">
-          <div class="hero-badge">Runs entirely in your browser</div>
-          <p class="hero-side__text">Static site, local compute, no sleeping server.</p>
+          <div class="hero-badge">No backend server</div>
+          <p class="hero-side__text">
+            Local compute, no sleeping server, and the same core logic underneath.
+          </p>
         </div>
       </header>
 
@@ -31,12 +33,12 @@
           <div class="section-head">
             <div>
               <p class="section-kicker">Setup</p>
-              <h2>Analysis Parameters</h2>
+              <h2>Tracing assumptions and scramble set</h2>
             </div>
           </div>
 
           <div class="parameter-grid">
-            <div class="parameter-group">
+            <div class="parameter-group parameter-card">
               <label class="field-label">Edge tracing</label>
               <div class="radio-group" id="edge-method-group">
                 <label class="radio-option">
@@ -50,7 +52,7 @@
               </div>
             </div>
 
-            <div class="parameter-group parameter-group--toggle-stack">
+            <div class="parameter-group parameter-card parameter-card--checks">
               <label class="checkbox-option">
                 <input id="dnf" type="checkbox" />
                 <span>Include DNFs</span>
@@ -61,7 +63,7 @@
               </label>
             </div>
 
-            <div class="parameter-group">
+            <div class="parameter-group parameter-card">
               <label class="field-label">Buffers</label>
               <div class="radio-group" id="buffer-mode-group">
                 <label class="radio-option">
@@ -79,12 +81,12 @@
               </div>
             </div>
 
-            <div class="parameter-group parameter-group--narrow">
+            <div class="parameter-group parameter-card parameter-card--orientation">
               <label class="field-label" for="tracing-orientation">Tracing orientation</label>
               <input id="tracing-orientation" class="text-input" type="text" placeholder="e.g. x2" />
             </div>
 
-            <div class="parameter-group parameter-group--weights">
+            <div class="parameter-group parameter-card parameter-card--weights">
               <div class="weight-grid">
                 <label class="field-label field-label--compact" for="flip-weight" title="Algs per floating 2-flip">2-flip weight</label>
                 <label class="field-label field-label--compact" for="twist-weight" title="Algs per floating 2-twist">2-twist weight</label>
@@ -125,6 +127,12 @@
           <div class="notice-banner" id="processed-banner"></div>
 
           <section class="card card--metrics">
+            <div class="section-head section-head--tight">
+              <div>
+                <p class="section-kicker">Results</p>
+                <h2>Set overview</h2>
+              </div>
+            </div>
             <div class="metric-grid">
               <article class="metric-card">
                 <span class="metric-label">Scrambles</span>
@@ -153,7 +161,7 @@
             <div class="section-head section-head--tight">
               <div>
                 <p class="section-kicker">Distribution</p>
-                <h2>Algs per Scramble</h2>
+                <h2>Algs per scramble</h2>
               </div>
             </div>
             <div id="distribution-chart" class="distribution-chart empty-state">Run an analysis to see the distribution.</div>
@@ -163,7 +171,7 @@
             <div class="section-head section-head--tight">
               <div>
                 <p class="section-kicker">Breakdown</p>
-                <h2>Algs per Scramble</h2>
+                <h2>Algs per scramble</h2>
               </div>
             </div>
             <div id="alg-grid" class="alg-grid empty-state">Run an analysis to see per-scramble alg counts.</div>
