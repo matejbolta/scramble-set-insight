@@ -12,18 +12,12 @@
   </head>
   <body>
     <div class="page-shell">
-      <header class="hero-card">
+      <header class="hero-card hero-card--minimal">
         <div class="hero-card__copy">
           <p class="eyebrow">Blindfolded Analysis Tool</p>
           <h1>Scramble Set Insight</h1>
           <p class="hero-card__lede">
-            Use the same tracing assumptions as the legacy app, but with a cleaner static frontend that runs entirely in the browser.
-          </p>
-        </div>
-        <div class="hero-card__side">
-          <div class="hero-badge">No backend server</div>
-          <p class="hero-side__text">
-            Local compute, no sleeping server, and the same core logic underneath.
+            Estimate alg load across a scramble set with your own tracing setup.
           </p>
         </div>
       </header>
@@ -33,12 +27,12 @@
           <div class="section-head">
             <div>
               <p class="section-kicker">Setup</p>
-              <h2>Tracing assumptions and scramble set</h2>
+              <h2>Build your tracing setup</h2>
             </div>
           </div>
 
           <div class="parameter-grid">
-            <div class="parameter-group parameter-card">
+            <div class="parameter-group parameter-card parameter-card--edge">
               <label class="field-label">Edge tracing</label>
               <div class="radio-group" id="edge-method-group">
                 <label class="radio-option">
@@ -63,7 +57,7 @@
               </label>
             </div>
 
-            <div class="parameter-group parameter-card">
+            <div class="parameter-group parameter-card parameter-card--buffers">
               <label class="field-label">Buffers</label>
               <div class="radio-group" id="buffer-mode-group">
                 <label class="radio-option">
@@ -78,6 +72,17 @@
                   <input type="radio" name="buffer-mode" value="partial" />
                   <span>Partial floating</span>
                 </label>
+              </div>
+
+              <div class="partial-buffers is-hidden" id="partial-buffers">
+                <div class="buffer-subgroup">
+                  <div class="buffer-subtitle">Corner buffers</div>
+                  <div class="pill-grid" id="corner-pills"></div>
+                </div>
+                <div class="buffer-subgroup">
+                  <div class="buffer-subtitle">Edge buffers</div>
+                  <div class="pill-grid" id="edge-pills"></div>
+                </div>
               </div>
             </div>
 
@@ -95,16 +100,6 @@
               </div>
             </div>
 
-            <div class="partial-buffers is-hidden" id="partial-buffers">
-              <div class="buffer-subgroup">
-                <div class="buffer-subtitle">Corner buffers</div>
-                <div class="pill-grid" id="corner-pills"></div>
-              </div>
-              <div class="buffer-subgroup">
-                <div class="buffer-subtitle">Edge buffers</div>
-                <div class="pill-grid" id="edge-pills"></div>
-              </div>
-            </div>
           </div>
 
           <div class="scramble-block">
@@ -174,7 +169,7 @@
                 <h2>Algs per scramble</h2>
               </div>
             </div>
-            <div id="alg-grid" class="alg-grid empty-state">Run an analysis to see per-scramble alg counts.</div>
+            <div class="alg-grid-shell"><div id="alg-grid" class="alg-grid empty-state">Run an analysis to see per-scramble alg counts.</div></div>
           </section>
         </section>
       </main>
