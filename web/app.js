@@ -128,7 +128,7 @@ function renderDistributionChart(distribution) {
 
   const gridLines = Array.from({ length: 5 }, (_, index) => {
     const y = paddingTop + (plotHeight / 4) * index;
-    return `<line x1="${paddingLeft}" y1="${y}" x2="${width - 8}" y2="${y}" stroke="rgba(29,34,48,0.12)"></line>`;
+    return `<line x1="${paddingLeft}" y1="${y}" x2="${width - 8}" y2="${y}" stroke="rgba(41,72,58,0.14)"></line>`;
   }).join('');
 
   const bars = entries.map((entry, index) => {
@@ -148,8 +148,8 @@ function renderDistributionChart(distribution) {
     <svg class="chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Distribution chart">
       <defs>
         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#ff6a52"></stop>
-          <stop offset="100%" stop-color="#d85e25"></stop>
+          <stop offset="0%" stop-color="#35c8ad"></stop>
+          <stop offset="100%" stop-color="#159580"></stop>
         </linearGradient>
       </defs>
       ${gridLines}
