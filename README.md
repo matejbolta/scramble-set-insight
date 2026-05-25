@@ -6,7 +6,7 @@ This app helps determine the luckiness of a scramble set using your own tracing 
 
 ### How it works
 
-User pastes a set of scrambles (I suggest using csTimer's ScrambleGenerator, but you can also just paste your entire csTimer session), choose your tracing parameters, and enjoy.
+Input a set of scrambles (for MBLD I suggest using csTimer's ScrambleGenerator, for 3BLD you can just copy your entire csTimer session), choose your tracing parameters, and enjoy.
 
 It supports:
 
