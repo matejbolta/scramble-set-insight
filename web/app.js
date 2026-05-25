@@ -6,6 +6,7 @@ const EDGE_BUFFER_OPTIONS = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR
 const LEGACY_CORNER_BUFFERS = ['UFR'];
 const LEGACY_EDGE_BUFFERS = ['UF'];
 const THEME_STORAGE_KEY = 'ssi-theme';
+const SETTINGS_STORAGE_KEY = 'ssi-settings';
 
 const elements = {
   scrambleInput: document.getElementById('scramble-input'),
@@ -45,6 +46,61 @@ function getBufferMode() {
   return document.querySelector('input[name="buffer-mode"]:checked').value;
 }
 
+function setCheckedRadio(name, value) {
+  const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (input) input.checked = true;
+}
+
+function getCurrentSettingsForStorage() {
+  return {
+    edgeMethod: getEdgeMethod(),
+    bufferMode: getBufferMode(),
+    cornerBuffers: [...state.cornerBuffers],
+    edgeBuffers: [...state.edgeBuffers],
+    dnf: elements.dnf.checked,
+    ltct: elements.ltct.checked,
+    tracingOrientation: elements.tracingOrientation.value,
+    flipWeight: elements.flipWeight.value,
+    twistWeight: elements.twistWeight.value,
+  };
+}
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(getCurrentSettingsForStorage()));
+}
+
+function readSavedSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY));
+    return saved && typeof saved === 'object' ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+function restoreSettings() {
+  const saved = readSavedSettings();
+  if (!saved) return;
+
+  setCheckedRadio('edge-method', saved.edgeMethod);
+  setCheckedRadio('buffer-mode', saved.bufferMode);
+  elements.dnf.checked = Boolean(saved.dnf);
+  elements.ltct.checked = Boolean(saved.ltct);
+  elements.tracingOrientation.value = saved.tracingOrientation || '';
+  elements.flipWeight.value = saved.flipWeight || '1';
+  elements.twistWeight.value = saved.twistWeight || '1';
+
+  if (Array.isArray(saved.cornerBuffers) && saved.cornerBuffers.length) {
+    const cornerBuffers = saved.cornerBuffers.filter((buffer) => CORNER_BUFFER_OPTIONS.includes(buffer));
+    if (cornerBuffers.length) state.cornerBuffers = cornerBuffers;
+  }
+
+  if (Array.isArray(saved.edgeBuffers) && saved.edgeBuffers.length) {
+    const edgeBuffers = saved.edgeBuffers.filter((buffer) => EDGE_BUFFER_OPTIONS.includes(buffer));
+    if (edgeBuffers.length) state.edgeBuffers = edgeBuffers;
+  }
+}
+
 function updateBufferModeUI() {
   const mode = getBufferMode();
   elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
@@ -58,6 +114,7 @@ function updateBufferModeUI() {
   }
 
   syncPills();
+  saveSettings();
 }
 
 function createPills(container, options, selectedValues, group) {
@@ -90,6 +147,7 @@ function toggleBuffer(group, value) {
   }
 
   syncPills();
+  saveSettings();
 }
 
 function applyTheme(theme) {
@@ -276,11 +334,21 @@ async function loadExample() {
 function initialize() {
   initializeTheme();
   resetResults();
+  restoreSettings();
   syncPills();
   updateBufferModeUI();
 
   document.querySelectorAll('input[name="buffer-mode"]').forEach((input) => {
     input.addEventListener('change', updateBufferModeUI);
+  });
+
+  document.querySelectorAll('input[name="edge-method"]').forEach((input) => {
+    input.addEventListener('change', saveSettings);
+  });
+
+  [elements.dnf, elements.ltct, elements.tracingOrientation, elements.flipWeight, elements.twistWeight].forEach((input) => {
+    input.addEventListener('input', saveSettings);
+    input.addEventListener('change', saveSettings);
   });
 
   elements.clearButton.addEventListener('click', () => {
