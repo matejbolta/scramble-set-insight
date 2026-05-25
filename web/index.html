@@ -17,7 +17,7 @@
           <p class="eyebrow">Blindfolded Analysis Tool</p>
           <h1>Scramble Set Insight</h1>
           <p class="hero-card__lede">
-            Estimate alg load across a scramble set with your own tracing setup.
+            Estimate the luckiness of your scramble set with your own tracing setup.
           </p>
         </div>
       </header>
@@ -26,8 +26,7 @@
         <section class="card card--input">
           <div class="section-head">
             <div>
-              <p class="section-kicker">Setup</p>
-              <h2>Build your tracing setup</h2>
+              <p class="section-kicker">Tracing setup</p>
             </div>
           </div>
 
@@ -87,14 +86,23 @@
             </div>
 
             <div class="parameter-group parameter-card parameter-card--orientation">
-              <label class="field-label" for="tracing-orientation">Tracing orientation</label>
+              <div class="field-label-row">
+                <label class="field-label" for="tracing-orientation">Tracing orientation</label>
+                <span class="field-hint" tabindex="0" data-hint="Tracing orientation is ___ away from scrambling orientation." aria-label="Tracing orientation is ___ away from scrambling orientation.">?</span>
+              </div>
               <input id="tracing-orientation" class="text-input" type="text" placeholder="e.g. x2" />
             </div>
 
             <div class="parameter-group parameter-card parameter-card--weights">
               <div class="weight-grid">
-                <label class="field-label field-label--compact" for="flip-weight" title="Algs per floating 2-flip">2-flip weight</label>
-                <label class="field-label field-label--compact" for="twist-weight" title="Algs per floating 2-twist">2-twist weight</label>
+                <div class="field-label-row">
+                  <label class="field-label field-label--compact" for="flip-weight">2-flip weight</label>
+                  <span class="field-hint" tabindex="0" data-hint="Algs per floating 2-flip." aria-label="Algs per floating 2-flip.">?</span>
+                </div>
+                <div class="field-label-row">
+                  <label class="field-label field-label--compact" for="twist-weight">2-twist weight</label>
+                  <span class="field-hint" tabindex="0" data-hint="Algs per floating 2-twist." aria-label="Algs per floating 2-twist.">?</span>
+                </div>
                 <input id="flip-weight" class="number-input" type="number" min="0" step="0.5" value="1" />
                 <input id="twist-weight" class="number-input" type="number" min="0" step="0.5" value="1" />
               </div>
@@ -112,9 +120,9 @@
           </div>
 
           <div class="action-row">
-            <button class="secondary-button" id="load-example-button" type="button">Load 10k Example</button>
-            <button class="secondary-button" id="clear-button" type="button">Clear</button>
             <button class="primary-button" id="analyze-button" type="button">Analyze Set</button>
+            <button class="secondary-button" id="load-example-button" type="button">Load example scrambles</button>
+            <button class="secondary-button" id="clear-button" type="button">Clear</button>
           </div>
         </section>
 
@@ -124,8 +132,7 @@
           <section class="card card--metrics">
             <div class="section-head section-head--tight">
               <div>
-                <p class="section-kicker">Results</p>
-                <h2>Set overview</h2>
+                <p class="section-kicker">Overview</p>
               </div>
             </div>
             <div class="metric-grid">
@@ -156,7 +163,6 @@
             <div class="section-head section-head--tight">
               <div>
                 <p class="section-kicker">Distribution</p>
-                <h2>Algs per scramble</h2>
               </div>
             </div>
             <div id="distribution-chart" class="distribution-chart empty-state">Run an analysis to see the distribution.</div>
@@ -166,7 +172,6 @@
             <div class="section-head section-head--tight">
               <div>
                 <p class="section-kicker">Breakdown</p>
-                <h2>Algs per scramble</h2>
               </div>
             </div>
             <div class="alg-grid-shell"><div id="alg-grid" class="alg-grid empty-state">Run an analysis to see per-scramble alg counts.</div></div>

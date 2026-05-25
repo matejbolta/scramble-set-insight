@@ -174,12 +174,12 @@ button,
 .hero-card h1 {
   font-size: clamp(2.35rem, 4.6vw, 3.85rem);
   letter-spacing: 0;
-  max-width: 11ch;
+  max-width: none;
 }
 
 .hero-card__lede {
   margin: 10px 0 0;
-  max-width: 54ch;
+  max-width: none;
   font-size: 0.92rem;
   line-height: 1.5;
   color: var(--muted);
@@ -255,6 +255,52 @@ button,
   display: block;
   margin: 0;
   font: 700 0.96rem/1.15 'Trebuchet MS', 'Gill Sans', sans-serif;
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-hint {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font: 700 0.78rem/1 'Trebuchet MS', 'Gill Sans', sans-serif;
+  cursor: help;
+}
+
+.field-hint::after {
+  content: attr(data-hint);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 2;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--paper-strong);
+  box-shadow: var(--shadow-soft);
+  color: var(--ink);
+  font: 700 0.78rem/1.25 'Trebuchet MS', 'Gill Sans', sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.field-hint:hover::after,
+.field-hint:focus::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .field-label--compact {
@@ -405,6 +451,7 @@ button,
   padding: 12px 18px;
   border: 1px solid transparent;
   cursor: pointer;
+  white-space: nowrap;
   transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
 
@@ -418,7 +465,7 @@ button,
 }
 
 .secondary-button {
-  flex: 0 1 190px;
+  flex: 0 1 240px;
   background: rgba(255, 251, 245, 0.72);
   border-color: var(--line-strong);
   color: var(--ink);
@@ -444,6 +491,7 @@ button,
   background: linear-gradient(180deg, rgba(255, 252, 246, 0.88), rgba(244, 236, 224, 0.8));
   border: 1px solid rgba(29, 34, 48, 0.08);
   padding: 16px;
+  text-align: center;
 }
 
 .metric-label {

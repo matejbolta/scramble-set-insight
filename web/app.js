@@ -238,7 +238,16 @@ async function analyze() {
 async function loadExample() {
   const response = await fetch('./examples/testing-10k-scrams.txt');
   if (!response.ok) throw new Error('Could not load bundled example scrambles.');
-  elements.scrambleInput.value = await response.text();
+  const scrambles = (await response.text())
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const randomScrambles = [...scrambles]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 100);
+
+  elements.scrambleInput.value = randomScrambles.join('\n');
 }
 
 function initialize() {
