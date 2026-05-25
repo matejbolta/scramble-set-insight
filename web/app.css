@@ -190,14 +190,19 @@ button,
 }
 
 .theme-toggle {
-  position: relative;
+  position: absolute;
+  top: 16px;
+  right: 18px;
   z-index: 1;
-  justify-self: end;
   display: grid;
   place-items: center;
   width: 52px;
   height: 52px;
+  min-width: 52px;
+  max-width: 52px;
   min-height: 52px;
+  max-height: 52px;
+  aspect-ratio: 1;
   padding: 0;
   border: 0;
   border-radius: 10px;
@@ -215,8 +220,12 @@ button,
 }
 
 .theme-toggle__icon {
+  display: block;
+  flex: 0 0 auto;
   width: 34px;
   height: 34px;
+  max-width: 34px;
+  max-height: 34px;
   fill: none;
   stroke: var(--accent);
   stroke-width: 2;
@@ -229,12 +238,18 @@ button,
   display: none;
 }
 
+.theme-toggle__track,
+.theme-toggle__thumb {
+  display: none;
+}
+
 .theme-toggle__text {
   position: absolute;
   width: 1px;
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
@@ -254,10 +269,9 @@ button,
 }
 
 .hero-card--minimal {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 16px;
-  padding: 18px 24px 16px;
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding: 18px 86px 16px 24px;
 }
 
 .hero-card::after {
@@ -791,7 +805,8 @@ button,
   }
 
   .theme-toggle {
-    justify-self: start;
+    top: 12px;
+    right: 12px;
   }
 
   .parameter-grid {
