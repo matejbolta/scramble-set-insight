@@ -1,10 +1,21 @@
-# scramble-set-insight
+# Scramble Set Insight
 
-This app calculates some metrics (mainly counts scrambles with a certain number of algs) to determine the luckiness of your scramble set.
+This app helps determine the luckiness of a scramble set using your own tracing setup.
 
-## How It Works
+### Use the app here: [Scramble Set Insight](https://matejbolta.github.io/scramble-set-insight/)
 
-1. **Access the App**: [Scramble Set Insight](https://scramble-set-insight.streamlit.app/)
-2. **Input Scrambles**
-3. **Set Parameters**
-4. **Enjoy!**
+### How it works
+
+User pastes a set of scrambles (I suggest using csTimer's ScrambleGenerator, but you can also just paste your entire csTimer session), choose your tracing parameters, and enjoy.
+
+It supports:
+
+- weak swap and pseudo swap
+- UF/UFR only, full floating, or partial floating
+- custom tracing/scrambling orientation
+- custom 2-flip and 2-twist weights
+- optional DNF inclusion and LTCT adjustment
+
+### Legacy Version
+
+The deprecated version, hosted on Streamlit, is still available here: [Legacy app](https://scramble-set-insight.streamlit.app/)
