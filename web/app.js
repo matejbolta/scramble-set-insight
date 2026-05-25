@@ -148,8 +148,8 @@ function renderDistributionChart(distribution) {
     <svg class="chart-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Distribution chart">
       <defs>
         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#35c8ad"></stop>
-          <stop offset="100%" stop-color="#159580"></stop>
+          <stop offset="0%" stop-color="#20b6a0"></stop>
+          <stop offset="100%" stop-color="#0f927f"></stop>
         </linearGradient>
       </defs>
       ${gridLines}
