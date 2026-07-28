@@ -136,6 +136,9 @@ if run_analysis:
                 total_two_flips,
                 total_two_twists,
                 alg_count_list,
+                total_corner_algs,
+                total_edge_algs,
+                scramble_alg_breakdown_list,
             ) = alg_counter_main(
                 scrambles,
                 tracing_orientation,

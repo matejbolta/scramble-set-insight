@@ -32,6 +32,23 @@ function compareLists(label, expected, actual) {
       throw new Error(`${label}: first mismatch at index ${i}: expected=${expectedList[i]} actual=${actualList[i]}`);
     }
   }
+  for (const resultIndex of [3, 7, 8]) {
+    if (expected[resultIndex] !== actual[resultIndex]) {
+      throw new Error(`${label}: aggregate mismatch at result index ${resultIndex}: expected=${expected[resultIndex]} actual=${actual[resultIndex]}`);
+    }
+  }
+  if (actual[3] !== actual[7] + actual[8]) {
+    throw new Error(`${label}: component total mismatch ${actual[3]} !== ${actual[7]} + ${actual[8]}`);
+  }
+  if (JSON.stringify(expected[9]) !== JSON.stringify(actual[9])) {
+    throw new Error(`${label}: per-scramble component breakdowns do not match`);
+  }
+  for (let i = 0; i < actual[9].length; i += 1) {
+    const breakdown = actual[9][i];
+    if (breakdown.total_algs !== breakdown.corner_algs + breakdown.edge_algs) {
+      throw new Error(`${label}: per-scramble component mismatch at index ${i}`);
+    }
+  }
   console.log(`PASS ${label}: ${actualList.length} entries match`);
 }
 

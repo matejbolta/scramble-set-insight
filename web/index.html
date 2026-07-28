@@ -137,7 +137,7 @@
             ></textarea>
           </div>
 
-          <div class="action-row">
+          <div class="action-row" id="action-row">
             <button class="primary-button" id="analyze-button" type="button">Analyze Set</button>
             <button class="secondary-button" id="load-example-button" type="button">Load example scrambles</button>
             <button class="secondary-button" id="clear-button" type="button">Clear</button>
@@ -147,22 +147,30 @@
         <section class="results-section is-hidden" id="results-section">
           <div class="notice-banner" id="processed-banner"></div>
 
-          <section class="card card--metrics">
+          <section class="card card--metrics" id="overview-card">
             <div class="section-head section-head--tight">
               <div>
                 <p class="section-kicker">Overview</p>
               </div>
             </div>
             <div class="metric-grid">
-              <article class="metric-card">
+              <article class="metric-card metric-card--set-only">
                 <span class="metric-label">Scrambles</span>
                 <strong class="metric-value" id="stat-solves">0</strong>
               </article>
               <article class="metric-card">
-                <span class="metric-label">Total algs</span>
+                <span class="metric-label" id="stat-total-label">Total algs</span>
                 <strong class="metric-value" id="stat-total">0</strong>
               </article>
-              <article class="metric-card">
+              <article class="metric-card metric-card--single-only is-hidden">
+                <span class="metric-label">Corner algs</span>
+                <strong class="metric-value" id="stat-corners">0</strong>
+              </article>
+              <article class="metric-card metric-card--single-only is-hidden">
+                <span class="metric-label">Edge algs</span>
+                <strong class="metric-value" id="stat-edges">0</strong>
+              </article>
+              <article class="metric-card metric-card--set-only">
                 <span class="metric-label">Average algs</span>
                 <strong class="metric-value" id="stat-average">0.00</strong>
               </article>
@@ -177,22 +185,22 @@
             </div>
           </section>
 
-          <section class="card card--distribution">
-            <div class="section-head section-head--tight">
-              <div>
-                <p class="section-kicker">Distribution</p>
-              </div>
-            </div>
-            <div id="distribution-chart" class="distribution-chart empty-state">Run an analysis to see the distribution.</div>
-          </section>
-
-          <section class="card card--algs">
+          <section class="card card--algs" id="breakdown-card">
             <div class="section-head section-head--tight">
               <div>
                 <p class="section-kicker">Breakdown</p>
               </div>
             </div>
             <div class="alg-grid-shell"><div id="alg-grid" class="alg-grid empty-state">Run an analysis to see per-scramble alg counts.</div></div>
+          </section>
+
+          <section class="card card--distribution" id="distribution-card">
+            <div class="section-head section-head--tight">
+              <div>
+                <p class="section-kicker">Distribution</p>
+              </div>
+            </div>
+            <div id="distribution-chart" class="distribution-chart empty-state">Run an analysis to see the distribution.</div>
           </section>
         </section>
       </main>

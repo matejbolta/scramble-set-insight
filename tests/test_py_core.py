@@ -55,6 +55,24 @@ def assert_matches(params_path):
             )
         raise AssertionError(f"alg_count_list mismatch for {params['edge_method']}")
 
+    if result[3] != result[7] + result[8]:
+        raise AssertionError(
+            f"component total mismatch for {params['edge_method']}: "
+            f"{result[3]} != {result[7]} + {result[8]}"
+        )
+
+    if len(result[9]) != actual_length:
+        raise AssertionError(
+            f"scramble breakdown length mismatch for {params['edge_method']}: "
+            f"{len(result[9])} != {actual_length}"
+        )
+    for index, breakdown in enumerate(result[9]):
+        if breakdown['total_algs'] != breakdown['corner_algs'] + breakdown['edge_algs']:
+            raise AssertionError(
+                f"scramble breakdown mismatch for {params['edge_method']} at index {index}: "
+                f"{breakdown['total_algs']} != {breakdown['corner_algs']} + {breakdown['edge_algs']}"
+            )
+
     print(
         'PASS: ssi_core matches baseline '
         f"({actual_length} entries, edge_method={params['edge_method']})"

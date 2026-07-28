@@ -15,6 +15,7 @@ const elements = {
   ltct: document.getElementById('ltct'),
   flipWeight: document.getElementById('flip-weight'),
   twistWeight: document.getElementById('twist-weight'),
+  actionRow: document.getElementById('action-row'),
   analyzeButton: document.getElementById('analyze-button'),
   loadExampleButton: document.getElementById('load-example-button'),
   clearButton: document.getElementById('clear-button'),
@@ -22,9 +23,17 @@ const elements = {
   resultsSection: document.getElementById('results-section'),
   statSolves: document.getElementById('stat-solves'),
   statAverage: document.getElementById('stat-average'),
+  statTotalLabel: document.getElementById('stat-total-label'),
   statTotal: document.getElementById('stat-total'),
+  statCorners: document.getElementById('stat-corners'),
+  statEdges: document.getElementById('stat-edges'),
   statTwoFlips: document.getElementById('stat-two-flips'),
   statTwoTwists: document.getElementById('stat-two-twists'),
+  setOnlyMetrics: document.querySelectorAll('.metric-card--set-only'),
+  singleOnlyMetrics: document.querySelectorAll('.metric-card--single-only'),
+  overviewCard: document.getElementById('overview-card'),
+  breakdownCard: document.getElementById('breakdown-card'),
+  distributionCard: document.getElementById('distribution-card'),
   distributionChart: document.getElementById('distribution-chart'),
   algGrid: document.getElementById('alg-grid'),
   partialBuffers: document.getElementById('partial-buffers'),
@@ -176,7 +185,10 @@ function resetResults() {
   elements.processedBanner.textContent = '';
   elements.statSolves.textContent = '0';
   elements.statAverage.textContent = '0.00';
+  elements.statTotalLabel.textContent = 'Total algs';
   elements.statTotal.textContent = '0';
+  elements.statCorners.textContent = '0';
+  elements.statEdges.textContent = '0';
   elements.statTwoFlips.textContent = '0';
   elements.statTwoTwists.textContent = '0';
   elements.distributionChart.className = 'distribution-chart empty-state';
@@ -238,37 +250,74 @@ function renderDistributionChart(distribution) {
     </svg>`;
 }
 
-function renderAlgGrid(algCountList) {
-  if (!algCountList.length) {
+function renderAlgGrid(scrambleBreakdowns) {
+  if (!scrambleBreakdowns.length) {
     elements.algGrid.className = 'alg-grid empty-state';
     elements.algGrid.textContent = 'No per-scramble data.';
     return;
   }
 
+  const showIndexes = scrambleBreakdowns.length > 5;
   elements.algGrid.className = 'alg-grid';
-  elements.algGrid.innerHTML = algCountList
+  elements.algGrid.innerHTML = scrambleBreakdowns
     .map(
-      (algs, index) => `
-        <div class="alg-cell">
-          <div class="alg-cell__index">${index + 1}</div>
-          <div class="alg-cell__value">${algs}</div>
+      (result, index) => `
+        <div class="alg-cell${showIndexes ? '' : ' alg-cell--unindexed'}">
+          ${showIndexes ? `<div class="alg-cell__index">${index + 1}</div>` : ''}
+          <div class="alg-cell__value">${result.total_algs}</div>
+          <div class="alg-cell__split" aria-label="${result.corner_algs} corner algs plus ${result.edge_algs} edge algs">
+            <span>${result.corner_algs}</span>
+            <span class="alg-cell__plus">+</span>
+            <span>${result.edge_algs}</span>
+          </div>
         </div>`
     )
     .join('');
 }
 
 function renderResult(rawResult) {
-  const [numberOfSolves, distribution, average, total, totalTwoFlips, totalTwoTwists, algCountList] = rawResult;
+  const [
+    numberOfSolves,
+    distribution,
+    average,
+    total,
+    totalTwoFlips,
+    totalTwoTwists,
+  ] = rawResult;
+  const totalCornerAlgs = rawResult[7];
+  const totalEdgeAlgs = rawResult[8];
+  const scrambleBreakdowns = rawResult[9];
+  const isSingleScramble = numberOfSolves === 1;
 
   elements.resultsSection.classList.remove('is-hidden');
   elements.processedBanner.textContent = `Processed ${numberOfSolves} scramble${numberOfSolves === 1 ? '' : 's'}.`;
   elements.statSolves.textContent = String(numberOfSolves);
+  elements.statTotalLabel.textContent = isSingleScramble ? 'Algs' : 'Total algs';
   elements.statTotal.textContent = String(total);
+  elements.statCorners.textContent = String(totalCornerAlgs);
+  elements.statEdges.textContent = String(totalEdgeAlgs);
   elements.statAverage.textContent = Number(average).toFixed(2);
   elements.statTwoFlips.textContent = String(totalTwoFlips);
   elements.statTwoTwists.textContent = String(totalTwoTwists);
-  renderDistributionChart(distribution);
-  renderAlgGrid(algCountList);
+  elements.setOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', isSingleScramble));
+  elements.singleOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', !isSingleScramble));
+  elements.breakdownCard.classList.toggle('is-hidden', isSingleScramble);
+  elements.distributionCard.classList.toggle('is-hidden', isSingleScramble);
+
+  if (!isSingleScramble) renderAlgGrid(scrambleBreakdowns);
+  if (!isSingleScramble) renderDistributionChart(distribution);
+
+  requestAnimationFrame(() => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const preferredScrollTop = window.scrollY + elements.actionRow.getBoundingClientRect().top - 20;
+    const lastVisibleResult = isSingleScramble ? elements.overviewCard : elements.distributionCard;
+    const resultBottom = window.scrollY + lastVisibleResult.getBoundingClientRect().bottom;
+    const maximumScrollTop = Math.max(0, resultBottom - window.innerHeight);
+    window.scrollTo({
+      top: Math.max(0, Math.min(preferredScrollTop, maximumScrollTop)),
+      behavior: reducedMotion ? 'auto' : 'smooth',
+    });
+  });
 }
 
 function collectSettings() {

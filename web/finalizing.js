@@ -111,14 +111,19 @@
   function countScrambleAlgs(scr, tracingOrientation, edgeMethod, flipWeight, twistWeight, ltct, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {
     const corner = buildCornerBreakdown(scr, tracingOrientation, cornerBuffers, twistWeight, ltct);
     const edges = buildEdgeBreakdown(scr, tracingOrientation, edgeMethod, edgeBuffers, flipWeight, corner.analysis.parity);
-    const algs = corner.analysis.algs + edges.analysis.algs + edges.flips.algs + corner.twists.algs + corner.ltct_adjustment;
-    return [algs, edges.flips.two_flips, corner.twists.two_twists];
+    // The unpaired parity execution is already included in the corner comm count.
+    const cornerAlgs = corner.analysis.algs + corner.twists.algs + corner.ltct_adjustment;
+    const edgeAlgs = edges.analysis.algs + edges.flips.algs;
+    const totalAlgs = cornerAlgs + edgeAlgs;
+    return [totalAlgs, edges.flips.two_flips, corner.twists.two_twists, cornerAlgs, edgeAlgs];
   }
 
   function analyzeScramble(scr, tracingOrientation = '', edgeMethod = 'weakswap', flipWeight = 1, twistWeight = 1, ltct = false, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {
     const corner = buildCornerBreakdown(scr, tracingOrientation, cornerBuffers, twistWeight, ltct);
     const edges = buildEdgeBreakdown(scr, tracingOrientation, edgeMethod, edgeBuffers, flipWeight, corner.analysis.parity);
-    const totalAlgs = edges.analysis.algs + edges.flips.algs + corner.analysis.algs + corner.twists.algs + corner.ltct_adjustment;
+    const cornerAlgs = corner.analysis.algs + corner.twists.algs + corner.ltct_adjustment;
+    const edgeAlgs = edges.analysis.algs + edges.flips.algs;
+    const totalAlgs = cornerAlgs + edgeAlgs;
     return {
       scramble: scr,
       tracing_orientation: tracingOrientation,
@@ -129,6 +134,8 @@
       edges,
       twists: corner.twists,
       ltct_adjustment: corner.ltct_adjustment,
+      corner_algs: cornerAlgs,
+      edge_algs: edgeAlgs,
       total_algs: totalAlgs,
     };
   }
@@ -186,22 +193,44 @@
 
   function algCounterMain(text, tracingOrientation = '', edgeMethod = 'weakswap', flipWeight = 1, twistWeight = 1, ltct = false, dnf = false, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {
     const scrList = extractScrambleList(text, dnf);
-    const algCountTriples = scrList.map((scr) => countScrambleAlgs(scr, tracingOrientation, edgeMethod, flipWeight, twistWeight, ltct, cornerBuffers, edgeBuffers));
+    const algBreakdownList = scrList.map((scr) => countScrambleAlgs(scr, tracingOrientation, edgeMethod, flipWeight, twistWeight, ltct, cornerBuffers, edgeBuffers));
     const finalCount = {};
     let totalTwoFlips = 0;
     let totalTwoTwists = 0;
-    for (const algsPerScr of algCountTriples) {
+    let totalCornerAlgs = 0;
+    let totalEdgeAlgs = 0;
+    for (const algsPerScr of algBreakdownList) {
       finalCount[algsPerScr[0]] = (finalCount[algsPerScr[0]] || 0) + 1;
       totalTwoFlips += algsPerScr[1];
       totalTwoTwists += algsPerScr[2];
+      totalCornerAlgs += algsPerScr[3];
+      totalEdgeAlgs += algsPerScr[4];
     }
-    const algCountList = algCountTriples.map((e) => (Number.isInteger(e[0]) ? e[0] : e[0]));
+    const algCountList = algBreakdownList.map((e) => e[0]);
     const sortedEntries = Object.entries(finalCount).map(([k, v]) => [Number(k), v]).sort((a, b) => a[0] - b[0]);
     const numberOfCasesWithNAlgsDict = Object.fromEntries(sortedEntries);
     let totalAlgs = sortedEntries.reduce((sum, [k, v]) => sum + k * v, 0);
     const averageAlgsPer = Number((totalAlgs / scrList.length).toFixed(5));
     totalAlgs = Number(totalAlgs.toFixed(5));
-    return [algCountList.length, numberOfCasesWithNAlgsDict, averageAlgsPer, totalAlgs, totalTwoFlips, totalTwoTwists, algCountList];
+    totalCornerAlgs = Number(totalCornerAlgs.toFixed(5));
+    totalEdgeAlgs = Number(totalEdgeAlgs.toFixed(5));
+    const scrambleAlgBreakdownList = algBreakdownList.map((result) => ({
+      total_algs: Number(result[0].toFixed(5)),
+      corner_algs: Number(result[3].toFixed(5)),
+      edge_algs: Number(result[4].toFixed(5)),
+    }));
+    return [
+      algCountList.length,
+      numberOfCasesWithNAlgsDict,
+      averageAlgsPer,
+      totalAlgs,
+      totalTwoFlips,
+      totalTwoTwists,
+      algCountList,
+      totalCornerAlgs,
+      totalEdgeAlgs,
+      scrambleAlgBreakdownList,
+    ];
   }
 
   const api = {

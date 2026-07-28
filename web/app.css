@@ -533,8 +533,7 @@ button,
   border-top: 1px dashed var(--accent-line);
 }
 
-.partial-buffers.is-hidden,
-.results-section.is-hidden {
+.is-hidden {
   display: none;
 }
 
@@ -715,21 +714,22 @@ button,
 
 .alg-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
-  gap: 7px;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 112px));
+  justify-content: center;
+  gap: 8px;
 }
 
 .alg-cell {
   border: 1px solid var(--alg-border);
   border-radius: 12px;
   background: var(--alg-bg);
-  min-height: 48px;
+  min-height: 68px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 1px;
-  padding: 7px 4px;
+  gap: 2px;
+  padding: 8px 6px;
   box-shadow: var(--shadow-micro);
 }
 
@@ -739,8 +739,26 @@ button,
 }
 
 .alg-cell__value {
-  font-size: 0.96rem;
+  font-size: 1.18rem;
   font-weight: 700;
+}
+
+.alg-cell--unindexed .alg-cell__value {
+  font-size: 1.32rem;
+}
+
+.alg-cell__split {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--muted);
+  font: 700 0.68rem/1.1 'SFMono-Regular', 'Menlo', monospace;
+  white-space: nowrap;
+}
+
+.alg-cell__plus {
+  color: var(--accent-strong);
 }
 
 .empty-state {
@@ -833,7 +851,7 @@ button,
   }
 
   .alg-grid {
-    grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(88px, 104px));
   }
 }
 
