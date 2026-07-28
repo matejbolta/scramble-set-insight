@@ -1,5 +1,15 @@
 # Logic Book
 
+## Production Boundary
+
+The browser implementation in `web/` is the live production application.
+
+The Python implementation is the handwritten legacy/reference oracle. It is
+kept unchanged so JavaScript correctness can continue to be measured against a
+stable independent implementation. Product and UI work belongs in `web/`;
+Python files and Python baseline tests should only change when Python-side work
+is explicitly requested.
+
 ## Module Ownership
 
 The current `ssi_core` Python package is organized by responsibility:
@@ -780,10 +790,11 @@ Corner comms include the unpaired parity execution. Edge tracing receives the
 corner parity state and is therefore pseudo-solved for that parity before its
 own alg count is calculated.
 
-The top-level result also exposes this split per scramble. For sets, the browser
-uses it in every breakdown cell, showing the total alongside its corner and
-edge components. For a single scramble, the split is promoted into dedicated
-overview metrics and the Breakdown and Distribution sections are omitted.
+The production JavaScript result additionally exposes this split per scramble.
+For sets, the browser uses it in every breakdown cell, showing the total
+alongside its corner and edge components. For a single scramble, the split is
+promoted into dedicated overview metrics and the Breakdown and Distribution
+sections are omitted.
 
 This matters because future parity work should now only need to change one breakdown layer at a time, instead of touching both the production count and the debug path separately.
 

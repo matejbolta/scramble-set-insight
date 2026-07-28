@@ -108,26 +108,25 @@ def build_edge_breakdown(scr, tracing_orientation, edge_method, edge_buffers, fl
 def count_scramble_algs(scr, tracing_orientation, edge_method, flip_weight, twist_weight, ltct, corner_buffers=('UFR',), edge_buffers=('UF',)):
     corner = build_corner_breakdown(scr, tracing_orientation, corner_buffers, twist_weight, ltct)
     edges = build_edge_breakdown(scr, tracing_orientation, edge_method, edge_buffers, flip_weight, corner['analysis']['parity'])
-    # The unpaired parity execution is already included in the corner comm count.
-    corner_algs = (
+    algs = (
         corner['analysis']['algs']
+        + edges['analysis']['algs']
+        + edges['flips']['algs']
         + corner['twists']['algs']
         + corner['ltct_adjustment']
     )
-    edge_algs = edges['analysis']['algs'] + edges['flips']['algs']
-    total_algs = corner_algs + edge_algs
-    return total_algs, edges['flips']['two_flips'], corner['twists']['two_twists'], corner_algs, edge_algs
+    return algs, edges['flips']['two_flips'], corner['twists']['two_twists']
 
 def analyze_scramble(scr, tracing_orientation='', edge_method='weakswap', flip_weight=1, twist_weight=1, ltct=False, corner_buffers=('UFR',), edge_buffers=('UF',)):
     corner = build_corner_breakdown(scr, tracing_orientation, corner_buffers, twist_weight, ltct)
     edges = build_edge_breakdown(scr, tracing_orientation, edge_method, edge_buffers, flip_weight, corner['analysis']['parity'])
-    corner_algs = (
-        corner['analysis']['algs']
+    total_algs = (
+        edges['analysis']['algs']
+        + edges['flips']['algs']
+        + corner['analysis']['algs']
         + corner['twists']['algs']
         + corner['ltct_adjustment']
     )
-    edge_algs = edges['analysis']['algs'] + edges['flips']['algs']
-    total_algs = corner_algs + edge_algs
     return {
         'scramble': scr,
         'tracing_orientation': tracing_orientation,
@@ -142,8 +141,6 @@ def analyze_scramble(scr, tracing_orientation='', edge_method='weakswap', flip_w
         'edges': edges,
         'twists': corner['twists'],
         'ltct_adjustment': corner['ltct_adjustment'],
-        'corner_algs': corner_algs,
-        'edge_algs': edge_algs,
         'total_algs': total_algs,
     }
 
@@ -234,7 +231,7 @@ def extract_scramble_list(text, dnf):
 
 def alg_counter_main(text, tracing_orientation='', edge_method='weakswap', flip_weight=1, twist_weight=1, ltct=False, dnf=False, corner_buffers=('UFR',), edge_buffers=('UF',)):
     scr_list = extract_scramble_list(text, dnf)
-    alg_breakdown_list = [
+    alg_count_list = [
         count_scramble_algs(
             scr,
             tracing_orientation,
@@ -250,29 +247,16 @@ def alg_counter_main(text, tracing_orientation='', edge_method='weakswap', flip_
 
     final_count = {}
     total_two_flips, total_two_twists = 0, 0
-    total_corner_algs, total_edge_algs = 0, 0
-    for algs_per_scr in alg_breakdown_list:
+    for algs_per_scr in alg_count_list:
         final_count[algs_per_scr[0]] = final_count.get(algs_per_scr[0], 0) + 1
         total_two_flips += algs_per_scr[1]
         total_two_twists += algs_per_scr[2]
-        total_corner_algs += algs_per_scr[3]
-        total_edge_algs += algs_per_scr[4]
-    alg_count_list = [int(e[0]) if float(e[0]).is_integer() else e[0] for e in alg_breakdown_list]
+    alg_count_list = [int(e[0]) if e[0].is_integer() else e[0] for e in alg_count_list]
 
-    final_count = {int(k) if float(k).is_integer() else k: v for k, v in final_count.items()}
+    final_count = {int(k) if k.is_integer() else k: v for k, v in final_count.items()}
     number_of_cases_with_n_algs_dict = dict(sorted(final_count.items()))
     total_algs = sum([k * v for k, v in final_count.items()])
-    total_algs = int(total_algs) if float(total_algs).is_integer() else total_algs
-    total_corner_algs = int(total_corner_algs) if float(total_corner_algs).is_integer() else round(total_corner_algs, 5)
-    total_edge_algs = int(total_edge_algs) if float(total_edge_algs).is_integer() else round(total_edge_algs, 5)
-    scramble_alg_breakdown_list = [
-        {
-            'total_algs': int(result[0]) if float(result[0]).is_integer() else round(result[0], 5),
-            'corner_algs': int(result[3]) if float(result[3]).is_integer() else round(result[3], 5),
-            'edge_algs': int(result[4]) if float(result[4]).is_integer() else round(result[4], 5),
-        }
-        for result in alg_breakdown_list
-    ]
+    total_algs = int(total_algs) if total_algs.is_integer() else total_algs
     average_algs_per = round(total_algs / len(scr_list), 5)
 
     return (
@@ -283,7 +267,4 @@ def alg_counter_main(text, tracing_orientation='', edge_method='weakswap', flip_
         total_two_flips,
         total_two_twists,
         alg_count_list,
-        total_corner_algs,
-        total_edge_algs,
-        scramble_alg_breakdown_list,
     )
