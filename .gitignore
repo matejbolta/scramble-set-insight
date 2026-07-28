@@ -104,3 +104,6 @@ Thumbs.db
 # Manual
 backend_v2.py
 test_backend_v2_baseline.py
+
+# Local agent handoff
+AGENTS.md

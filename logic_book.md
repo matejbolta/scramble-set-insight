@@ -1,15 +1,5 @@
 # Logic Book
 
-## Production Boundary
-
-The browser implementation in `web/` is the live production application.
-
-The Python implementation is the handwritten legacy/reference oracle. It is
-kept unchanged so JavaScript correctness can continue to be measured against a
-stable independent implementation. Product and UI work belongs in `web/`;
-Python files and Python baseline tests should only change when Python-side work
-is explicitly requested.
-
 ## Module Ownership
 
 The current `ssi_core` Python package is organized by responsibility:
