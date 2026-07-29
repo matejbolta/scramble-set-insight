@@ -17,6 +17,7 @@ const elements = {
   twistWeight: document.getElementById('twist-weight'),
   actionRow: document.getElementById('action-row'),
   analyzeButton: document.getElementById('analyze-button'),
+  pasteButton: document.getElementById('paste-button'),
   loadExampleButton: document.getElementById('load-example-button'),
   clearButton: document.getElementById('clear-button'),
   processedBanner: document.getElementById('processed-banner'),
@@ -165,6 +166,20 @@ function selectScramblesForReplacement() {
 
   state.selectScramblesOnNextClick = false;
   elements.scrambleInput.select();
+}
+
+async function pasteScrambles() {
+  if (!navigator.clipboard?.readText) {
+    throw new Error('Direct paste is not supported in this browser.');
+  }
+
+  const text = await navigator.clipboard.readText();
+  if (!text) throw new Error('The clipboard is empty.');
+
+  state.selectScramblesOnNextClick = false;
+  elements.scrambleInput.value = text;
+  elements.scrambleInput.focus();
+  elements.scrambleInput.setSelectionRange(text.length, text.length);
 }
 
 function applyTheme(theme) {
@@ -410,6 +425,16 @@ function initialize() {
   });
 
   elements.scrambleInput.addEventListener('click', selectScramblesForReplacement);
+
+  elements.pasteButton.addEventListener('click', async () => {
+    try {
+      await pasteScrambles();
+    } catch (error) {
+      elements.scrambleInput.focus();
+      elements.scrambleInput.select();
+      alert(`${error.message} Press Ctrl/Cmd+V to paste manually.`);
+    }
+  });
 
   elements.clearButton.addEventListener('click', () => {
     state.selectScramblesOnNextClick = false;

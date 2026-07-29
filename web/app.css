@@ -593,8 +593,8 @@ button,
 }
 
 .action-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 3fr 2fr 2fr 2fr;
   gap: 12px;
   margin-top: 14px;
 }
@@ -611,7 +611,6 @@ button,
 }
 
 .primary-button {
-  flex: 1 1 220px;
   background: var(--primary-bg);
   border-color: var(--accent);
   color: #fff;
@@ -620,10 +619,13 @@ button,
 }
 
 .secondary-button {
-  flex: 0 1 240px;
   background: var(--secondary-bg);
   border-color: var(--line-strong);
   color: var(--ink);
+}
+
+#load-example-button {
+  white-space: normal;
 }
 
 .notice-banner {
@@ -841,13 +843,12 @@ button,
   }
 
   .action-row {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .primary-button,
   .secondary-button {
     width: 100%;
-    flex-basis: auto;
   }
 
   .alg-grid {
