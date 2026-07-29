@@ -45,6 +45,7 @@ const elements = {
 const state = {
   cornerBuffers: [...LEGACY_CORNER_BUFFERS],
   edgeBuffers: [...LEGACY_EDGE_BUFFERS],
+  selectScramblesOnNextClick: false,
 };
 
 function getEdgeMethod() {
@@ -157,6 +158,13 @@ function toggleBuffer(group, value) {
 
   syncPills();
   saveSettings();
+}
+
+function selectScramblesForReplacement() {
+  if (!state.selectScramblesOnNextClick) return;
+
+  state.selectScramblesOnNextClick = false;
+  elements.scrambleInput.select();
 }
 
 function applyTheme(theme) {
@@ -303,6 +311,7 @@ function renderResult(rawResult) {
   elements.singleOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', !isSingleScramble));
   elements.breakdownCard.classList.toggle('is-hidden', isSingleScramble);
   elements.distributionCard.classList.toggle('is-hidden', isSingleScramble);
+  state.selectScramblesOnNextClick = true;
 
   if (!isSingleScramble) renderAlgGrid(scrambleBreakdowns);
   if (!isSingleScramble) renderDistributionChart(distribution);
@@ -400,7 +409,10 @@ function initialize() {
     input.addEventListener('change', saveSettings);
   });
 
+  elements.scrambleInput.addEventListener('click', selectScramblesForReplacement);
+
   elements.clearButton.addEventListener('click', () => {
+    state.selectScramblesOnNextClick = false;
     elements.scrambleInput.value = '';
     resetResults();
   });
