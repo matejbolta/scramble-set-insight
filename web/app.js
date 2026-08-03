@@ -32,10 +32,11 @@ const elements = {
   statTwoTwists: document.getElementById('stat-two-twists'),
   statFloatingSaved: document.getElementById('stat-floating-saved'),
   floatingSavedMetric: document.getElementById('floating-saved-metric'),
+  overviewKicker: document.getElementById('overview-kicker'),
   setOnlyMetrics: document.querySelectorAll('.metric-card--set-only'),
   singleOnlyMetrics: document.querySelectorAll('.metric-card--single-only'),
   aggregateMetricGrid: document.getElementById('aggregate-metric-grid'),
-  compactOverviewList: document.getElementById('compact-overview-list'),
+  compactResultsTableShell: document.getElementById('compact-results-table-shell'),
   overviewCard: document.getElementById('overview-card'),
   breakdownCard: document.getElementById('breakdown-card'),
   distributionCard: document.getElementById('distribution-card'),
@@ -220,9 +221,10 @@ function resetResults() {
   elements.statTwoTwists.textContent = '0';
   elements.statFloatingSaved.textContent = '0';
   elements.floatingSavedMetric.classList.add('is-hidden');
+  elements.overviewKicker.textContent = 'Overview';
   elements.aggregateMetricGrid.classList.remove('is-hidden');
-  elements.compactOverviewList.classList.add('is-hidden');
-  elements.compactOverviewList.innerHTML = '';
+  elements.compactResultsTableShell.classList.add('is-hidden');
+  elements.compactResultsTableShell.innerHTML = '';
   elements.distributionChart.className = 'distribution-chart empty-state';
   elements.distributionChart.textContent = 'Run an analysis to see the distribution.';
   elements.algGrid.className = 'alg-grid empty-state';
@@ -318,35 +320,32 @@ function renderMetricValue(actual, standard, comparisonsEnabled) {
 }
 
 function renderCompactOverview(scrambleBreakdowns) {
-  elements.compactOverviewList.innerHTML = scrambleBreakdowns
-    .map((result, index) => {
-      const showFloatingSavings = Number.isFinite(result.standard_total_algs)
-        && result.standard_total_algs > result.total_algs;
-      return `
-        <div class="compact-overview-row" aria-label="Scramble ${index + 1} overview">
-          <article class="metric-card">
-            <span class="metric-label">Algs</span>
-            <strong class="metric-value">${renderMetricValue(result.total_algs, result.standard_total_algs, showFloatingSavings)}</strong>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label">Corner algs</span>
-            <strong class="metric-value">${renderMetricValue(result.corner_algs, result.standard_corner_algs, showFloatingSavings)}</strong>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label">Edge algs</span>
-            <strong class="metric-value">${renderMetricValue(result.edge_algs, result.standard_edge_algs, showFloatingSavings)}</strong>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label">F-2-flips</span>
-            <strong class="metric-value">${result.two_flips}</strong>
-          </article>
-          <article class="metric-card">
-            <span class="metric-label">F-2-twists</span>
-            <strong class="metric-value">${result.two_twists}</strong>
-          </article>
-        </div>`;
-    })
-    .join('');
+  const rows = scrambleBreakdowns.map((result, index) => {
+    const showFloatingSavings = Number.isFinite(result.standard_total_algs)
+      && result.standard_total_algs > result.total_algs;
+    return `
+      <tr aria-label="Scramble ${index + 1}">
+        <td><strong class="metric-value compact-results-table__value">${renderMetricValue(result.total_algs, result.standard_total_algs, showFloatingSavings)}</strong></td>
+        <td><strong class="metric-value compact-results-table__value">${renderMetricValue(result.corner_algs, result.standard_corner_algs, showFloatingSavings)}</strong></td>
+        <td><strong class="metric-value compact-results-table__value">${renderMetricValue(result.edge_algs, result.standard_edge_algs, showFloatingSavings)}</strong></td>
+        <td><strong class="metric-value compact-results-table__value">${result.two_flips}</strong></td>
+        <td><strong class="metric-value compact-results-table__value">${result.two_twists}</strong></td>
+      </tr>`;
+  }).join('');
+
+  elements.compactResultsTableShell.innerHTML = `
+    <table class="compact-results-table" aria-label="Per-scramble breakdown">
+      <thead>
+        <tr>
+          <th scope="col">Algs</th>
+          <th scope="col">Corner algs</th>
+          <th scope="col">Edge algs</th>
+          <th scope="col">F-2-flips</th>
+          <th scope="col">F-2-twists</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 function renderResult(rawResult) {
@@ -377,11 +376,12 @@ function renderResult(rawResult) {
   elements.statTwoFlips.textContent = String(totalTwoFlips);
   elements.statTwoTwists.textContent = String(totalTwoTwists);
   elements.statFloatingSaved.textContent = String(floatingComparison?.total_saved_algs ?? 0);
+  elements.overviewKicker.textContent = usesCompactOverview ? 'Breakdown' : 'Overview';
   elements.floatingSavedMetric.classList.toggle('is-hidden', numberOfSolves < 6 || !hasFloatingComparison);
   elements.setOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', isSingleScramble));
   elements.singleOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', !isSingleScramble));
   elements.aggregateMetricGrid.classList.toggle('is-hidden', usesCompactOverview);
-  elements.compactOverviewList.classList.toggle('is-hidden', !usesCompactOverview);
+  elements.compactResultsTableShell.classList.toggle('is-hidden', !usesCompactOverview);
   elements.breakdownCard.classList.toggle('is-hidden', isSingleScramble);
   elements.distributionCard.classList.toggle('is-hidden', usesCompactOverview);
   state.selectScramblesOnNextClick = true;

@@ -785,11 +785,12 @@ scramble's 2-flip and 2-twist counts. For sets, the browser uses the component
 split in every breakdown cell, showing the total alongside its corner and edge
 components.
 
-For one through five scrambles, each scramble is promoted into its own overview
-row with total, corner, edge, 2-flip, and 2-twist metrics. Distribution is
-omitted in this compact range. A single scramble also omits Breakdown, while
-sets of two through five keep Breakdown below the overview rows. Sets of six or
-more retain the aggregate overview, Breakdown, and Distribution layout.
+For one through five scrambles, each scramble is promoted into its own row in a
+semantic Breakdown table with total, corner, edge, 2-flip, and 2-twist columns.
+Distribution is omitted in this compact range. A single scramble also omits the
+lower Compact breakdown, while sets of two through five keep it below the
+table. Sets of six or more retain the aggregate Overview, Compact breakdown,
+and Distribution layout.
 
 In a floating buffer mode, the production worker also counts the set with the
 standard `UFR` corner and `UF` edge buffers. For sets of one through five, each
