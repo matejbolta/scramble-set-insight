@@ -154,7 +154,7 @@
                 <p class="section-kicker">Overview</p>
               </div>
             </div>
-            <div class="metric-grid">
+            <div class="metric-grid" id="aggregate-metric-grid">
               <article class="metric-card metric-card--set-only">
                 <span class="metric-label">Scrambles</span>
                 <strong class="metric-value" id="stat-solves">0</strong>
@@ -183,7 +183,12 @@
                 <span class="metric-label">F-2-twists</span>
                 <strong class="metric-value" id="stat-two-twists">0</strong>
               </article>
+              <article class="metric-card is-hidden" id="floating-saved-metric">
+                <span class="metric-label">Floating saved</span>
+                <strong class="metric-value" id="stat-floating-saved">0</strong>
+              </article>
             </div>
+            <div class="compact-overview-list is-hidden" id="compact-overview-list"></div>
           </section>
 
           <section class="card card--algs" id="breakdown-card">

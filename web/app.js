@@ -30,8 +30,12 @@ const elements = {
   statEdges: document.getElementById('stat-edges'),
   statTwoFlips: document.getElementById('stat-two-flips'),
   statTwoTwists: document.getElementById('stat-two-twists'),
+  statFloatingSaved: document.getElementById('stat-floating-saved'),
+  floatingSavedMetric: document.getElementById('floating-saved-metric'),
   setOnlyMetrics: document.querySelectorAll('.metric-card--set-only'),
   singleOnlyMetrics: document.querySelectorAll('.metric-card--single-only'),
+  aggregateMetricGrid: document.getElementById('aggregate-metric-grid'),
+  compactOverviewList: document.getElementById('compact-overview-list'),
   overviewCard: document.getElementById('overview-card'),
   breakdownCard: document.getElementById('breakdown-card'),
   distributionCard: document.getElementById('distribution-card'),
@@ -214,6 +218,11 @@ function resetResults() {
   elements.statEdges.textContent = '0';
   elements.statTwoFlips.textContent = '0';
   elements.statTwoTwists.textContent = '0';
+  elements.statFloatingSaved.textContent = '0';
+  elements.floatingSavedMetric.classList.add('is-hidden');
+  elements.aggregateMetricGrid.classList.remove('is-hidden');
+  elements.compactOverviewList.classList.add('is-hidden');
+  elements.compactOverviewList.innerHTML = '';
   elements.distributionChart.className = 'distribution-chart empty-state';
   elements.distributionChart.textContent = 'Run an analysis to see the distribution.';
   elements.algGrid.className = 'alg-grid empty-state';
@@ -273,7 +282,7 @@ function renderDistributionChart(distribution) {
     </svg>`;
 }
 
-function renderAlgGrid(scrambleBreakdowns) {
+function renderAlgGrid(scrambleBreakdowns, showFloatingComparisons = false) {
   if (!scrambleBreakdowns.length) {
     elements.algGrid.className = 'alg-grid empty-state';
     elements.algGrid.textContent = 'No per-scramble data.';
@@ -287,7 +296,7 @@ function renderAlgGrid(scrambleBreakdowns) {
       (result, index) => `
         <div class="alg-cell${showIndexes ? '' : ' alg-cell--unindexed'}">
           ${showIndexes ? `<div class="alg-cell__index">${index + 1}</div>` : ''}
-          <div class="alg-cell__value">${result.total_algs}</div>
+          <div class="alg-cell__value">${renderMetricValue(result.total_algs, result.standard_total_algs, showFloatingComparisons)}</div>
           <div class="alg-cell__split" aria-label="${result.corner_algs} corner algs plus ${result.edge_algs} edge algs">
             <span>${result.corner_algs}</span>
             <span class="alg-cell__plus">+</span>
@@ -295,6 +304,48 @@ function renderAlgGrid(scrambleBreakdowns) {
           </div>
         </div>`
     )
+    .join('');
+}
+
+function renderMetricValue(actual, standard, comparisonsEnabled) {
+  if (!comparisonsEnabled || !Number.isFinite(standard) || standard <= actual) return String(actual);
+  return `
+    <span class="metric-comparison">
+      <span class="metric-comparison__from">${standard}</span>
+      <span class="metric-comparison__arrow" aria-hidden="true">→</span>
+      <span>${actual}</span>
+    </span>`;
+}
+
+function renderCompactOverview(scrambleBreakdowns) {
+  elements.compactOverviewList.innerHTML = scrambleBreakdowns
+    .map((result, index) => {
+      const showFloatingSavings = Number.isFinite(result.standard_total_algs)
+        && result.standard_total_algs > result.total_algs;
+      return `
+        <div class="compact-overview-row" aria-label="Scramble ${index + 1} overview">
+          <article class="metric-card">
+            <span class="metric-label">Algs</span>
+            <strong class="metric-value">${renderMetricValue(result.total_algs, result.standard_total_algs, showFloatingSavings)}</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Corner algs</span>
+            <strong class="metric-value">${renderMetricValue(result.corner_algs, result.standard_corner_algs, showFloatingSavings)}</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Edge algs</span>
+            <strong class="metric-value">${renderMetricValue(result.edge_algs, result.standard_edge_algs, showFloatingSavings)}</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">F-2-flips</span>
+            <strong class="metric-value">${result.two_flips}</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">F-2-twists</span>
+            <strong class="metric-value">${result.two_twists}</strong>
+          </article>
+        </div>`;
+    })
     .join('');
 }
 
@@ -310,7 +361,10 @@ function renderResult(rawResult) {
   const totalCornerAlgs = rawResult[7];
   const totalEdgeAlgs = rawResult[8];
   const scrambleBreakdowns = rawResult[9];
+  const floatingComparison = rawResult[10];
   const isSingleScramble = numberOfSolves === 1;
+  const usesCompactOverview = numberOfSolves >= 1 && numberOfSolves <= 5;
+  const hasFloatingComparison = Boolean(floatingComparison);
 
   elements.resultsSection.classList.remove('is-hidden');
   elements.processedBanner.textContent = `Processed ${numberOfSolves} scramble${numberOfSolves === 1 ? '' : 's'}.`;
@@ -322,19 +376,26 @@ function renderResult(rawResult) {
   elements.statAverage.textContent = Number(average).toFixed(2);
   elements.statTwoFlips.textContent = String(totalTwoFlips);
   elements.statTwoTwists.textContent = String(totalTwoTwists);
+  elements.statFloatingSaved.textContent = String(floatingComparison?.total_saved_algs ?? 0);
+  elements.floatingSavedMetric.classList.toggle('is-hidden', numberOfSolves < 6 || !hasFloatingComparison);
   elements.setOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', isSingleScramble));
   elements.singleOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', !isSingleScramble));
+  elements.aggregateMetricGrid.classList.toggle('is-hidden', usesCompactOverview);
+  elements.compactOverviewList.classList.toggle('is-hidden', !usesCompactOverview);
   elements.breakdownCard.classList.toggle('is-hidden', isSingleScramble);
-  elements.distributionCard.classList.toggle('is-hidden', isSingleScramble);
+  elements.distributionCard.classList.toggle('is-hidden', usesCompactOverview);
   state.selectScramblesOnNextClick = true;
 
-  if (!isSingleScramble) renderAlgGrid(scrambleBreakdowns);
-  if (!isSingleScramble) renderDistributionChart(distribution);
+  if (usesCompactOverview) renderCompactOverview(scrambleBreakdowns);
+  if (!isSingleScramble) renderAlgGrid(scrambleBreakdowns, numberOfSolves >= 6 && hasFloatingComparison);
+  if (!usesCompactOverview) renderDistributionChart(distribution);
 
   requestAnimationFrame(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const preferredScrollTop = window.scrollY + elements.actionRow.getBoundingClientRect().top - 20;
-    const lastVisibleResult = isSingleScramble ? elements.overviewCard : elements.distributionCard;
+    const lastVisibleResult = isSingleScramble
+      ? elements.overviewCard
+      : (usesCompactOverview ? elements.breakdownCard : elements.distributionCard);
     const resultBottom = window.scrollY + lastVisibleResult.getBoundingClientRect().bottom;
     const maximumScrollTop = Math.max(0, resultBottom - window.innerHeight);
     window.scrollTo({
@@ -354,6 +415,7 @@ function collectSettings() {
 
   return {
     scrambles: elements.scrambleInput.value,
+    bufferMode,
     tracingOrientation: elements.tracingOrientation.value.trim(),
     edgeMethod: getEdgeMethod(),
     flipWeight: Number(elements.flipWeight.value),
@@ -369,6 +431,7 @@ async function analyze() {
   const settings = collectSettings();
   if (!settings.scrambles.trim()) throw new Error('Paste some scrambles first.');
   elements.analyzeButton.disabled = true;
+  elements.pasteButton.disabled = true;
   const id = ++requestId;
 
   return new Promise((resolve, reject) => {
@@ -376,6 +439,7 @@ async function analyze() {
       if (event.data.id !== id) return;
       worker.removeEventListener('message', handleMessage);
       elements.analyzeButton.disabled = false;
+      elements.pasteButton.disabled = false;
       if (event.data.ok) {
         renderResult(event.data.result);
         resolve();
@@ -402,6 +466,7 @@ async function loadExample() {
     .slice(0, 100);
 
   elements.scrambleInput.value = randomScrambles.join('\n');
+  state.selectScramblesOnNextClick = false;
 }
 
 function initialize() {
@@ -433,6 +498,13 @@ function initialize() {
       elements.scrambleInput.focus();
       elements.scrambleInput.select();
       alert(`${error.message} Press Ctrl/Cmd+V to paste manually.`);
+      return;
+    }
+
+    try {
+      await analyze();
+    } catch (error) {
+      alert(error.message);
     }
   });
 

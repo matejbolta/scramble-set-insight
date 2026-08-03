@@ -41,6 +41,8 @@ function compareLists(label, expected, actual) {
   if (actual[9].length !== actualList.length) {
     throw new Error(`${label}: per-scramble component length mismatch ${actual[9].length} !== ${actualList.length}`);
   }
+  let breakdownTwoFlips = 0;
+  let breakdownTwoTwists = 0;
   for (let i = 0; i < actual[9].length; i += 1) {
     const breakdown = actual[9][i];
     if (breakdown.total_algs !== actualList[i]) {
@@ -49,6 +51,14 @@ function compareLists(label, expected, actual) {
     if (breakdown.total_algs !== breakdown.corner_algs + breakdown.edge_algs) {
       throw new Error(`${label}: per-scramble component mismatch at index ${i}`);
     }
+    breakdownTwoFlips += breakdown.two_flips;
+    breakdownTwoTwists += breakdown.two_twists;
+  }
+  if (breakdownTwoFlips !== actual[4]) {
+    throw new Error(`${label}: per-scramble 2-flip total mismatch ${breakdownTwoFlips} !== ${actual[4]}`);
+  }
+  if (breakdownTwoTwists !== actual[5]) {
+    throw new Error(`${label}: per-scramble 2-twist total mismatch ${breakdownTwoTwists} !== ${actual[5]}`);
   }
   console.log(`PASS ${label}: ${actualList.length} entries match`);
 }

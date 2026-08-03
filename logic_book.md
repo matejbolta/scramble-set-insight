@@ -780,11 +780,27 @@ Corner comms include the unpaired parity execution. Edge tracing receives the
 corner parity state and is therefore pseudo-solved for that parity before its
 own alg count is calculated.
 
-The production JavaScript result additionally exposes this split per scramble.
-For sets, the browser uses it in every breakdown cell, showing the total
-alongside its corner and edge components. For a single scramble, the split is
-promoted into dedicated overview metrics and the Breakdown and Distribution
-sections are omitted.
+The production JavaScript result additionally exposes this split plus each
+scramble's 2-flip and 2-twist counts. For sets, the browser uses the component
+split in every breakdown cell, showing the total alongside its corner and edge
+components.
+
+For one through five scrambles, each scramble is promoted into its own overview
+row with total, corner, edge, 2-flip, and 2-twist metrics. Distribution is
+omitted in this compact range. A single scramble also omits Breakdown, while
+sets of two through five keep Breakdown below the overview rows. Sets of six or
+more retain the aggregate overview, Breakdown, and Distribution layout.
+
+In a floating buffer mode, the production worker also counts the set with the
+standard `UFR` corner and `UF` edge buffers. For sets of one through five, each
+overview row shows `standard → floating` for the total when that scramble was
+improved, and for each component that was individually reduced. For sets of six
+or more, the same comparison appears only on the main number in each Breakdown
+cell; the corner-plus-edge line stays on the floating result. The aggregate
+overview also adds a `Floating saved` metric containing the non-negative
+difference between the standard and floating set totals. This comparison uses
+the same parity-aware counting pipeline as the live result and does not change
+the legacy result fields.
 
 This matters because future parity work should now only need to change one breakdown layer at a time, instead of touching both the production count and the debug path separately.
 

@@ -218,6 +218,8 @@
       total_algs: Number(result[0].toFixed(5)),
       corner_algs: Number(result[3].toFixed(5)),
       edge_algs: Number(result[4].toFixed(5)),
+      two_flips: result[1],
+      two_twists: result[2],
     }));
     return [
       algCountList.length,
