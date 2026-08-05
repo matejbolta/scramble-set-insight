@@ -781,27 +781,56 @@ corner parity state and is therefore pseudo-solved for that parity before its
 own alg count is calculated.
 
 The production JavaScript result additionally exposes this split plus each
-scramble's 2-flip and 2-twist counts. For sets, the browser uses the component
-split in every breakdown cell, showing the total alongside its corner and edge
-components.
+scramble's normalized move text, DNF status, 2-flip count, and 2-twist count.
+DNF status is captured while parsing the original csTimer line, before its time,
+comment, multiphase data, and timestamp are discarded. Disabling `Include DNFs`
+still removes those records entirely; enabling it preserves the established
+scramble extraction and attaches the DNF flag only to the production
+per-scramble metadata.
 
-For one through five scrambles, each scramble is promoted into its own row in a
-semantic Breakdown table with total, corner, edge, 2-flip, and 2-twist columns.
-Distribution is omitted in this compact range. A single scramble also omits the
-lower Compact breakdown, while sets of two through five keep it below the
-table. Sets of six or more retain the aggregate Overview, Compact breakdown,
-and Distribution layout.
+The production parser also accepts rows copied from a WCA competition's public
+scramble archive. These clipboard rows are tab-separated and may start with a
+number, `Extra n`, or an optional one-letter group followed by either label. The
+parser removes that table prefix only as a unit, preventing a group such as `B`
+from being mistaken for the first cube move. Incomplete selected rows, such as
+an empty `Extra 1` or a number without a scramble, are ignored.
+
+For sets, the browser uses the component split in every breakdown cell, showing the total
+alongside its corner and edge components. The move text lets Breakdown rows and
+Compact breakdown cells reopen the exact analyzed scramble without reparsing
+the input or changing the legacy result fields.
+
+The browser exposes four independently selectable result sections, regardless
+of scramble count. Overview uses the same set-level metric layout for every
+scramble count. Breakdown is a semantic per-scramble table with total, corner,
+edge, 2-flip, and 2-twist
+columns. Compact breakdown is the dense per-scramble cell grid, and Distribution
+is the alg-count chart. These display preferences are saved with the other
+browser settings and can be changed without rerunning the analysis.
+Breakdown and Compact breakdown omit visible sequence numbers for sets of one
+through five, then show them from six scrambles onward.
+
+Each production per-scramble breakdown records whether LTCT actually applied
+and how many algs it saved. When LTCT is selected, comparison baselines restore
+that adjustment; when floating is also selected, the baseline additionally
+uses the standard `UFR` corner and `UF` edge buffers. This makes a combined
+corner improvement render as, for example, `5 → 3 LTCT`, while the LTCT tag is
+omitted if LTCT did not apply to that scramble.
 
 In a floating buffer mode, the production worker also counts the set with the
-standard `UFR` corner and `UF` edge buffers. For sets of one through five, each
-overview row shows `standard → floating` for the total when that scramble was
-improved, and for each component that was individually reduced. For sets of six
-or more, the same comparison appears only on the main number in each Breakdown
-cell; the corner-plus-edge line stays on the floating result. The aggregate
-overview also adds a `Floating saved` metric containing the non-negative
-difference between the standard and floating set totals. This comparison uses
-the same parity-aware counting pipeline as the live result and does not change
-the legacy result fields.
+standard `UFR` corner and `UF` edge buffers. Each Breakdown row shows the
+baseline-to-analyzed comparison for the total and for each component that was
+individually reduced. Compact breakdown shows the same comparison on the main
+number while its corner-plus-edge line stays on the analyzed result. Overview's
+`Floating saved` metric remains floating-only: it compares standard and
+floating buffers with the same LTCT setting, so it does not accidentally count
+LTCT savings. When LTCT is selected, Overview separately shows `LTCT saved`,
+which totals only the LTCT adjustments across the analyzed set. The Overview
+total-algs metric shows only the analyzed value because the savings metrics
+already expose the aggregate comparisons. The Overview omits either savings
+metric, as well as either 2-flip or 2-twist metric, when its total is zero.
+These comparisons use the same parity-aware counting pipeline as the live
+result and do not change the legacy result fields.
 
 This matters because future parity work should now only need to change one breakdown layer at a time, instead of touching both the production count and the debug path separately.
 
@@ -1024,17 +1053,17 @@ For this project, correctness is defined operationally:
 
 That baseline lives in:
 
-- `/Users/matejbolta/Documents/Dev/scramble-set-insight/baseline/testing-10k-scrams.txt`
-- `/Users/matejbolta/Documents/Dev/scramble-set-insight/baseline/truth-weakswap.json`
-- `/Users/matejbolta/Documents/Dev/scramble-set-insight/baseline/truth-weakswap-params.json`
-- `/Users/matejbolta/Documents/Dev/scramble-set-insight/baseline/truth-pseudoswap.json`
-- `/Users/matejbolta/Documents/Dev/scramble-set-insight/baseline/truth-pseudoswap-params.json`
+- `baseline/testing-10k-scrams.txt`
+- `baseline/truth-weakswap.json`
+- `baseline/truth-weakswap-params.json`
+- `baseline/truth-pseudoswap.json`
+- `baseline/truth-pseudoswap-params.json`
 
 ## Regression Script
 
 To make future verification easy, there is a dedicated regression script:
 
-- `/Users/matejbolta/Documents/Dev/scramble-set-insight/tests/test_py_core.py`
+- `tests/test_py_core.py`
 
 Its job is:
 

@@ -11,6 +11,7 @@
     countScrambleAlgs: deps.countScrambleAlgs,
     debugHumanReviewReport: deps.debugHumanReviewReport,
     extractScrambleList: deps.extractScrambleList,
+    extractScrambleRecords: deps.extractScrambleRecords,
     scrambleTransform: deps.scrambleTransform || global.SsiCoreModules.scrambleTransform,
   };
 

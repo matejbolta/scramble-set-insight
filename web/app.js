@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js');
+const worker = new Worker('./worker.js?v=wca-input-v5');
 let requestId = 0;
 
 const CORNER_BUFFER_OPTIONS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
@@ -24,33 +24,41 @@ const elements = {
   resultsSection: document.getElementById('results-section'),
   statSolves: document.getElementById('stat-solves'),
   statAverage: document.getElementById('stat-average'),
-  statTotalLabel: document.getElementById('stat-total-label'),
   statTotal: document.getElementById('stat-total'),
-  statCorners: document.getElementById('stat-corners'),
-  statEdges: document.getElementById('stat-edges'),
   statTwoFlips: document.getElementById('stat-two-flips'),
   statTwoTwists: document.getElementById('stat-two-twists'),
+  twoFlipsMetric: document.getElementById('two-flips-metric'),
+  twoTwistsMetric: document.getElementById('two-twists-metric'),
   statFloatingSaved: document.getElementById('stat-floating-saved'),
   floatingSavedMetric: document.getElementById('floating-saved-metric'),
-  overviewKicker: document.getElementById('overview-kicker'),
-  setOnlyMetrics: document.querySelectorAll('.metric-card--set-only'),
-  singleOnlyMetrics: document.querySelectorAll('.metric-card--single-only'),
-  aggregateMetricGrid: document.getElementById('aggregate-metric-grid'),
-  compactResultsTableShell: document.getElementById('compact-results-table-shell'),
+  statLtctSaved: document.getElementById('stat-ltct-saved'),
+  ltctSavedMetric: document.getElementById('ltct-saved-metric'),
+  breakdownResultsTableShell: document.getElementById('breakdown-results-table-shell'),
   overviewCard: document.getElementById('overview-card'),
   breakdownCard: document.getElementById('breakdown-card'),
+  compactBreakdownCard: document.getElementById('compact-breakdown-card'),
   distributionCard: document.getElementById('distribution-card'),
   distributionChart: document.getElementById('distribution-chart'),
   algGrid: document.getElementById('alg-grid'),
+  showOverview: document.getElementById('show-overview'),
+  showBreakdown: document.getElementById('show-breakdown'),
+  showCompactBreakdown: document.getElementById('show-compact-breakdown'),
+  showDistribution: document.getElementById('show-distribution'),
   partialBuffers: document.getElementById('partial-buffers'),
   cornerPills: document.getElementById('corner-pills'),
   edgePills: document.getElementById('edge-pills'),
   themeToggle: document.getElementById('theme-toggle'),
+  scrambleDialog: document.getElementById('scramble-dialog'),
+  scrambleDialogNumber: document.getElementById('scramble-dialog-number'),
+  scrambleDialogText: document.getElementById('scramble-dialog-text'),
+  scrambleDialogClose: document.getElementById('scramble-dialog-close'),
 };
 
 const state = {
   cornerBuffers: [...LEGACY_CORNER_BUFFERS],
   edgeBuffers: [...LEGACY_EDGE_BUFFERS],
+  breakdownSort: { key: 'index', direction: 'asc' },
+  scrambleBreakdowns: [],
   selectScramblesOnNextClick: false,
 };
 
@@ -78,6 +86,12 @@ function getCurrentSettingsForStorage() {
     tracingOrientation: elements.tracingOrientation.value,
     flipWeight: elements.flipWeight.value,
     twistWeight: elements.twistWeight.value,
+    resultSections: {
+      overview: elements.showOverview.checked,
+      breakdown: elements.showBreakdown.checked,
+      compactBreakdown: elements.showCompactBreakdown.checked,
+      distribution: elements.showDistribution.checked,
+    },
   };
 }
 
@@ -105,6 +119,24 @@ function restoreSettings() {
   elements.tracingOrientation.value = saved.tracingOrientation || '';
   elements.flipWeight.value = saved.flipWeight || '1';
   elements.twistWeight.value = saved.twistWeight || '1';
+
+  if (saved.resultSections && typeof saved.resultSections === 'object') {
+    if (typeof saved.resultSections.overview === 'boolean') {
+      elements.showOverview.checked = saved.resultSections.overview;
+    }
+    const savedBreakdown = typeof saved.resultSections.breakdown === 'boolean'
+      ? saved.resultSections.breakdown
+      : saved.resultSections.detailedBreakdown;
+    if (typeof savedBreakdown === 'boolean') {
+      elements.showBreakdown.checked = savedBreakdown;
+    }
+    if (typeof saved.resultSections.compactBreakdown === 'boolean') {
+      elements.showCompactBreakdown.checked = saved.resultSections.compactBreakdown;
+    }
+    if (typeof saved.resultSections.distribution === 'boolean') {
+      elements.showDistribution.checked = saved.resultSections.distribution;
+    }
+  }
 
   if (Array.isArray(saved.cornerBuffers) && saved.cornerBuffers.length) {
     const cornerBuffers = saved.cornerBuffers.filter((buffer) => CORNER_BUFFER_OPTIONS.includes(buffer));
@@ -209,26 +241,35 @@ function initializeTheme() {
 }
 
 function resetResults() {
+  state.breakdownSort = { key: 'index', direction: 'asc' };
+  state.scrambleBreakdowns = [];
+  closeScrambleDialog();
   elements.resultsSection.classList.add('is-hidden');
   elements.processedBanner.textContent = '';
   elements.statSolves.textContent = '0';
   elements.statAverage.textContent = '0.00';
-  elements.statTotalLabel.textContent = 'Total algs';
   elements.statTotal.textContent = '0';
-  elements.statCorners.textContent = '0';
-  elements.statEdges.textContent = '0';
   elements.statTwoFlips.textContent = '0';
   elements.statTwoTwists.textContent = '0';
+  elements.twoFlipsMetric.classList.add('is-hidden');
+  elements.twoTwistsMetric.classList.add('is-hidden');
   elements.statFloatingSaved.textContent = '0';
   elements.floatingSavedMetric.classList.add('is-hidden');
-  elements.overviewKicker.textContent = 'Overview';
-  elements.aggregateMetricGrid.classList.remove('is-hidden');
-  elements.compactResultsTableShell.classList.add('is-hidden');
-  elements.compactResultsTableShell.innerHTML = '';
+  elements.statLtctSaved.textContent = '0';
+  elements.ltctSavedMetric.classList.add('is-hidden');
+  elements.breakdownResultsTableShell.innerHTML = '';
   elements.distributionChart.className = 'distribution-chart empty-state';
   elements.distributionChart.textContent = 'Run an analysis to see the distribution.';
   elements.algGrid.className = 'alg-grid empty-state';
   elements.algGrid.textContent = 'Run an analysis to see per-scramble alg counts.';
+  applyResultSectionVisibility();
+}
+
+function applyResultSectionVisibility() {
+  elements.overviewCard.classList.toggle('is-hidden', !elements.showOverview.checked);
+  elements.breakdownCard.classList.toggle('is-hidden', !elements.showBreakdown.checked);
+  elements.compactBreakdownCard.classList.toggle('is-hidden', !elements.showCompactBreakdown.checked);
+  elements.distributionCard.classList.toggle('is-hidden', !elements.showDistribution.checked);
 }
 
 function renderDistributionChart(distribution) {
@@ -284,7 +325,36 @@ function renderDistributionChart(distribution) {
     </svg>`;
 }
 
-function renderAlgGrid(scrambleBreakdowns, showFloatingComparisons = false) {
+function closeScrambleDialog() {
+  if (typeof elements.scrambleDialog.close === 'function') {
+    if (elements.scrambleDialog.open) elements.scrambleDialog.close();
+    return;
+  }
+  elements.scrambleDialog.removeAttribute('open');
+}
+
+function openScrambleDialog(index) {
+  const breakdown = state.scrambleBreakdowns[index];
+  if (!breakdown?.scramble) return;
+
+  elements.scrambleDialogNumber.textContent = String(index + 1);
+  elements.scrambleDialogText.textContent = breakdown.scramble;
+  if (typeof elements.scrambleDialog.showModal === 'function') {
+    elements.scrambleDialog.showModal();
+  } else {
+    elements.scrambleDialog.setAttribute('open', '');
+  }
+}
+
+function openScrambleFromTarget(target) {
+  if (!(target instanceof Element)) return false;
+  const opener = target.closest('[data-scramble-index]');
+  if (!opener) return false;
+  openScrambleDialog(Number(opener.dataset.scrambleIndex));
+  return true;
+}
+
+function renderAlgGrid(scrambleBreakdowns, showComparisons = false) {
   if (!scrambleBreakdowns.length) {
     elements.algGrid.className = 'alg-grid empty-state';
     elements.algGrid.textContent = 'No per-scramble data.';
@@ -296,56 +366,123 @@ function renderAlgGrid(scrambleBreakdowns, showFloatingComparisons = false) {
   elements.algGrid.innerHTML = scrambleBreakdowns
     .map(
       (result, index) => `
-        <div class="alg-cell${showIndexes ? '' : ' alg-cell--unindexed'}">
+        <button class="alg-cell${showIndexes ? '' : ' alg-cell--unindexed'}${result.dnf ? ' alg-cell--dnf' : ''}" type="button" data-scramble-index="${index}" aria-label="View scramble ${index + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${index + 1}${result.dnf ? ' (DNF)' : ''}">
+          ${result.dnf ? '<span class="dnf-badge alg-cell__dnf">DNF</span>' : ''}
           ${showIndexes ? `<div class="alg-cell__index">${index + 1}</div>` : ''}
-          <div class="alg-cell__value">${renderMetricValue(result.total_algs, result.standard_total_algs, showFloatingComparisons)}</div>
+          <div class="alg-cell__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showComparisons)}</div>
           <div class="alg-cell__split" aria-label="${result.corner_algs} corner algs plus ${result.edge_algs} edge algs">
             <span>${result.corner_algs}</span>
             <span class="alg-cell__plus">+</span>
             <span>${result.edge_algs}</span>
           </div>
-        </div>`
+        </button>`
     )
     .join('');
 }
 
-function renderMetricValue(actual, standard, comparisonsEnabled) {
-  if (!comparisonsEnabled || !Number.isFinite(standard) || standard <= actual) return String(actual);
-  return `
-    <span class="metric-comparison">
-      <span class="metric-comparison__from">${standard}</span>
-      <span class="metric-comparison__arrow" aria-hidden="true">→</span>
-      <span>${actual}</span>
-    </span>`;
+function renderMetricValue(actual, baseline, comparisonsEnabled, annotation = '') {
+  const renderedValue = comparisonsEnabled && Number.isFinite(baseline) && baseline > actual
+    ? `<span class="metric-comparison">
+        <span class="metric-comparison__from">${baseline}</span>
+        <span class="metric-comparison__arrow" aria-hidden="true">→</span>
+        <span>${actual}</span>
+      </span>`
+    : String(actual);
+
+  if (!annotation) return renderedValue;
+  return `<span class="metric-annotated-value">
+    ${renderedValue}
+    <span class="metric-annotation">${annotation}</span>
+  </span>`;
 }
 
-function renderCompactOverview(scrambleBreakdowns) {
-  const rows = scrambleBreakdowns.map((result, index) => {
-    const showFloatingSavings = Number.isFinite(result.standard_total_algs)
-      && result.standard_total_algs > result.total_algs;
+function getBreakdownSortValue(entry, key) {
+  if (key === 'index') return entry.originalIndex;
+  return entry.result[key];
+}
+
+function renderBreakdownSortHeader(label, key, className = '', accessibleLabel = label) {
+  const isActive = state.breakdownSort.key === key;
+  const direction = state.breakdownSort.direction;
+  const ariaSort = isActive ? ` aria-sort="${direction === 'asc' ? 'ascending' : 'descending'}"` : '';
+  const indicator = isActive ? (direction === 'asc' ? '↑' : '↓') : '↕';
+  const currentDirection = isActive ? `, currently ${direction === 'asc' ? 'ascending' : 'descending'}` : '';
+  return `
+    <th class="${className}${className ? ' ' : ''}breakdown-results-table__sortable" scope="col"${ariaSort}>
+      <button class="breakdown-results-table__sort-button" type="button" data-breakdown-sort="${key}" aria-label="Sort by ${accessibleLabel}${currentDirection}">
+        <span>${label}</span>
+        <span class="breakdown-results-table__sort-indicator${isActive ? '' : ' breakdown-results-table__sort-indicator--inactive'}" aria-hidden="true">${indicator}</span>
+      </button>
+    </th>`;
+}
+
+function renderBreakdown(scrambleBreakdowns) {
+  const showIndexes = scrambleBreakdowns.length > 5;
+  const sortDirection = state.breakdownSort.direction === 'asc' ? 1 : -1;
+  const sortedEntries = scrambleBreakdowns
+    .map((result, originalIndex) => ({ result, originalIndex }))
+    .sort((first, second) => {
+      const difference = getBreakdownSortValue(first, state.breakdownSort.key)
+        - getBreakdownSortValue(second, state.breakdownSort.key);
+      return difference ? difference * sortDirection : first.originalIndex - second.originalIndex;
+    });
+  const rows = sortedEntries.map(({ result, originalIndex }) => {
+    const showSavings = Number.isFinite(result.baseline_total_algs)
+      && result.baseline_total_algs > result.total_algs;
     return `
-      <tr aria-label="Scramble ${index + 1}">
-        <td><strong class="metric-value compact-results-table__value">${renderMetricValue(result.total_algs, result.standard_total_algs, showFloatingSavings)}</strong></td>
-        <td><strong class="metric-value compact-results-table__value">${renderMetricValue(result.corner_algs, result.standard_corner_algs, showFloatingSavings)}</strong></td>
-        <td><strong class="metric-value compact-results-table__value">${renderMetricValue(result.edge_algs, result.standard_edge_algs, showFloatingSavings)}</strong></td>
-        <td><strong class="metric-value compact-results-table__value">${result.two_flips}</strong></td>
-        <td><strong class="metric-value compact-results-table__value">${result.two_twists}</strong></td>
+      <tr tabindex="0" data-scramble-index="${originalIndex}" aria-label="View scramble ${originalIndex + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${originalIndex + 1}${result.dnf ? ' (DNF)' : ''}">
+        ${showIndexes ? `<td class="breakdown-results-table__index">${originalIndex + 1}</td>` : ''}
+        <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showSavings)}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
+        <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.corner_algs, result.baseline_corner_algs, showSavings, result.ltct_used ? 'LTCT' : '')}</strong></td>
+        <td><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.edge_algs, result.baseline_edge_algs, showSavings)}</strong></td>
+        <td class="breakdown-results-table__minor breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${result.two_flips}</strong></td>
+        <td class="breakdown-results-table__minor"><strong class="metric-value breakdown-results-table__value">${result.two_twists}</strong></td>
       </tr>`;
   }).join('');
 
-  elements.compactResultsTableShell.innerHTML = `
-    <table class="compact-results-table" aria-label="Per-scramble breakdown">
+  elements.breakdownResultsTableShell.innerHTML = `
+    <table class="breakdown-results-table${showIndexes ? ' breakdown-results-table--indexed' : ''}" aria-label="Per-scramble breakdown">
+      <colgroup>
+        ${showIndexes ? '<col class="breakdown-results-table__col breakdown-results-table__col--index" />' : ''}
+        <col class="breakdown-results-table__col breakdown-results-table__col--primary" />
+        <col class="breakdown-results-table__col breakdown-results-table__col--component" />
+        <col class="breakdown-results-table__col breakdown-results-table__col--component" />
+        <col class="breakdown-results-table__col breakdown-results-table__col--minor" />
+        <col class="breakdown-results-table__col breakdown-results-table__col--minor" />
+      </colgroup>
       <thead>
         <tr>
-          <th scope="col">Algs</th>
-          <th scope="col">Corner algs</th>
-          <th scope="col">Edge algs</th>
-          <th scope="col">F-2-flips</th>
-          <th scope="col">F-2-twists</th>
+          ${showIndexes ? renderBreakdownSortHeader('#', 'index', 'breakdown-results-table__index', 'scramble number') : ''}
+          ${renderBreakdownSortHeader('Algs', 'total_algs', 'breakdown-results-table__primary')}
+          ${renderBreakdownSortHeader('Corner algs', 'corner_algs', 'breakdown-results-table__group-start')}
+          ${renderBreakdownSortHeader('Edge algs', 'edge_algs')}
+          <th class="breakdown-results-table__minor breakdown-results-table__group-start" scope="col">F-2-flip</th>
+          <th class="breakdown-results-table__minor" scope="col">F-2-twist</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
+
+  elements.breakdownResultsTableShell
+    .querySelectorAll('[data-breakdown-sort]')
+    .forEach((button) => {
+      button.addEventListener('click', (event) => {
+        const scrollTop = elements.breakdownResultsTableShell.scrollTop;
+        const scrollLeft = elements.breakdownResultsTableShell.scrollLeft;
+        const key = button.dataset.breakdownSort;
+        state.breakdownSort = state.breakdownSort.key === key
+          ? { key, direction: state.breakdownSort.direction === 'asc' ? 'desc' : 'asc' }
+          : { key, direction: 'asc' };
+        renderBreakdown(scrambleBreakdowns);
+        elements.breakdownResultsTableShell.scrollTop = scrollTop;
+        elements.breakdownResultsTableShell.scrollLeft = scrollLeft;
+        if (event.detail === 0) {
+          elements.breakdownResultsTableShell
+            .querySelector(`[data-breakdown-sort="${key}"]`)
+            ?.focus({ preventScroll: true });
+        }
+      });
+    });
 }
 
 function renderResult(rawResult) {
@@ -357,45 +494,44 @@ function renderResult(rawResult) {
     totalTwoFlips,
     totalTwoTwists,
   ] = rawResult;
-  const totalCornerAlgs = rawResult[7];
-  const totalEdgeAlgs = rawResult[8];
   const scrambleBreakdowns = rawResult[9];
-  const floatingComparison = rawResult[10];
-  const isSingleScramble = numberOfSolves === 1;
-  const usesCompactOverview = numberOfSolves >= 1 && numberOfSolves <= 5;
-  const hasFloatingComparison = Boolean(floatingComparison);
+  const comparisonMetadata = rawResult[10];
+  const hasComparison = Boolean(comparisonMetadata);
+  const floatingSavedAlgs = comparisonMetadata?.floating_saved_algs ?? 0;
+  const ltctSavedAlgs = comparisonMetadata?.ltct_saved_algs ?? 0;
 
   elements.resultsSection.classList.remove('is-hidden');
   elements.processedBanner.textContent = `Processed ${numberOfSolves} scramble${numberOfSolves === 1 ? '' : 's'}.`;
   elements.statSolves.textContent = String(numberOfSolves);
-  elements.statTotalLabel.textContent = isSingleScramble ? 'Algs' : 'Total algs';
   elements.statTotal.textContent = String(total);
-  elements.statCorners.textContent = String(totalCornerAlgs);
-  elements.statEdges.textContent = String(totalEdgeAlgs);
   elements.statAverage.textContent = Number(average).toFixed(2);
   elements.statTwoFlips.textContent = String(totalTwoFlips);
   elements.statTwoTwists.textContent = String(totalTwoTwists);
-  elements.statFloatingSaved.textContent = String(floatingComparison?.total_saved_algs ?? 0);
-  elements.overviewKicker.textContent = usesCompactOverview ? 'Breakdown' : 'Overview';
-  elements.floatingSavedMetric.classList.toggle('is-hidden', numberOfSolves < 6 || !hasFloatingComparison);
-  elements.setOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', isSingleScramble));
-  elements.singleOnlyMetrics.forEach((metric) => metric.classList.toggle('is-hidden', !isSingleScramble));
-  elements.aggregateMetricGrid.classList.toggle('is-hidden', usesCompactOverview);
-  elements.compactResultsTableShell.classList.toggle('is-hidden', !usesCompactOverview);
-  elements.breakdownCard.classList.toggle('is-hidden', isSingleScramble);
-  elements.distributionCard.classList.toggle('is-hidden', usesCompactOverview);
+  elements.twoFlipsMetric.classList.toggle('is-hidden', totalTwoFlips <= 0);
+  elements.twoTwistsMetric.classList.toggle('is-hidden', totalTwoTwists <= 0);
+  elements.statFloatingSaved.textContent = String(floatingSavedAlgs);
+  elements.floatingSavedMetric.classList.toggle('is-hidden', floatingSavedAlgs <= 0);
+  elements.statLtctSaved.textContent = String(ltctSavedAlgs);
+  elements.ltctSavedMetric.classList.toggle('is-hidden', ltctSavedAlgs <= 0);
+  state.breakdownSort = { key: 'index', direction: 'asc' };
+  state.scrambleBreakdowns = scrambleBreakdowns;
   state.selectScramblesOnNextClick = true;
 
-  if (usesCompactOverview) renderCompactOverview(scrambleBreakdowns);
-  if (!isSingleScramble) renderAlgGrid(scrambleBreakdowns, numberOfSolves >= 6 && hasFloatingComparison);
-  if (!usesCompactOverview) renderDistributionChart(distribution);
+  renderBreakdown(scrambleBreakdowns);
+  renderAlgGrid(scrambleBreakdowns, hasComparison);
+  renderDistributionChart(distribution);
+  applyResultSectionVisibility();
 
   requestAnimationFrame(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const preferredScrollTop = window.scrollY + elements.actionRow.getBoundingClientRect().top - 20;
-    const lastVisibleResult = isSingleScramble
-      ? elements.overviewCard
-      : (usesCompactOverview ? elements.breakdownCard : elements.distributionCard);
+    const visibleResultCards = [
+      elements.overviewCard,
+      elements.breakdownCard,
+      elements.compactBreakdownCard,
+      elements.distributionCard,
+    ].filter((card) => !card.classList.contains('is-hidden'));
+    const lastVisibleResult = visibleResultCards.at(-1) || elements.processedBanner;
     const resultBottom = window.scrollY + lastVisibleResult.getBoundingClientRect().bottom;
     const maximumScrollTop = Math.max(0, resultBottom - window.innerHeight);
     window.scrollTo({
@@ -484,12 +620,43 @@ function initialize() {
     input.addEventListener('change', saveSettings);
   });
 
+  [
+    elements.showOverview,
+    elements.showBreakdown,
+    elements.showCompactBreakdown,
+    elements.showDistribution,
+  ].forEach((input) => {
+    input.addEventListener('change', () => {
+      saveSettings();
+      applyResultSectionVisibility();
+    });
+  });
+
   [elements.dnf, elements.ltct, elements.tracingOrientation, elements.flipWeight, elements.twistWeight].forEach((input) => {
     input.addEventListener('input', saveSettings);
     input.addEventListener('change', saveSettings);
   });
 
   elements.scrambleInput.addEventListener('click', selectScramblesForReplacement);
+
+  elements.breakdownResultsTableShell.addEventListener('click', (event) => {
+    openScrambleFromTarget(event.target);
+  });
+
+  elements.breakdownResultsTableShell.addEventListener('keydown', (event) => {
+    if (!['Enter', ' '].includes(event.key)) return;
+    if (!openScrambleFromTarget(event.target)) return;
+    event.preventDefault();
+  });
+
+  elements.algGrid.addEventListener('click', (event) => {
+    openScrambleFromTarget(event.target);
+  });
+
+  elements.scrambleDialogClose.addEventListener('click', closeScrambleDialog);
+  elements.scrambleDialog.addEventListener('click', (event) => {
+    if (event.target === elements.scrambleDialog) closeScrambleDialog();
+  });
 
   elements.pasteButton.addEventListener('click', async () => {
     try {
