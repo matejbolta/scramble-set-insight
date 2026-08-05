@@ -44,6 +44,43 @@ function compare(edgeMethod) {
 compare('weakswap');
 compare('pseudoswap');
 
+const examplePoolPath = path.join(root, 'web', 'examples', 'testing-10k-scrams.txt');
+const examplePoolText = fs.readFileSync(examplePoolPath, 'utf8');
+const examplePoolLines = examplePoolText.split(/\r?\n/).filter(Boolean);
+const examplePoolRecords = ssiCore.extractScrambleRecords(examplePoolText, true);
+assert.equal(examplePoolLines.length, 10000, 'example pool size');
+assert.equal(examplePoolLines.filter((line) => line.startsWith('DNF ')).length, 3333, 'example pool DNF count');
+assert.ok(
+  examplePoolLines.every((line, index) => line.startsWith('DNF ') === ((index + 1) % 3 === 0)),
+  'every third example scramble should be a DNF',
+);
+assert.equal(examplePoolRecords.length, 10000, 'all example scrambles should parse with DNFs included');
+assert.equal(examplePoolRecords.filter((record) => record.dnf).length, 3333, 'example DNF metadata count');
+assert.equal(ssiCore.extractScrambleRecords(examplePoolText, false).length, 6667, 'example DNFs should remain excludable');
+console.log('PASS JS example pool DNF distribution');
+
+const appHtml = fs.readFileSync(path.join(root, 'web', 'index.html'), 'utf8');
+function inputTagById(id) {
+  const match = appHtml.match(new RegExp(`<input\\b[^>]*\\bid="${id}"[^>]*>`));
+  assert.ok(match, `missing #${id} input`);
+  return match[0];
+}
+function isCheckedInput(tag) {
+  return /\schecked(?:\s|\/?\>)/.test(tag);
+}
+
+assert.equal(isCheckedInput(inputTagById('dnf')), true, 'Include DNFs should default on');
+assert.equal(isCheckedInput(inputTagById('ltct')), false, 'LTCT should default off');
+for (const id of ['show-overview', 'show-breakdown', 'show-compact-breakdown', 'show-distribution']) {
+  assert.equal(isCheckedInput(inputTagById(id)), true, `#${id} should default on`);
+}
+assert.match(appHtml, /<input[^>]*name="buffer-mode"[^>]*value="standard"[^>]*checked[^>]*>/, 'UF/UFR should be the default buffer mode');
+assert.match(appHtml, /<input[^>]*name="edge-method"[^>]*value="pseudoswap"[^>]*checked[^>]*>/, 'Pseudo swap should be the default edge method');
+assert.doesNotMatch(inputTagById('tracing-orientation'), /\svalue=/, 'orientation should default empty');
+assert.match(inputTagById('flip-weight'), /\svalue="1"/, '2-flip weight should default to 1');
+assert.match(inputTagById('twist-weight'), /\svalue="1"/, '2-twist weight should default to 1');
+console.log('PASS JS first-visit analysis defaults');
+
 const cstimerFixtureDirectory = path.join(root, 'tests', 'fixtures', 'cstimer-inputs');
 const cstimerExtractionBaselines = {
   'generator-no-prefix-100.txt': {

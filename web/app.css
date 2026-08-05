@@ -1147,10 +1147,6 @@ button,
   font-weight: 700;
 }
 
-.alg-cell--unindexed .alg-cell__value {
-  font-size: 1.32rem;
-}
-
 .alg-cell__split {
   display: flex;
   align-items: center;

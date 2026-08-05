@@ -361,14 +361,13 @@ function renderAlgGrid(scrambleBreakdowns, showComparisons = false) {
     return;
   }
 
-  const showIndexes = scrambleBreakdowns.length > 5;
   elements.algGrid.className = 'alg-grid';
   elements.algGrid.innerHTML = scrambleBreakdowns
     .map(
       (result, index) => `
-        <button class="alg-cell${showIndexes ? '' : ' alg-cell--unindexed'}${result.dnf ? ' alg-cell--dnf' : ''}" type="button" data-scramble-index="${index}" aria-label="View scramble ${index + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${index + 1}${result.dnf ? ' (DNF)' : ''}">
+        <button class="alg-cell${result.dnf ? ' alg-cell--dnf' : ''}" type="button" data-scramble-index="${index}" aria-label="View scramble ${index + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${index + 1}${result.dnf ? ' (DNF)' : ''}">
           ${result.dnf ? '<span class="dnf-badge alg-cell__dnf">DNF</span>' : ''}
-          ${showIndexes ? `<div class="alg-cell__index">${index + 1}</div>` : ''}
+          <div class="alg-cell__index">${index + 1}</div>
           <div class="alg-cell__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showComparisons)}</div>
           <div class="alg-cell__split" aria-label="${result.corner_algs} corner algs plus ${result.edge_algs} edge algs">
             <span>${result.corner_algs}</span>
@@ -417,7 +416,6 @@ function renderBreakdownSortHeader(label, key, className = '', accessibleLabel =
 }
 
 function renderBreakdown(scrambleBreakdowns) {
-  const showIndexes = scrambleBreakdowns.length > 5;
   const sortDirection = state.breakdownSort.direction === 'asc' ? 1 : -1;
   const sortedEntries = scrambleBreakdowns
     .map((result, originalIndex) => ({ result, originalIndex }))
@@ -431,7 +429,7 @@ function renderBreakdown(scrambleBreakdowns) {
       && result.baseline_total_algs > result.total_algs;
     return `
       <tr tabindex="0" data-scramble-index="${originalIndex}" aria-label="View scramble ${originalIndex + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${originalIndex + 1}${result.dnf ? ' (DNF)' : ''}">
-        ${showIndexes ? `<td class="breakdown-results-table__index">${originalIndex + 1}</td>` : ''}
+        <td class="breakdown-results-table__index">${originalIndex + 1}</td>
         <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showSavings)}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
         <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.corner_algs, result.baseline_corner_algs, showSavings, result.ltct_used ? 'LTCT' : '')}</strong></td>
         <td><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.edge_algs, result.baseline_edge_algs, showSavings)}</strong></td>
@@ -441,9 +439,9 @@ function renderBreakdown(scrambleBreakdowns) {
   }).join('');
 
   elements.breakdownResultsTableShell.innerHTML = `
-    <table class="breakdown-results-table${showIndexes ? ' breakdown-results-table--indexed' : ''}" aria-label="Per-scramble breakdown">
+    <table class="breakdown-results-table breakdown-results-table--indexed" aria-label="Per-scramble breakdown">
       <colgroup>
-        ${showIndexes ? '<col class="breakdown-results-table__col breakdown-results-table__col--index" />' : ''}
+        <col class="breakdown-results-table__col breakdown-results-table__col--index" />
         <col class="breakdown-results-table__col breakdown-results-table__col--primary" />
         <col class="breakdown-results-table__col breakdown-results-table__col--component" />
         <col class="breakdown-results-table__col breakdown-results-table__col--component" />
@@ -452,7 +450,7 @@ function renderBreakdown(scrambleBreakdowns) {
       </colgroup>
       <thead>
         <tr>
-          ${showIndexes ? renderBreakdownSortHeader('#', 'index', 'breakdown-results-table__index', 'scramble number') : ''}
+          ${renderBreakdownSortHeader('#', 'index', 'breakdown-results-table__index', 'scramble number')}
           ${renderBreakdownSortHeader('Algs', 'total_algs', 'breakdown-results-table__primary')}
           ${renderBreakdownSortHeader('Corner algs', 'corner_algs', 'breakdown-results-table__group-start')}
           ${renderBreakdownSortHeader('Edge algs', 'edge_algs')}
@@ -590,7 +588,7 @@ async function analyze() {
 }
 
 async function loadExample() {
-  const response = await fetch('./examples/testing-10k-scrams.txt');
+  const response = await fetch('./examples/testing-10k-scrams.txt?v=dnf-demo-v1');
   if (!response.ok) throw new Error('Could not load bundled example scrambles.');
   const scrambles = (await response.text())
     .split(/\r?\n/)
@@ -602,6 +600,8 @@ async function loadExample() {
     .slice(0, 100);
 
   elements.scrambleInput.value = randomScrambles.join('\n');
+  elements.dnf.checked = true;
+  saveSettings();
   state.selectScramblesOnNextClick = false;
 }
 
