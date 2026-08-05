@@ -609,10 +609,14 @@ button,
   transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
-.pill:hover,
+.pill:not(:disabled):hover,
 .primary-button:hover,
 .secondary-button:hover {
   transform: translateY(-1px);
+}
+
+.pill:disabled {
+  cursor: default;
 }
 
 .pill.is-active {

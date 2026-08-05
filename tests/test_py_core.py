@@ -61,9 +61,93 @@ def assert_matches(params_path):
     )
 
 
+def assert_pseudoswap_floating_closure_regressions():
+    primary_closure = ssi_core.analyze_scramble(
+        'U',
+        '',
+        'pseudoswap',
+        1,
+        1,
+        False,
+        ['UFR'],
+        ['UF'],
+    )
+    assert primary_closure['corner']['analysis']['parity'] is True
+    assert primary_closure['edges']['targets'] == ['UR', 'UB', 'UL', 'UR']
+    assert primary_closure['edges']['analysis']['parity'] is False
+    assert primary_closure['edges']['analysis']['algs'] == 2
+    assert primary_closure['total_algs'] == 4
+
+    flipped_primary_closure = ssi_core.analyze_scramble(
+        "R F' U L' Uw'",
+        '',
+        'pseudoswap',
+        1,
+        1,
+        False,
+        ['UFR'],
+        ['UF'],
+    )
+    assert flipped_primary_closure['corner']['analysis']['parity'] is True
+    assert flipped_primary_closure['edges']['targets'] == [
+        'FR', 'FD', 'RB', 'UR', 'UB', 'UL', 'RU',
+        'FL', 'DL', 'LF', 'DR', 'DB', 'BL', 'RD',
+    ]
+    assert flipped_primary_closure['edges']['analysis']['parity'] is False
+    assert flipped_primary_closure['edges']['analysis']['algs'] == 7
+
+    floating_closure = ssi_core.analyze_scramble(
+        'U Rw2',
+        '',
+        'pseudoswap',
+        1,
+        1,
+        False,
+        ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'],
+        ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
+    )
+    assert floating_closure['edges']['segments'] == [
+        {'buffer': 'UF', 'targets': ['UR', 'UB', 'UL', 'DL', 'UR']},
+        {'buffer': 'FL', 'targets': ['BL']},
+    ]
+    assert floating_closure['edges']['analysis']['parity'] is False
+    assert floating_closure['edges']['analysis']['saved_by_pairing'] == 1
+    assert floating_closure['edges']['analysis']['algs'] == 3
+    assert floating_closure['total_algs'] == 6
+
+    print('PASS: ssi_core pseudoswap floating closure regressions')
+
+
+def assert_primary_floating_buffer_validation():
+    invalid_cases = [
+        (['UFL'], ['UF'], 'Corner buffer selection must include UFR.'),
+        (['UFR'], ['UR'], 'Edge buffer selection must include UF.'),
+    ]
+    for corner_buffers, edge_buffers, expected_message in invalid_cases:
+        try:
+            ssi_core.analyze_scramble(
+                'U',
+                '',
+                'pseudoswap',
+                1,
+                1,
+                False,
+                corner_buffers,
+                edge_buffers,
+            )
+        except ValueError as error:
+            assert str(error) == expected_message
+        else:
+            raise AssertionError(f'Expected ValueError: {expected_message}')
+
+    print('PASS: ssi_core primary floating buffer validation')
+
+
 def main():
     for params_path in PARAM_FILES:
         assert_matches(params_path)
+    assert_pseudoswap_floating_closure_regressions()
+    assert_primary_floating_buffer_validation()
 
 
 if __name__ == '__main__':

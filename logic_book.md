@@ -346,6 +346,8 @@ The currently supported backend selection model is:
 - selected subset of known buffers
 - `all` buffers, meaning the full standard floating list above
 
+Every selected subset must include `UFR`. Partial floating chooses which later buffers are available after the primary cycle closes; it does not choose a different starting buffer.
+
 ## Current Floating Rule
 
 The current rule implemented in `ssi_core` is:
@@ -595,6 +597,7 @@ Important:
 - this preserves baseline parity with the original implementation
 - the code path is now unified: both single-buffer and multi-buffer edge tracing go through the same segment-based engine
 - selecting one edge buffer is therefore just the degenerate no-floating case of the unified implementation
+- every selected subset must include `UF`; partial floating adds later buffers but does not replace the method's primary physical buffer
 
 The method-specific floating orders are:
 
@@ -695,6 +698,12 @@ This rule belongs to the `UF` weakswap frame itself, not to legacy single-buffer
 Even if `UF` looks solved under the current pseudo solved frame, the backend does not float away from `UF` while `UR / RU` is still pending.
 
 It must first consume or cycle-break through that `UF / UR` subsystem so that no unresolved piece remains hidden in the paired slot.
+
+That blocked pseudo-solved closure is a cycle-break state, not a normal trace target. In particular, when parity makes `UR` the correctly solved piece in `UF`, the tracer must not consume that `UR` as though it were an unresolved target. It cycle-breaks through the remaining pending piece and only floats once the paired subsystem is actually closed.
+
+The same distinction applies to orientation. Under parity, both `UR` and `RU` are the in-place piece group for the pseudo `UF` frame; without parity, that group is `UF` and `FU`. A flipped-in-place pseudo buffer therefore authorizes a cycle break, but never floating and never a normal trace step.
+
+These rules keep the final pseudoswap edge trace even and preserve the parity-dependent cross-solved `UF / UR` frame while still allowing later segments to use floating buffers.
 
 ## Edge Floating Counting
 
@@ -807,8 +816,9 @@ edge, 2-flip, and 2-twist
 columns. Compact breakdown is the dense per-scramble cell grid, and Distribution
 is the alg-count chart. These display preferences are saved with the other
 browser settings and can be changed without rerunning the analysis.
-Breakdown and Compact breakdown omit visible sequence numbers for sets of one
-through five, then show them from six scrambles onward.
+Breakdown and Compact breakdown show visible sequence numbers for every set
+size, including sets of one through five. These stable numbers identify the
+original scramble even when Breakdown is sorted by another column.
 
 Each production per-scramble breakdown records whether LTCT actually applied
 and how many algs it saved. When LTCT is selected, comparison baselines restore

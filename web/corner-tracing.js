@@ -28,8 +28,10 @@
     if (cornerBuffers === 'all') return [...CORNER_FLOAT_BUFFER_ORDER];
     if (cornerBuffers == null) return ['UFR'];
     const allowedBuffers = new Set(cornerBuffers);
+    if (!allowedBuffers.has('UFR')) {
+      throw new Error('Corner buffer selection must include UFR.');
+    }
     const normalized = CORNER_FLOAT_BUFFER_ORDER.filter((buffer) => allowedBuffers.has(buffer));
-    if (!normalized.length) throw new Error('Assertion failed');
     return normalized;
   }
 

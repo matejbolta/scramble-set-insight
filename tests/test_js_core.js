@@ -44,6 +44,73 @@ function compare(edgeMethod) {
 compare('weakswap');
 compare('pseudoswap');
 
+const pseudoswapPrimaryClosure = ssiCore.analyzeScramble(
+  'U',
+  '',
+  'pseudoswap',
+  1,
+  1,
+  false,
+  ['UFR'],
+  ['UF'],
+);
+assert.equal(pseudoswapPrimaryClosure.corner.analysis.parity, true);
+assert.deepEqual(pseudoswapPrimaryClosure.edges.targets, ['UR', 'UB', 'UL', 'UR']);
+assert.equal(pseudoswapPrimaryClosure.edges.analysis.parity, false);
+assert.equal(pseudoswapPrimaryClosure.edges.analysis.algs, 2);
+assert.equal(pseudoswapPrimaryClosure.total_algs, 4);
+
+const pseudoswapFlippedPrimaryClosure = ssiCore.analyzeScramble(
+  "R F' U L' Uw'",
+  '',
+  'pseudoswap',
+  1,
+  1,
+  false,
+  ['UFR'],
+  ['UF'],
+);
+assert.equal(pseudoswapFlippedPrimaryClosure.corner.analysis.parity, true);
+assert.deepEqual(
+  pseudoswapFlippedPrimaryClosure.edges.targets,
+  ['FR', 'FD', 'RB', 'UR', 'UB', 'UL', 'RU', 'FL', 'DL', 'LF', 'DR', 'DB', 'BL', 'RD'],
+);
+assert.equal(pseudoswapFlippedPrimaryClosure.edges.analysis.parity, false);
+assert.equal(pseudoswapFlippedPrimaryClosure.edges.analysis.algs, 7);
+
+const pseudoswapFloatingClosure = ssiCore.analyzeScramble(
+  'U Rw2',
+  '',
+  'pseudoswap',
+  1,
+  1,
+  false,
+  ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'],
+  ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
+);
+assert.deepEqual(
+  pseudoswapFloatingClosure.edges.segments,
+  [
+    { buffer: 'UF', targets: ['UR', 'UB', 'UL', 'DL', 'UR'] },
+    { buffer: 'FL', targets: ['BL'] },
+  ],
+);
+assert.equal(pseudoswapFloatingClosure.edges.analysis.parity, false);
+assert.equal(pseudoswapFloatingClosure.edges.analysis.saved_by_pairing, 1);
+assert.equal(pseudoswapFloatingClosure.edges.analysis.algs, 3);
+assert.equal(pseudoswapFloatingClosure.total_algs, 6);
+console.log('PASS JS pseudoswap floating closure regressions');
+
+assert.throws(
+  () => ssiCore.analyzeScramble('U', '', 'pseudoswap', 1, 1, false, ['UFL'], ['UF']),
+  /Corner buffer selection must include UFR/,
+);
+assert.throws(
+  () => ssiCore.analyzeScramble('U', '', 'pseudoswap', 1, 1, false, ['UFR'], ['UR']),
+  /Edge buffer selection must include UF/,
+);
+console.log('PASS JS primary floating buffer validation');
+
 const examplePoolPath = path.join(root, 'web', 'examples', 'testing-10k-scrams.txt');
 const examplePoolText = fs.readFileSync(examplePoolPath, 'utf8');
 const examplePoolLines = examplePoolText.split(/\r?\n/).filter(Boolean);
@@ -303,6 +370,7 @@ delete global.self;
 
 const appSource = fs.readFileSync(path.join(root, 'web', 'app.js'), 'utf8');
 const workerSource = fs.readFileSync(path.join(root, 'web', 'worker.js'), 'utf8');
+assert.match(appSource, /button\.disabled = requiredBuffers\.includes\(option\)/, 'partial floating must pin primary buffer pills');
 const workerVersionMatch = appSource.match(/new Worker\('\.\/worker\.js\?v=([^']+)'\)/);
 assert.ok(workerVersionMatch, 'app.js must version the analysis worker URL');
 const workerVersion = workerVersionMatch[1];

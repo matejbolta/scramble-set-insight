@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=wca-input-v5');
+const worker = new Worker('./worker.js?v=floating-closure-v6');
 let requestId = 0;
 
 const CORNER_BUFFER_OPTIONS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
@@ -140,12 +140,12 @@ function restoreSettings() {
 
   if (Array.isArray(saved.cornerBuffers) && saved.cornerBuffers.length) {
     const cornerBuffers = saved.cornerBuffers.filter((buffer) => CORNER_BUFFER_OPTIONS.includes(buffer));
-    if (cornerBuffers.length) state.cornerBuffers = cornerBuffers;
+    if (cornerBuffers.length) state.cornerBuffers = [...new Set([...LEGACY_CORNER_BUFFERS, ...cornerBuffers])];
   }
 
   if (Array.isArray(saved.edgeBuffers) && saved.edgeBuffers.length) {
     const edgeBuffers = saved.edgeBuffers.filter((buffer) => EDGE_BUFFER_OPTIONS.includes(buffer));
-    if (edgeBuffers.length) state.edgeBuffers = edgeBuffers;
+    if (edgeBuffers.length) state.edgeBuffers = [...new Set([...LEGACY_EDGE_BUFFERS, ...edgeBuffers])];
   }
 }
 
@@ -174,6 +174,9 @@ function createPills(container, options, selectedValues, group) {
     button.textContent = option;
     button.dataset.value = option;
     button.dataset.group = group;
+    const requiredBuffers = group === 'corner' ? LEGACY_CORNER_BUFFERS : LEGACY_EDGE_BUFFERS;
+    button.disabled = requiredBuffers.includes(option);
+    if (button.disabled) button.title = 'Primary buffer (always included)';
     button.addEventListener('click', () => toggleBuffer(group, option));
     container.appendChild(button);
   }
@@ -185,6 +188,9 @@ function syncPills() {
 }
 
 function toggleBuffer(group, value) {
+  const requiredBuffers = group === 'corner' ? LEGACY_CORNER_BUFFERS : LEGACY_EDGE_BUFFERS;
+  if (requiredBuffers.includes(value)) return;
+
   const current = group === 'corner' ? state.cornerBuffers : state.edgeBuffers;
   const index = current.indexOf(value);
 
@@ -546,6 +552,8 @@ function collectSettings() {
 
   if (!cornerBuffers.length) throw new Error('Select at least one corner buffer.');
   if (!edgeBuffers.length) throw new Error('Select at least one edge buffer.');
+  if (!cornerBuffers.includes('UFR')) throw new Error('Corner buffer selection must include UFR.');
+  if (!edgeBuffers.includes('UF')) throw new Error('Edge buffer selection must include UF.');
 
   return {
     scrambles: elements.scrambleInput.value,

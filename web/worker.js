@@ -1,12 +1,12 @@
 self.importScripts(
-  './wide-move-translator.js?v=wca-input-v5',
-  './scrambling.js?v=wca-input-v5',
-  './corner-tracing.js?v=wca-input-v5',
-  './edge-common.js?v=wca-input-v5',
-  './weakswap-tracing.js?v=wca-input-v5',
-  './pseudoswap-tracing.js?v=wca-input-v5',
-  './finalizing.js?v=wca-input-v5',
-  './ssi-core.js?v=wca-input-v5',
+  './wide-move-translator.js?v=floating-closure-v6',
+  './scrambling.js?v=floating-closure-v6',
+  './corner-tracing.js?v=floating-closure-v6',
+  './edge-common.js?v=floating-closure-v6',
+  './weakswap-tracing.js?v=floating-closure-v6',
+  './pseudoswap-tracing.js?v=floating-closure-v6',
+  './finalizing.js?v=floating-closure-v6',
+  './ssi-core.js?v=floating-closure-v6',
 );
 
 const backend = self.SsiCore;

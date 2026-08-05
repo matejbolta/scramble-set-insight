@@ -46,9 +46,9 @@ def normalize_edge_buffers(edge_buffers, edge_method):
     if edge_buffers is None:
         return ['UF']
     allowed_buffers = set(edge_buffers)
+    if 'UF' not in allowed_buffers:
+        raise ValueError('Edge buffer selection must include UF.')
     normalized_buffers = [buffer for buffer in buffer_order if buffer in allowed_buffers]
-    if not normalized_buffers:
-        assert False
     return normalized_buffers
 
 def switch_with_buffer_edg(buffer, target, state):
@@ -69,6 +69,15 @@ def apply_trace_log_edg(state, trace_log):
 
 def piece_in_its_place_edg(state, sticker):
     return state[sticker] in get_piece_group_edg(sticker)
+
+def piece_in_its_place_edg_for_frame(state, sticker, edge_method, parity=False):
+    if edge_method != 'pseudoswap':
+        return piece_in_its_place_edg(state, sticker)
+    if sticker == 'UF':
+        return state['UF'] in (('UR', 'RU') if parity else ('UF', 'FU'))
+    if sticker == 'UR':
+        return state['UR'] in (('UF', 'FU') if parity else ('UR', 'RU'))
+    return piece_in_its_place_edg(state, sticker)
 
 def piece_solved_edg(state, sticker):
     return state[sticker] == sticker
@@ -186,14 +195,27 @@ def trace_state_edg_floating(state, solved_list, flipped_list, edge_buffers, edg
             continue
 
         solved_for_float = edge_buffer_solved_for_float(virtual_state, current_buffer, edge_method, parity=parity)
+        pseudo_closure_blocked_by_paired_slot = False
         if (
             edge_method == 'pseudoswap'
             and current_buffer == 'UF'
             and ('UR' in need_visiting or 'RU' in need_visiting)
         ):
+            pseudo_closure_blocked_by_paired_slot = solved_for_float
             solved_for_float = False
 
-        cycle_break_only = piece_in_its_place_edg(virtual_state, current_buffer) and not solved_for_float
+        cycle_break_only = (
+            pseudo_closure_blocked_by_paired_slot
+            or (
+                piece_in_its_place_edg_for_frame(
+                    virtual_state,
+                    current_buffer,
+                    edge_method,
+                    parity=parity,
+                )
+                and not solved_for_float
+            )
+        )
         target = None
         if not (solved_for_float or cycle_break_only):
             candidate_target = virtual_state[current_buffer]
@@ -237,6 +259,7 @@ __all__ = [
     'normalize_edge_buffers',
     'pair_letters',
     'piece_in_its_place_edg',
+    'piece_in_its_place_edg_for_frame',
     'piece_solved_edg',
     'remove_from_list_edg',
     'scr_to_scrambled_state_edg',

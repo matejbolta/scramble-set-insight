@@ -32,8 +32,10 @@
     if (edgeBuffers === 'all') return [...bufferOrder];
     if (edgeBuffers == null) return ['UF'];
     const allowedBuffers = new Set(edgeBuffers);
+    if (!allowedBuffers.has('UF')) {
+      throw new Error('Edge buffer selection must include UF.');
+    }
     const normalized = bufferOrder.filter((buffer) => allowedBuffers.has(buffer));
-    if (!normalized.length) throw new Error('Assertion failed');
     return normalized;
   }
 
@@ -58,6 +60,17 @@
 
   function pieceInItsPlaceEdg(state, sticker) {
     return getPieceGroupEdg(sticker).includes(state[sticker]);
+  }
+
+  function pieceInItsPlaceEdgForFrame(state, sticker, edgeMethod, parity = false) {
+    if (edgeMethod !== 'pseudoswap') return pieceInItsPlaceEdg(state, sticker);
+    if (sticker === 'UF') {
+      return (parity ? ['UR', 'RU'] : ['UF', 'FU']).includes(state.UF);
+    }
+    if (sticker === 'UR') {
+      return (parity ? ['UF', 'FU'] : ['UR', 'RU']).includes(state.UR);
+    }
+    return pieceInItsPlaceEdg(state, sticker);
   }
 
   function pieceSolvedEdg(state, sticker) {
@@ -184,11 +197,14 @@
       }
 
       let solvedForFloat = edgeBufferSolvedForFloat(virtualState, currentBuffer, edgeMethod, parity);
+      let pseudoClosureBlockedByPairedSlot = false;
       if (edgeMethod === 'pseudoswap' && currentBuffer === 'UF' && (needVisiting.includes('UR') || needVisiting.includes('RU'))) {
+        pseudoClosureBlockedByPairedSlot = solvedForFloat;
         solvedForFloat = false;
       }
 
-      let cycleBreakOnly = pieceInItsPlaceEdg(virtualState, currentBuffer) && !solvedForFloat;
+      let cycleBreakOnly = pseudoClosureBlockedByPairedSlot
+        || (pieceInItsPlaceEdgForFrame(virtualState, currentBuffer, edgeMethod, parity) && !solvedForFloat);
       let target = null;
       if (!(solvedForFloat || cycleBreakOnly)) {
         const candidateTarget = virtualState[currentBuffer];
@@ -236,6 +252,7 @@
     normalizeEdgeBuffers,
     pairLetters,
     pieceInItsPlaceEdg,
+    pieceInItsPlaceEdgForFrame,
     pieceSolvedEdg,
     removeFromListEdg,
     scrToScrambledStateEdg,

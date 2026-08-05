@@ -23,9 +23,9 @@ def normalize_corner_buffers(corner_buffers):
     if corner_buffers is None:
         return ['UFR']
     allowed_buffers = set(corner_buffers)
+    if 'UFR' not in allowed_buffers:
+        raise ValueError('Corner buffer selection must include UFR.')
     normalized_buffers = [buffer for buffer in CORNER_FLOAT_BUFFER_ORDER if buffer in allowed_buffers]
-    if not normalized_buffers:
-        assert False
     return normalized_buffers
 
 def solved_cor(state):
