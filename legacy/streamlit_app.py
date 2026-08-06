@@ -1,6 +1,13 @@
+import sys
+from pathlib import Path
+
 import streamlit as st
 
-from python.ssi_core import alg_counter_main, extract_scramble_list
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from legacy.ssi_core import alg_counter_main, extract_scramble_list
 
 CORNER_BUFFER_OPTIONS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL']
 EDGE_BUFFER_OPTIONS = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL']

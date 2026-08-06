@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from python import ssi_core
+from legacy import ssi_core
 
 PARAM_FILES = [
     ROOT / 'baseline' / 'truth-weakswap-params.json',
