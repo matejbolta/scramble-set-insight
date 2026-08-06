@@ -107,3 +107,7 @@ test_backend_v2_baseline.py
 
 # Local agent handoff
 AGENTS.md
+/logic_book.md
+/design/
+/.agents/
+/.codex/
