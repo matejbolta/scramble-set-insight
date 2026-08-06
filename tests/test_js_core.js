@@ -2,43 +2,54 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const assert = require('assert/strict');
-const { spawnSync } = require('child_process');
 const ssiCore = require('../web/ssi-core');
 
 const root = path.join(__dirname, '..');
 const inputPath = path.join(root, 'baseline', 'testing-10k-scrams.txt');
 const text = fs.readFileSync(inputPath, 'utf8');
 
-function pythonHandmadeResult(edgeMethod) {
-  const script = [
-    'import json',
-    'from pathlib import Path',
-    'from python import ssi_handmade',
-    `text = Path(${JSON.stringify(inputPath)}).read_text()`,
-    `result = ssi_handmade.alg_counter_main(text, edge_method=${JSON.stringify(edgeMethod)})`,
-    'print(json.dumps(result))',
-  ].join('\n');
-  const proc = spawnSync('python3', ['-c', script], { cwd: root, encoding: 'utf8' });
-  if (proc.status !== 0) {
-    throw new Error(proc.stderr || `python failed with ${proc.status}`);
-  }
-  return JSON.parse(proc.stdout);
+function storedTruth(edgeMethod) {
+  return JSON.parse(fs.readFileSync(
+    path.join(root, 'baseline', `truth-${edgeMethod}.json`),
+    'utf8',
+  ));
 }
 
 function compare(edgeMethod) {
-  const py = pythonHandmadeResult(edgeMethod);
+  const expected = storedTruth(edgeMethod);
   const js = ssiCore.algCounterMain(text, '', edgeMethod, 1, 1, false, false, ['UFR'], ['UF']);
-  const pyList = py[6];
   const jsList = js[6];
-  if (pyList.length !== jsList.length) {
-    throw new Error(`${edgeMethod}: length mismatch ${pyList.length} !== ${jsList.length}`);
+  if (expected.length !== jsList.length) {
+    throw new Error(`${edgeMethod}: length mismatch ${expected.length} !== ${jsList.length}`);
   }
-  for (let i = 0; i < pyList.length; i += 1) {
-    if (pyList[i] !== jsList[i]) {
-      throw new Error(`${edgeMethod}: first mismatch at index ${i}: py=${pyList[i]} js=${jsList[i]}`);
+  for (let i = 0; i < expected.length; i += 1) {
+    if (expected[i] !== jsList[i]) {
+      throw new Error(`${edgeMethod}: first mismatch at index ${i}: truth=${expected[i]} js=${jsList[i]}`);
     }
   }
-  console.log(`PASS JS core vs handmade (${edgeMethod}): ${jsList.length} entries match`);
+  assert.equal(js[0], expected.length, `${edgeMethod}: solve count`);
+  assert.equal(js[3], expected.reduce((sum, value) => sum + value, 0), `${edgeMethod}: total algs`);
+  assert.equal(js[3], js[7] + js[8], `${edgeMethod}: corner/edge aggregate`);
+  assert.equal(js[9].length, expected.length, `${edgeMethod}: breakdown length`);
+  assert.equal(
+    js[9].reduce((sum, breakdown) => sum + breakdown.two_flips, 0),
+    js[4],
+    `${edgeMethod}: 2-flip aggregate`,
+  );
+  assert.equal(
+    js[9].reduce((sum, breakdown) => sum + breakdown.two_twists, 0),
+    js[5],
+    `${edgeMethod}: 2-twist aggregate`,
+  );
+  for (const [index, breakdown] of js[9].entries()) {
+    assert.equal(breakdown.total_algs, expected[index], `${edgeMethod}: breakdown ${index}`);
+    assert.equal(
+      breakdown.total_algs,
+      breakdown.corner_algs + breakdown.edge_algs,
+      `${edgeMethod}: breakdown components ${index}`,
+    );
+  }
+  console.log(`PASS JS legacy core vs frozen truth (${edgeMethod}): ${jsList.length} entries match`);
 }
 
 compare('weakswap');
@@ -88,18 +99,13 @@ const pseudoswapFloatingClosure = ssiCore.analyzeScramble(
   ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'],
   ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
 );
-assert.deepEqual(
-  pseudoswapFloatingClosure.edges.segments,
-  [
-    { buffer: 'UF', targets: ['UR', 'UB', 'UL', 'DL', 'UR'] },
-    { buffer: 'FL', targets: ['BL'] },
-  ],
-);
+assert.equal(pseudoswapFloatingClosure.edges.tracing_model, 'cycle-residue');
+assert.deepEqual(pseudoswapFloatingClosure.edges.cycle_residue.residue_types, ['P', 'P']);
 assert.equal(pseudoswapFloatingClosure.edges.analysis.parity, false);
-assert.equal(pseudoswapFloatingClosure.edges.analysis.saved_by_pairing, 1);
+assert.equal(pseudoswapFloatingClosure.edges.analysis.saved_by_pairing, 0);
 assert.equal(pseudoswapFloatingClosure.edges.analysis.algs, 3);
 assert.equal(pseudoswapFloatingClosure.total_algs, 6);
-console.log('PASS JS pseudoswap floating closure regressions');
+console.log('PASS JS full-floating P + P regression costs two residue algs');
 
 assert.throws(
   () => ssiCore.analyzeScramble('U', '', 'pseudoswap', 1, 1, false, ['UFL'], ['UF']),
@@ -137,7 +143,10 @@ function isCheckedInput(tag) {
 }
 
 assert.equal(isCheckedInput(inputTagById('dnf')), true, 'Include DNFs should default on');
-assert.equal(isCheckedInput(inputTagById('ltct')), false, 'LTCT should default off');
+assert.match(appHtml, /<input[^>]*name="finish-capability"[^>]*value="none"[^>]*checked[^>]*>/, 'Advanced should default to None');
+assert.match(inputTagById('finish-t2c'), /\sdisabled/, 'T2C should start disabled outside full floating');
+assert.match(appHtml, /id="advanced-label">Advanced</, 'Advanced group label');
+assert.match(appHtml, /Partial floating \(advanced\)/, 'partial floating should be marked advanced');
 for (const id of ['show-overview', 'show-breakdown', 'show-compact-breakdown', 'show-distribution']) {
   assert.equal(isCheckedInput(inputTagById(id)), true, `#${id} should default on`);
 }
@@ -146,6 +155,10 @@ assert.match(appHtml, /<input[^>]*name="edge-method"[^>]*value="pseudoswap"[^>]*
 assert.doesNotMatch(inputTagById('tracing-orientation'), /\svalue=/, 'orientation should default empty');
 assert.match(inputTagById('flip-weight'), /\svalue="1"/, '2-flip weight should default to 1');
 assert.match(inputTagById('twist-weight'), /\svalue="1"/, '2-twist weight should default to 1');
+assert.match(inputTagById('flip-weight'), /\smin="1"/, '2-flip weight should reject sub-unit values');
+assert.match(inputTagById('twist-weight'), /\smin="1"/, '2-twist weight should reject sub-unit values');
+assert.match(inputTagById('flip-weight'), /\sstep="0\.01"/, '2-flip weight should accept 1.25');
+assert.match(inputTagById('twist-weight'), /\sstep="0\.01"/, '2-twist weight should accept 1.25');
 console.log('PASS JS first-visit analysis defaults');
 
 const cstimerFixtureDirectory = path.join(root, 'tests', 'fixtures', 'cstimer-inputs');
@@ -301,7 +314,7 @@ const standardPayload = {
   edgeMethod: 'weakswap',
   flipWeight: 1,
   twistWeight: 1,
-  ltct: true,
+  finishCapability: 'ltct',
   dnf: false,
   cornerBuffers: ['UFR'],
   edgeBuffers: ['UF'],
@@ -331,24 +344,31 @@ const standardLtctResult = runWorker(standardPayload);
 assert.equal(standardLtctResult[9][0].scramble, ltctScramble);
 assert.equal(standardLtctResult[9][0].ltct_used, true);
 assert.equal(standardLtctResult[9][0].ltct_saved_algs, 1);
+assert.equal(standardLtctResult[9][0].finish_type, 'ltct');
+assert.equal(standardLtctResult[9][0].finish_saved_algs, 1);
 assert.equal(standardLtctResult[9][0].baseline_total_algs, 10);
 assert.equal(standardLtctResult[9][0].total_algs, 9);
 assert.equal(standardLtctResult[9][0].baseline_corner_algs, 5);
 assert.equal(standardLtctResult[9][0].corner_algs, 4);
 assert.equal(standardLtctResult[9][0].baseline_edge_algs, standardLtctResult[9][0].edge_algs);
 assert.equal(standardLtctResult[10].has_ltct_comparison, true);
+assert.equal(standardLtctResult[10].has_finish_comparison, true);
+assert.equal(standardLtctResult[10].finish_capability, 'ltct');
+assert.equal(standardLtctResult[10].finish_saved_algs, 1);
 assert.equal(standardLtctResult[10].has_floating_comparison, false);
 assert.equal(standardLtctResult[10].combined_saved_algs, 1);
 assert.equal(standardLtctResult[10].ltct_saved_algs, 1);
 
+const floatingLtctScramble = "B2 L D R B2 R F2 R' U2 L2 U2 R2 F2 D B' L R' F' U L' Uw";
 const floatingLtctResult = runWorker({
   ...standardPayload,
+  scrambles: floatingLtctScramble,
   bufferMode: 'full',
   cornerBuffers: ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'],
   edgeBuffers: ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
 });
-assert.equal(floatingLtctResult[9][0].baseline_total_algs, 10);
-assert.equal(floatingLtctResult[9][0].total_algs, 8);
+assert.equal(floatingLtctResult[9][0].baseline_total_algs, 11);
+assert.equal(floatingLtctResult[9][0].total_algs, 9);
 assert.equal(floatingLtctResult[9][0].baseline_corner_algs, 5);
 assert.equal(floatingLtctResult[9][0].corner_algs, 3);
 assert.equal(floatingLtctResult[9][0].ltct_used, true);
@@ -366,6 +386,32 @@ assert.equal(unusedLtctResult[9][0].baseline_corner_algs, unusedLtctResult[9][0]
 assert.equal(unusedLtctResult[10].combined_saved_algs, 0);
 assert.equal(unusedLtctResult[10].ltct_saved_algs, 0);
 
+const t2cScramble = "D2 B U2 R' D F' D' B2 U' L2 D2 F2 R2 F L2 F2 R2 U2 F D2 Rw' Uw2";
+const floatingT2cResult = runWorker({
+  ...standardPayload,
+  scrambles: t2cScramble,
+  finishCapability: 't2c',
+  bufferMode: 'full',
+  cornerBuffers: ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'],
+  edgeBuffers: ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
+});
+assert.equal(floatingT2cResult[9][0].baseline_total_algs, 9);
+assert.equal(floatingT2cResult[9][0].total_algs, 7);
+assert.equal(floatingT2cResult[9][0].finish_type, 't2c');
+assert.equal(floatingT2cResult[9][0].finish_saved_algs, 1);
+assert.equal(floatingT2cResult[9][0].ltct_used, false);
+assert.equal(floatingT2cResult[10].finish_capability, 't2c');
+assert.equal(floatingT2cResult[10].finish_saved_algs, 1);
+assert.equal(floatingT2cResult[10].floating_saved_algs, 1);
+assert.equal(floatingT2cResult[10].combined_saved_algs, 2);
+
+assert.throws(
+  () => ssiCore.analyzeScramble(t2cScramble, '', 'pseudoswap', 1, 1, 't2c', ['UFR'], ['UF']),
+  /T2C requires full floating/,
+);
+assert.equal(ssiCore.normalizeFinishCapability(true), 'ltct');
+assert.equal(ssiCore.normalizeFinishCapability(false), 'none');
+
 delete global.self;
 
 const appSource = fs.readFileSync(path.join(root, 'web', 'app.js'), 'utf8');
@@ -381,5 +427,11 @@ assert.ok(
   'analysis worker and dependency versions must stay synchronized',
 );
 
-console.log('PASS JS production LTCT comparison metadata');
+console.log('PASS JS production Advanced LTCT/T2C comparison metadata');
 console.log('PASS JS analysis worker cache versions stay synchronized');
+
+require('./test_js_cycle_model');
+require('./test_js_cycle_residue');
+require('./test_js_cycle_residue_oracle');
+require('./test_js_weighted_class_frontiers');
+require('./test_js_residue_planner');

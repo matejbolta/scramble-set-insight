@@ -62,7 +62,7 @@
                 </label>
                 <label class="radio-option">
                   <input type="radio" name="buffer-mode" value="partial" />
-                  <span>Partial floating</span>
+                  <span>Partial floating (advanced)</span>
                 </label>
               </div>
 
@@ -87,7 +87,7 @@
                 </div>
               </div>
 
-              <div class="parameter-subgroup parameter-subgroup--separated">
+              <div class="parameter-subgroup parameter-subgroup--separated" id="edge-method-settings">
                 <div class="field-label">Edge tracing</div>
                 <div class="radio-group" id="edge-method-group">
                   <label class="radio-option">
@@ -108,13 +108,27 @@
                 <input id="dnf" type="checkbox" checked />
                 <span>Include DNFs</span>
               </label>
-              <label class="checkbox-option">
-                <input id="ltct" type="checkbox" />
-                <span>I use LTCT</span>
-              </label>
+
+              <div class="parameter-subgroup parameter-subgroup--separated" role="group" aria-labelledby="advanced-label">
+                <div class="field-label" id="advanced-label">Advanced</div>
+                <div class="radio-group radio-group--compact" id="finish-capability-group">
+                  <label class="radio-option">
+                    <input type="radio" name="finish-capability" value="none" checked />
+                    <span>None</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" name="finish-capability" value="ltct" />
+                    <span>LTCT</span>
+                  </label>
+                  <label class="radio-option" title="T2C requires full floating.">
+                    <input id="finish-t2c" type="radio" name="finish-capability" value="t2c" disabled />
+                    <span>T2C</span>
+                  </label>
+                </div>
+              </div>
 
               <div class="compact-setting-row compact-setting-row--first">
-                <input id="flip-weight" class="number-input" type="number" min="0" step="0.1" value="1" />
+                <input id="flip-weight" class="number-input" type="number" min="1" step="0.01" value="1" />
                 <div class="field-label-row">
                   <label class="field-label field-label--compact" for="flip-weight">2-flip weight</label>
                   <span class="field-hint" tabindex="0" data-hint="Algs per floating 2-flip." aria-label="Algs per floating 2-flip.">?</span>
@@ -122,7 +136,7 @@
               </div>
 
               <div class="compact-setting-row">
-                <input id="twist-weight" class="number-input" type="number" min="0" step="0.1" value="1" />
+                <input id="twist-weight" class="number-input" type="number" min="1" step="0.01" value="1" />
                 <div class="field-label-row">
                   <label class="field-label field-label--compact" for="twist-weight">2-twist weight</label>
                   <span class="field-hint" tabindex="0" data-hint="Algs per floating 2-twist." aria-label="Algs per floating 2-twist.">?</span>
@@ -205,9 +219,9 @@
                 <span class="metric-label">Floating saved</span>
                 <strong class="metric-value" id="stat-floating-saved">0</strong>
               </article>
-              <article class="metric-card is-hidden" id="ltct-saved-metric">
-                <span class="metric-label">LTCT saved</span>
-                <strong class="metric-value" id="stat-ltct-saved">0</strong>
+              <article class="metric-card is-hidden" id="finish-saved-metric">
+                <span class="metric-label" id="finish-saved-label">Advanced saved</span>
+                <strong class="metric-value" id="stat-finish-saved">0</strong>
               </article>
             </div>
           </section>
@@ -256,6 +270,10 @@
     <script src="./scrambling.js"></script>
     <script src="./corner-tracing.js"></script>
     <script src="./edge-common.js"></script>
+    <script src="./cycle-model.js"></script>
+    <script src="./cycle-residue.js"></script>
+    <script src="./cycle-residue-planner.js"></script>
+    <script src="./dlin-planner.js"></script>
     <script src="./weakswap-tracing.js"></script>
     <script src="./pseudoswap-tracing.js"></script>
     <script src="./finalizing.js"></script>

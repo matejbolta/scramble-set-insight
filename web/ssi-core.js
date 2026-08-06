@@ -12,6 +12,7 @@
     debugHumanReviewReport: deps.debugHumanReviewReport,
     extractScrambleList: deps.extractScrambleList,
     extractScrambleRecords: deps.extractScrambleRecords,
+    normalizeFinishCapability: deps.normalizeFinishCapability,
     scrambleTransform: deps.scrambleTransform || global.SsiCoreModules.scrambleTransform,
   };
 

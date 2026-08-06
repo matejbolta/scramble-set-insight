@@ -11,11 +11,18 @@ Input a set of scrambles (for MBLD I suggest using csTimer's ScrambleGenerator, 
 It supports:
 
 - weak swap and pseudo swap
-- UF/UFR only, full floating, or partial floating
+- legacy UF/UFR tracing, exact weighted full floating, and advanced partial DLin floating
 - custom tracing/scrambling orientation
 - custom 2-flip and 2-twist weights
-- optional DNF inclusion and LTCT adjustment
+- optional DNF inclusion and Advanced `None / LTCT / T2C` counting
+
+T2C is available with exact full floating; existing LTCT behavior remains
+available in every counting mode.
 
 ### Legacy Version
 
 The deprecated version, hosted on Streamlit, is still available here: [Legacy app](https://scramble-set-insight.streamlit.app/)
+
+Its archived modular Python core and Streamlit source live in `legacy/`. They
+are retained for historical inspection only; production lives in `web/`, and
+`python/ssi_handmade.py` plus `baseline/truth-*.json` define legacy truth.

@@ -1,12 +1,16 @@
 self.importScripts(
-  './wide-move-translator.js?v=floating-closure-v6',
-  './scrambling.js?v=floating-closure-v6',
-  './corner-tracing.js?v=floating-closure-v6',
-  './edge-common.js?v=floating-closure-v6',
-  './weakswap-tracing.js?v=floating-closure-v6',
-  './pseudoswap-tracing.js?v=floating-closure-v6',
-  './finalizing.js?v=floating-closure-v6',
-  './ssi-core.js?v=floating-closure-v6',
+  './wide-move-translator.js?v=advanced-v1',
+  './scrambling.js?v=advanced-v1',
+  './corner-tracing.js?v=advanced-v1',
+  './edge-common.js?v=advanced-v1',
+  './cycle-model.js?v=advanced-v1',
+  './cycle-residue.js?v=advanced-v1',
+  './cycle-residue-planner.js?v=advanced-v1',
+  './dlin-planner.js?v=advanced-v1',
+  './weakswap-tracing.js?v=advanced-v1',
+  './pseudoswap-tracing.js?v=advanced-v1',
+  './finalizing.js?v=advanced-v1',
+  './ssi-core.js?v=advanced-v1',
 );
 
 const backend = self.SsiCore;
@@ -15,32 +19,37 @@ function rounded(value) {
   return Number(value.toFixed(5));
 }
 
-function getLtctSavedAlgs(breakdown) {
-  if (!Number.isFinite(breakdown.ltct_saved_algs)) {
-    throw new Error('LTCT comparison metadata is unavailable. Reload the page and try again.');
+function getFinishSavedAlgs(breakdown) {
+  const saved = breakdown.finish_saved_algs ?? breakdown.ltct_saved_algs;
+  if (!Number.isFinite(saved)) {
+    throw new Error('Advanced comparison metadata is unavailable. Reload the page and try again.');
   }
-  return breakdown.ltct_saved_algs;
+  return saved;
 }
 
 self.onmessage = (event) => {
-  const { id, type, payload } = event.data;
+    const { id, type, payload } = event.data;
   try {
     if (type !== 'analyze') throw new Error(`Unknown worker message type: ${type}`);
+    const finishCapability = backend.normalizeFinishCapability(
+      payload.finishCapability ?? payload.ltct,
+    );
     const result = backend.algCounterMain(
       payload.scrambles,
       payload.tracingOrientation,
       payload.edgeMethod,
       payload.flipWeight,
       payload.twistWeight,
-      payload.ltct,
+      finishCapability,
       payload.dnf,
       payload.cornerBuffers,
       payload.edgeBuffers,
     );
 
     const hasFloatingComparison = payload.bufferMode !== 'standard';
-    const hasLtctComparison = Boolean(payload.ltct);
+    const hasFinishComparison = finishCapability !== 'none';
     let standardResult = null;
+    let noFinishResult = null;
 
     if (hasFloatingComparison) {
       standardResult = backend.algCounterMain(
@@ -49,50 +58,61 @@ self.onmessage = (event) => {
         payload.edgeMethod,
         payload.flipWeight,
         payload.twistWeight,
-        payload.ltct,
+        'none',
         payload.dnf,
         ['UFR'],
         ['UF'],
       );
     }
 
-    if (hasFloatingComparison || hasLtctComparison) {
-      const baselineResult = standardResult || result;
+    if (hasFinishComparison) {
+      noFinishResult = backend.algCounterMain(
+        payload.scrambles,
+        payload.tracingOrientation,
+        payload.edgeMethod,
+        payload.flipWeight,
+        payload.twistWeight,
+        'none',
+        payload.dnf,
+        payload.cornerBuffers,
+        payload.edgeBuffers,
+      );
+    }
+
+    if (hasFloatingComparison || hasFinishComparison) {
+      const baselineResult = standardResult || noFinishResult;
 
       if (baselineResult[9].length !== result[9].length) {
         throw new Error('Baseline and analyzed result lengths do not match.');
       }
 
-      let baselineLtctSavedAlgs = 0;
       result[9].forEach((breakdown, index) => {
         const baselineBreakdown = baselineResult[9][index];
-        const baselineLtctSaved = hasLtctComparison ? getLtctSavedAlgs(baselineBreakdown) : 0;
         Object.assign(breakdown, {
-          baseline_total_algs: rounded(baselineBreakdown.total_algs + baselineLtctSaved),
-          baseline_corner_algs: rounded(baselineBreakdown.corner_algs + baselineLtctSaved),
+          baseline_total_algs: baselineBreakdown.total_algs,
+          baseline_corner_algs: baselineBreakdown.corner_algs,
           baseline_edge_algs: baselineBreakdown.edge_algs,
         });
       });
 
-      if (hasLtctComparison) {
-        baselineLtctSavedAlgs = baselineResult[9]
-          .reduce((sum, breakdown) => sum + getLtctSavedAlgs(breakdown), 0);
-      }
-
-      const baselineTotalAlgs = rounded(baselineResult[3] + baselineLtctSavedAlgs);
+      const baselineTotalAlgs = baselineResult[3];
       const floatingSavedAlgs = hasFloatingComparison
-        ? rounded(Math.max(0, standardResult[3] - result[3]))
+        ? rounded(Math.max(0, standardResult[3] - (noFinishResult || result)[3]))
         : 0;
-      const ltctSavedAlgs = result[9]
-        .reduce((sum, breakdown) => sum + getLtctSavedAlgs(breakdown), 0);
+      const finishSavedAlgs = hasFinishComparison
+        ? result[9].reduce((sum, breakdown) => sum + getFinishSavedAlgs(breakdown), 0)
+        : 0;
       result[10] = {
         baseline_total_algs: baselineTotalAlgs,
         combined_saved_algs: rounded(Math.max(0, baselineTotalAlgs - result[3])),
         has_floating_comparison: hasFloatingComparison,
         floating_saved_algs: floatingSavedAlgs,
         total_saved_algs: floatingSavedAlgs,
-        has_ltct_comparison: hasLtctComparison,
-        ltct_saved_algs: ltctSavedAlgs,
+        has_finish_comparison: hasFinishComparison,
+        finish_capability: finishCapability,
+        finish_saved_algs: finishSavedAlgs,
+        has_ltct_comparison: finishCapability === 'ltct',
+        ltct_saved_algs: finishCapability === 'ltct' ? finishSavedAlgs : 0,
       };
     }
 

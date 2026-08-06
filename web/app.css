@@ -531,6 +531,15 @@ button,
   margin: 0;
 }
 
+.radio-option:has(input:disabled) {
+  color: var(--muted);
+  opacity: 0.58;
+}
+
+.radio-option input:disabled {
+  cursor: not-allowed;
+}
+
 .text-input,
 .number-input,
 .scramble-textarea {
@@ -1127,6 +1136,13 @@ button,
   top: 5px;
   right: 6px;
   padding: 0.28em 0.42em;
+  font-size: 0.48rem;
+}
+
+.alg-cell__finish {
+  position: absolute;
+  top: 5px;
+  left: 6px;
   font-size: 0.48rem;
 }
 

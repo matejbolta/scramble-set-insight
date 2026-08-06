@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=floating-closure-v6');
+const worker = new Worker('./worker.js?v=advanced-v1');
 let requestId = 0;
 
 const CORNER_BUFFER_OPTIONS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
@@ -12,7 +12,8 @@ const elements = {
   scrambleInput: document.getElementById('scramble-input'),
   tracingOrientation: document.getElementById('tracing-orientation'),
   dnf: document.getElementById('dnf'),
-  ltct: document.getElementById('ltct'),
+  finishT2c: document.getElementById('finish-t2c'),
+  edgeMethodSettings: document.getElementById('edge-method-settings'),
   flipWeight: document.getElementById('flip-weight'),
   twistWeight: document.getElementById('twist-weight'),
   actionRow: document.getElementById('action-row'),
@@ -31,8 +32,9 @@ const elements = {
   twoTwistsMetric: document.getElementById('two-twists-metric'),
   statFloatingSaved: document.getElementById('stat-floating-saved'),
   floatingSavedMetric: document.getElementById('floating-saved-metric'),
-  statLtctSaved: document.getElementById('stat-ltct-saved'),
-  ltctSavedMetric: document.getElementById('ltct-saved-metric'),
+  statFinishSaved: document.getElementById('stat-finish-saved'),
+  finishSavedLabel: document.getElementById('finish-saved-label'),
+  finishSavedMetric: document.getElementById('finish-saved-metric'),
   breakdownResultsTableShell: document.getElementById('breakdown-results-table-shell'),
   overviewCard: document.getElementById('overview-card'),
   breakdownCard: document.getElementById('breakdown-card'),
@@ -70,6 +72,10 @@ function getBufferMode() {
   return document.querySelector('input[name="buffer-mode"]:checked').value;
 }
 
+function getFinishCapability() {
+  return document.querySelector('input[name="finish-capability"]:checked').value;
+}
+
 function setCheckedRadio(name, value) {
   const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
   if (input) input.checked = true;
@@ -82,7 +88,7 @@ function getCurrentSettingsForStorage() {
     cornerBuffers: [...state.cornerBuffers],
     edgeBuffers: [...state.edgeBuffers],
     dnf: elements.dnf.checked,
-    ltct: elements.ltct.checked,
+    finishCapability: getFinishCapability(),
     tracingOrientation: elements.tracingOrientation.value,
     flipWeight: elements.flipWeight.value,
     twistWeight: elements.twistWeight.value,
@@ -115,7 +121,10 @@ function restoreSettings() {
   setCheckedRadio('edge-method', saved.edgeMethod);
   setCheckedRadio('buffer-mode', saved.bufferMode);
   elements.dnf.checked = Boolean(saved.dnf);
-  elements.ltct.checked = Boolean(saved.ltct);
+  setCheckedRadio(
+    'finish-capability',
+    saved.finishCapability || (saved.ltct ? 'ltct' : 'none'),
+  );
   elements.tracingOrientation.value = saved.tracingOrientation || '';
   elements.flipWeight.value = saved.flipWeight || '1';
   elements.twistWeight.value = saved.twistWeight || '1';
@@ -152,6 +161,11 @@ function restoreSettings() {
 function updateBufferModeUI() {
   const mode = getBufferMode();
   elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
+  elements.edgeMethodSettings.classList.toggle('is-hidden', mode === 'full');
+  elements.finishT2c.disabled = mode !== 'full';
+  if (mode !== 'full' && getFinishCapability() === 't2c') {
+    setCheckedRadio('finish-capability', 'ltct');
+  }
 
   if (mode === 'standard') {
     state.cornerBuffers = [...LEGACY_CORNER_BUFFERS];
@@ -261,8 +275,8 @@ function resetResults() {
   elements.twoTwistsMetric.classList.add('is-hidden');
   elements.statFloatingSaved.textContent = '0';
   elements.floatingSavedMetric.classList.add('is-hidden');
-  elements.statLtctSaved.textContent = '0';
-  elements.ltctSavedMetric.classList.add('is-hidden');
+  elements.statFinishSaved.textContent = '0';
+  elements.finishSavedMetric.classList.add('is-hidden');
   elements.breakdownResultsTableShell.innerHTML = '';
   elements.distributionChart.className = 'distribution-chart empty-state';
   elements.distributionChart.textContent = 'Run an analysis to see the distribution.';
@@ -373,6 +387,7 @@ function renderAlgGrid(scrambleBreakdowns, showComparisons = false) {
       (result, index) => `
         <button class="alg-cell${result.dnf ? ' alg-cell--dnf' : ''}" type="button" data-scramble-index="${index}" aria-label="View scramble ${index + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${index + 1}${result.dnf ? ' (DNF)' : ''}">
           ${result.dnf ? '<span class="dnf-badge alg-cell__dnf">DNF</span>' : ''}
+          ${result.finish_type ? `<span class="metric-annotation alg-cell__finish">${result.finish_type.toUpperCase()}</span>` : ''}
           <div class="alg-cell__index">${index + 1}</div>
           <div class="alg-cell__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showComparisons)}</div>
           <div class="alg-cell__split" aria-label="${result.corner_algs} corner algs plus ${result.edge_algs} edge algs">
@@ -437,7 +452,7 @@ function renderBreakdown(scrambleBreakdowns) {
       <tr tabindex="0" data-scramble-index="${originalIndex}" aria-label="View scramble ${originalIndex + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${originalIndex + 1}${result.dnf ? ' (DNF)' : ''}">
         <td class="breakdown-results-table__index">${originalIndex + 1}</td>
         <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showSavings)}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
-        <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.corner_algs, result.baseline_corner_algs, showSavings, result.ltct_used ? 'LTCT' : '')}</strong></td>
+        <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.corner_algs, result.baseline_corner_algs, showSavings, result.finish_type ? result.finish_type.toUpperCase() : '')}</strong></td>
         <td><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.edge_algs, result.baseline_edge_algs, showSavings)}</strong></td>
         <td class="breakdown-results-table__minor breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${result.two_flips}</strong></td>
         <td class="breakdown-results-table__minor"><strong class="metric-value breakdown-results-table__value">${result.two_twists}</strong></td>
@@ -502,7 +517,10 @@ function renderResult(rawResult) {
   const comparisonMetadata = rawResult[10];
   const hasComparison = Boolean(comparisonMetadata);
   const floatingSavedAlgs = comparisonMetadata?.floating_saved_algs ?? 0;
-  const ltctSavedAlgs = comparisonMetadata?.ltct_saved_algs ?? 0;
+  const finishSavedAlgs = comparisonMetadata?.finish_saved_algs
+    ?? comparisonMetadata?.ltct_saved_algs
+    ?? 0;
+  const finishCapability = comparisonMetadata?.finish_capability || 'none';
 
   elements.resultsSection.classList.remove('is-hidden');
   elements.processedBanner.textContent = `Processed ${numberOfSolves} scramble${numberOfSolves === 1 ? '' : 's'}.`;
@@ -515,8 +533,11 @@ function renderResult(rawResult) {
   elements.twoTwistsMetric.classList.toggle('is-hidden', totalTwoTwists <= 0);
   elements.statFloatingSaved.textContent = String(floatingSavedAlgs);
   elements.floatingSavedMetric.classList.toggle('is-hidden', floatingSavedAlgs <= 0);
-  elements.statLtctSaved.textContent = String(ltctSavedAlgs);
-  elements.ltctSavedMetric.classList.toggle('is-hidden', ltctSavedAlgs <= 0);
+  elements.statFinishSaved.textContent = String(finishSavedAlgs);
+  elements.finishSavedLabel.textContent = finishCapability === 'none'
+    ? 'Advanced saved'
+    : `${finishCapability.toUpperCase()} saved`;
+  elements.finishSavedMetric.classList.toggle('is-hidden', finishSavedAlgs <= 0);
   state.breakdownSort = { key: 'index', direction: 'asc' };
   state.scrambleBreakdowns = scrambleBreakdowns;
   state.selectScramblesOnNextClick = true;
@@ -555,14 +576,28 @@ function collectSettings() {
   if (!cornerBuffers.includes('UFR')) throw new Error('Corner buffer selection must include UFR.');
   if (!edgeBuffers.includes('UF')) throw new Error('Edge buffer selection must include UF.');
 
+  const finishCapability = getFinishCapability();
+  if (finishCapability === 't2c' && bufferMode !== 'full') {
+    throw new Error('T2C requires full floating.');
+  }
+
+  const flipWeight = Number(elements.flipWeight.value);
+  const twistWeight = Number(elements.twistWeight.value);
+  if (!Number.isFinite(flipWeight) || flipWeight < 1) {
+    throw new Error('2-flip weight must be at least 1.');
+  }
+  if (!Number.isFinite(twistWeight) || twistWeight < 1) {
+    throw new Error('2-twist weight must be at least 1.');
+  }
+
   return {
     scrambles: elements.scrambleInput.value,
     bufferMode,
     tracingOrientation: elements.tracingOrientation.value.trim(),
     edgeMethod: getEdgeMethod(),
-    flipWeight: Number(elements.flipWeight.value),
-    twistWeight: Number(elements.twistWeight.value),
-    ltct: elements.ltct.checked,
+    flipWeight,
+    twistWeight,
+    finishCapability,
     dnf: elements.dnf.checked,
     cornerBuffers,
     edgeBuffers,
@@ -640,8 +675,12 @@ function initialize() {
     });
   });
 
-  [elements.dnf, elements.ltct, elements.tracingOrientation, elements.flipWeight, elements.twistWeight].forEach((input) => {
+  [elements.dnf, elements.tracingOrientation, elements.flipWeight, elements.twistWeight].forEach((input) => {
     input.addEventListener('input', saveSettings);
+    input.addEventListener('change', saveSettings);
+  });
+
+  document.querySelectorAll('input[name="finish-capability"]').forEach((input) => {
     input.addEventListener('change', saveSettings);
   });
 
