@@ -862,9 +862,17 @@ def count_scramble_algs(scr, tracing_orientation, edge_method, flip_weight, twis
     if twist_number:
         cw, ccw = twist_direction_indentifier(scr, tracing_orientation)
         floating_two_twists = min(cw, ccw)
-        remaining_single_twists = abs(cw - ccw)
+        same_direction_triples, remaining_single_twists = divmod(abs(cw - ccw), 3)
         two_twists += floating_two_twists
         algs += two_twists * twist_weight
+        # With the fixed UFR buffer, three equal-direction twists take either
+        # two 2-twist algorithms or three UFR commutators. At equal cost the
+        # exact production planner prefers the route with fewer twist algs.
+        if 2 * twist_weight < 3:
+            two_twists += same_direction_triples * 2
+            algs += same_direction_triples * 2 * twist_weight
+        else:
+            algs += same_direction_triples * 3
         algs += remaining_single_twists
 
         # If we have parity, know LTCT and have a remaining_single_twist, we deduce alg count by 1
