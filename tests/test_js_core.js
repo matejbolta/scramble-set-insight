@@ -9,14 +9,16 @@ const inputPath = path.join(root, 'baseline', 'testing-10k-scrams.txt');
 const text = fs.readFileSync(inputPath, 'utf8');
 
 function storedTruth(edgeMethod) {
-  return JSON.parse(fs.readFileSync(
-    path.join(root, 'baseline', `truth-${edgeMethod}.json`),
+  const params = JSON.parse(fs.readFileSync(
+    path.join(root, 'baseline', `truth-${edgeMethod}-params.json`),
     'utf8',
   ));
+  const list = JSON.parse(fs.readFileSync(path.join(root, params.output_file), 'utf8'));
+  return { list, params };
 }
 
 function compare(edgeMethod) {
-  const expected = storedTruth(edgeMethod);
+  const { list: expected, params } = storedTruth(edgeMethod);
   const js = ssiCore.algCounterMain(text, '', edgeMethod, 1, 1, false, false, ['UFR'], ['UF']);
   const jsList = js[6];
   if (expected.length !== jsList.length) {
@@ -29,6 +31,8 @@ function compare(edgeMethod) {
   }
   assert.equal(js[0], expected.length, `${edgeMethod}: solve count`);
   assert.equal(js[3], expected.reduce((sum, value) => sum + value, 0), `${edgeMethod}: total algs`);
+  assert.equal(js[4], params.total_two_flips, `${edgeMethod}: stored 2-flip aggregate`);
+  assert.equal(js[5], params.total_two_twists, `${edgeMethod}: stored 2-twist aggregate`);
   assert.equal(js[3], js[7] + js[8], `${edgeMethod}: corner/edge aggregate`);
   assert.equal(js[9].length, expected.length, `${edgeMethod}: breakdown length`);
   assert.equal(
@@ -49,7 +53,7 @@ function compare(edgeMethod) {
       `${edgeMethod}: breakdown components ${index}`,
     );
   }
-  console.log(`PASS JS legacy core vs frozen truth (${edgeMethod}): ${jsList.length} entries match`);
+  console.log(`PASS JS UFR/UF core vs stored truth (${edgeMethod}): ${jsList.length} entries match`);
 }
 
 compare('weakswap');
@@ -66,7 +70,10 @@ const pseudoswapPrimaryClosure = ssiCore.analyzeScramble(
   ['UF'],
 );
 assert.equal(pseudoswapPrimaryClosure.corner.analysis.parity, true);
-assert.deepEqual(pseudoswapPrimaryClosure.edges.targets, ['UR', 'UB', 'UL', 'UR']);
+assert.equal(pseudoswapPrimaryClosure.corner.tracing_model, 'selected-buffer');
+assert.equal(pseudoswapPrimaryClosure.edges.tracing_model, 'selected-buffer');
+assert.deepEqual(pseudoswapPrimaryClosure.edges.targets, []);
+assert.equal(pseudoswapPrimaryClosure.edges.selected_buffer.count, 1);
 assert.equal(pseudoswapPrimaryClosure.edges.analysis.parity, false);
 assert.equal(pseudoswapPrimaryClosure.edges.analysis.algs, 2);
 assert.equal(pseudoswapPrimaryClosure.total_algs, 4);
@@ -82,12 +89,42 @@ const pseudoswapFlippedPrimaryClosure = ssiCore.analyzeScramble(
   ['UF'],
 );
 assert.equal(pseudoswapFlippedPrimaryClosure.corner.analysis.parity, true);
-assert.deepEqual(
-  pseudoswapFlippedPrimaryClosure.edges.targets,
-  ['FR', 'FD', 'RB', 'UR', 'UB', 'UL', 'RU', 'FL', 'DL', 'LF', 'DR', 'DB', 'BL', 'RD'],
-);
+assert.equal(pseudoswapFlippedPrimaryClosure.corner.tracing_model, 'selected-buffer');
+assert.equal(pseudoswapFlippedPrimaryClosure.edges.tracing_model, 'selected-buffer');
+assert.deepEqual(pseudoswapFlippedPrimaryClosure.edges.targets, []);
 assert.equal(pseudoswapFlippedPrimaryClosure.edges.analysis.parity, false);
 assert.equal(pseudoswapFlippedPrimaryClosure.edges.analysis.algs, 7);
+
+const threeEqualTwists = "F2 D L2 U2 L2 B2 L2 D R2 D2 R2 F2 L' B' D2 U' F U' L U' B2 Fw' Uw'";
+for (const edgeMethod of ['weakswap', 'pseudoswap']) {
+  for (const [weight, total, corner, twoTwists] of [
+    [1, 10, 4, 2],
+    [1.25, 10.5, 4.5, 2],
+    [1.5, 11, 5, 0],
+  ]) {
+    const result = ssiCore.analyzeScramble(
+      threeEqualTwists,
+      '',
+      edgeMethod,
+      weight,
+      weight,
+      false,
+      ['UFR'],
+      ['UF'],
+    );
+    assert.equal(result.total_algs, total, `${edgeMethod}/${weight}: corrected total`);
+    assert.equal(result.corner_algs, corner, `${edgeMethod}/${weight}: corrected corner total`);
+    assert.equal(result.edge_algs, 6, `${edgeMethod}/${weight}: edge total`);
+    assert.equal(result.twists.two_twists, twoTwists, `${edgeMethod}/${weight}: 2-twist count`);
+    assert.equal(result.corner.tracing_model, 'selected-buffer', `${edgeMethod}: exact UFR corners`);
+    assert.equal(
+      result.edges.tracing_model,
+      edgeMethod === 'pseudoswap' ? 'selected-buffer' : 'legacy',
+      `${edgeMethod}: expected UF edge routing`,
+    );
+  }
+}
+console.log('PASS JS weighted UFR/UF t+t+t regression and singleton routing');
 
 const pseudoswapFloatingClosure = ssiCore.analyzeScramble(
   'U Rw2',
@@ -407,8 +444,23 @@ assert.equal(floatingT2cResult[10].combined_saved_algs, 2);
 
 assert.throws(
   () => ssiCore.analyzeScramble(t2cScramble, '', 'pseudoswap', 1, 1, 't2c', ['UFR'], ['UF']),
-  /T2C requires full floating/,
+  /T2C requires floating beyond the primary buffers/,
 );
+const partialT2c = ssiCore.analyzeScramble(
+  t2cScramble,
+  '',
+  'pseudoswap',
+  1,
+  1,
+  't2c',
+  ['UFR', 'UFL'],
+  ['UF', 'UR'],
+);
+assert.equal(partialT2c.corner.tracing_model, 'selected-buffer');
+assert.equal(partialT2c.edges.tracing_model, 'selected-buffer');
+assert.equal(partialT2c.corner_algs, 3);
+assert.equal(partialT2c.finish_type, 't2c');
+assert.equal(partialT2c.corner.selected_buffer.finish.primary_role, 'is-T');
 assert.equal(ssiCore.normalizeFinishCapability(true), 'ltct');
 assert.equal(ssiCore.normalizeFinishCapability(false), 'none');
 
@@ -417,6 +469,11 @@ delete global.self;
 const appSource = fs.readFileSync(path.join(root, 'web', 'app.js'), 'utf8');
 const workerSource = fs.readFileSync(path.join(root, 'web', 'worker.js'), 'utf8');
 assert.match(appSource, /button\.disabled = requiredBuffers\.includes\(option\)/, 'partial floating must pin primary buffer pills');
+assert.doesNotMatch(
+  appHtml,
+  /<script src="\.\/cycle-residue\.js"><\/script>/,
+  'the large exact frontier catalog must load only inside the analysis worker',
+);
 const workerVersionMatch = appSource.match(/new Worker\('\.\/worker\.js\?v=([^']+)'\)/);
 assert.ok(workerVersionMatch, 'app.js must version the analysis worker URL');
 const workerVersion = workerVersionMatch[1];
@@ -435,3 +492,4 @@ require('./test_js_cycle_residue');
 require('./test_js_cycle_residue_oracle');
 require('./test_js_weighted_class_frontiers');
 require('./test_js_residue_planner');
+require('./test_js_selected_buffer_frontiers');

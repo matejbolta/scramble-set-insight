@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=advanced-v1');
+const worker = new Worker('./worker.js?v=selected-buffer-v2');
 let requestId = 0;
 
 const CORNER_BUFFER_OPTIONS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
@@ -160,10 +160,12 @@ function restoreSettings() {
 
 function updateBufferModeUI() {
   const mode = getBufferMode();
+  const supportsT2c = mode === 'full'
+    || (mode === 'partial' && getEdgeMethod() === 'pseudoswap');
   elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
   elements.edgeMethodSettings.classList.toggle('is-hidden', mode === 'full');
-  elements.finishT2c.disabled = mode !== 'full';
-  if (mode !== 'full' && getFinishCapability() === 't2c') {
+  elements.finishT2c.disabled = !supportsT2c;
+  if (!supportsT2c && getFinishCapability() === 't2c') {
     setCheckedRadio('finish-capability', 'ltct');
   }
 
@@ -577,8 +579,10 @@ function collectSettings() {
   if (!edgeBuffers.includes('UF')) throw new Error('Edge buffer selection must include UF.');
 
   const finishCapability = getFinishCapability();
-  if (finishCapability === 't2c' && bufferMode !== 'full') {
-    throw new Error('T2C requires full floating.');
+  const supportsT2c = bufferMode === 'full'
+    || (bufferMode === 'partial' && getEdgeMethod() === 'pseudoswap');
+  if (finishCapability === 't2c' && !supportsT2c) {
+    throw new Error('T2C requires full floating or exact partial pseudoswap floating.');
   }
 
   const flipWeight = Number(elements.flipWeight.value);
@@ -660,7 +664,7 @@ function initialize() {
   });
 
   document.querySelectorAll('input[name="edge-method"]').forEach((input) => {
-    input.addEventListener('change', saveSettings);
+    input.addEventListener('change', updateBufferModeUI);
   });
 
   [

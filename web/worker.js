@@ -1,16 +1,16 @@
 self.importScripts(
-  './wide-move-translator.js?v=advanced-v1',
-  './scrambling.js?v=advanced-v1',
-  './corner-tracing.js?v=advanced-v1',
-  './edge-common.js?v=advanced-v1',
-  './cycle-model.js?v=advanced-v1',
-  './cycle-residue.js?v=advanced-v1',
-  './cycle-residue-planner.js?v=advanced-v1',
-  './dlin-planner.js?v=advanced-v1',
-  './weakswap-tracing.js?v=advanced-v1',
-  './pseudoswap-tracing.js?v=advanced-v1',
-  './finalizing.js?v=advanced-v1',
-  './ssi-core.js?v=advanced-v1',
+  './wide-move-translator.js?v=selected-buffer-v2',
+  './scrambling.js?v=selected-buffer-v2',
+  './corner-tracing.js?v=selected-buffer-v2',
+  './edge-common.js?v=selected-buffer-v2',
+  './cycle-model.js?v=selected-buffer-v2',
+  './cycle-residue.js?v=selected-buffer-v2',
+  './cycle-residue-planner.js?v=selected-buffer-v2',
+  './dlin-planner.js?v=selected-buffer-v2',
+  './weakswap-tracing.js?v=selected-buffer-v2',
+  './pseudoswap-tracing.js?v=selected-buffer-v2',
+  './finalizing.js?v=selected-buffer-v2',
+  './ssi-core.js?v=selected-buffer-v2',
 );
 
 const backend = self.SsiCore;

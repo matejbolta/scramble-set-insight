@@ -33,7 +33,9 @@
     FULL_CORNER_BUFFERS,
     FULL_EDGE_BUFFERS,
     planCornerStateByResidues,
+    planCornerStateBySelectedBuffers,
     planEdgeStateByResidues,
+    planEdgeStateBySelectedBuffers,
   } = deps.residuePlanner;
   const {
     analyzeEdgeTraceSegments,
@@ -61,7 +63,14 @@
     throw new Error(`Unknown Advanced capability: ${value}`);
   }
 
-  function buildCornerBreakdown(scr, tracingOrientation, cornerBuffers, twistWeight, finishCapability) {
+  function buildCornerBreakdown(
+    scr,
+    tracingOrientation,
+    cornerBuffers,
+    twistWeight,
+    finishCapability,
+    edgeMethod = 'weakswap',
+  ) {
     const normalizedFinishCapability = normalizeFinishCapability(finishCapability);
     const normalizedCornerBuffers = normalizeCornerBuffers(cornerBuffers);
     const cornerState = scrToScrambledStateCor(scr, tracingOrientation);
@@ -112,10 +121,58 @@
         },
       };
     }
-    if (normalizedFinishCapability === 't2c') {
-      throw new Error('T2C requires full floating.');
+    if (normalizedCornerBuffers.length === 1 && normalizedFinishCapability === 't2c') {
+      throw new Error('T2C requires floating beyond the primary buffers.');
+    }
+    if (normalizedCornerBuffers.length === 1 || edgeMethod === 'pseudoswap') {
+      const plan = planCornerStateBySelectedBuffers(
+        cornerState,
+        normalizedCornerBuffers,
+        normalizedFinishCapability,
+        twistWeight,
+      );
+      const twoTwists = plan.baseline_orientation_algs;
+      const finishType = plan.finish_adjustment < -1e-12
+        && ['ltct', 't2c'].includes(plan.finish?.type)
+        ? plan.finish.type
+        : null;
+      return {
+        buffers: normalizedCornerBuffers,
+        tracing_model: 'selected-buffer',
+        finish_capability: normalizedFinishCapability,
+        finish_type: finishType,
+        segments: [],
+        targets: [],
+        analysis: {
+          odd_segment_count: Number(Boolean(plan.model.permutation_parity)),
+          even_segment_count: 0,
+          parity: Boolean(plan.model.permutation_parity),
+          algs: plan.baseline_permutation_algs,
+          standalone_algs: plan.baseline_permutation_algs,
+          saved_by_pairing: 0,
+        },
+        twists: {
+          list: [],
+          count: twoTwists * 2,
+          cw: twoTwists,
+          ccw: twoTwists,
+          two_twists: twoTwists,
+          single_twists: 0,
+          algs: plan.baseline_orientation_algs * twistWeight,
+        },
+        ltct_adjustment: plan.finish_adjustment,
+        finish_adjustment: plan.finish_adjustment,
+        selected_buffer: {
+          count: normalizedCornerBuffers.length,
+          orientation_weight: twistWeight,
+          finish: plan.finish,
+        },
+      };
     }
     if (normalizedCornerBuffers.length > 1) {
+      if (normalizedFinishCapability === 't2c') {
+        throw new Error('T2C requires exact pseudoswap floating.');
+      }
       const plan = planCornerStateDlin(
         cornerState,
         normalizedCornerBuffers,
@@ -230,6 +287,41 @@
         },
       };
     }
+    if (edgeMethod === 'pseudoswap') {
+      const edgeState = scrToScrambledStateEdg(scr, tracingOrientation);
+      const plan = planEdgeStateBySelectedBuffers(
+        edgeState,
+        cornerParity,
+        normalizedEdgeBuffers,
+        flipWeight,
+      );
+      const twoFlips = plan.orientation_algs;
+      return {
+        method: edgeMethod,
+        buffers: normalizedEdgeBuffers,
+        tracing_model: 'selected-buffer',
+        segments: [],
+        targets: [],
+        analysis: {
+          odd_segment_count: 0,
+          even_segment_count: 0,
+          parity: false,
+          algs: plan.permutation_algs,
+          standalone_algs: plan.permutation_algs,
+          saved_by_pairing: 0,
+        },
+        flips: {
+          list: [],
+          count: twoFlips * 2,
+          two_flips: twoFlips,
+          algs: plan.orientation_algs * flipWeight,
+        },
+        selected_buffer: {
+          count: normalizedEdgeBuffers.length,
+          orientation_weight: flipWeight,
+        },
+      };
+    }
     if (normalizedEdgeBuffers.length > 1) {
       const edgeState = scrToScrambledStateEdg(scr, tracingOrientation);
       const plan = planEdgeStateDlin(
@@ -294,7 +386,14 @@
   }
 
   function countScrambleAlgs(scr, tracingOrientation, edgeMethod, flipWeight, twistWeight, finishCapability, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {
-    const corner = buildCornerBreakdown(scr, tracingOrientation, cornerBuffers, twistWeight, finishCapability);
+    const corner = buildCornerBreakdown(
+      scr,
+      tracingOrientation,
+      cornerBuffers,
+      twistWeight,
+      finishCapability,
+      edgeMethod,
+    );
     const edges = buildEdgeBreakdown(scr, tracingOrientation, edgeMethod, edgeBuffers, flipWeight, corner.analysis.parity);
     // The unpaired parity execution is already included in the corner comm count.
     const cornerAlgs = corner.analysis.algs + corner.twists.algs + corner.ltct_adjustment;
@@ -313,7 +412,14 @@
   }
 
   function analyzeScramble(scr, tracingOrientation = '', edgeMethod = 'weakswap', flipWeight = 1, twistWeight = 1, finishCapability = false, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {
-    const corner = buildCornerBreakdown(scr, tracingOrientation, cornerBuffers, twistWeight, finishCapability);
+    const corner = buildCornerBreakdown(
+      scr,
+      tracingOrientation,
+      cornerBuffers,
+      twistWeight,
+      finishCapability,
+      edgeMethod,
+    );
     const edges = buildEdgeBreakdown(scr, tracingOrientation, edgeMethod, edgeBuffers, flipWeight, corner.analysis.parity);
     const cornerAlgs = corner.analysis.algs + corner.twists.algs + corner.ltct_adjustment;
     const edgeAlgs = edges.analysis.algs + edges.flips.algs;
@@ -331,6 +437,7 @@
         analysis: corner.analysis,
         ...(corner.dlin ? { dlin: corner.dlin } : {}),
         ...(corner.cycle_residue ? { cycle_residue: corner.cycle_residue } : {}),
+        ...(corner.selected_buffer ? { selected_buffer: corner.selected_buffer } : {}),
       },
       edges: {
         ...edges,

@@ -17,6 +17,7 @@
   } = deps.cycleModel;
   const {
     minimumExactRootedCornerFinishPlan,
+    minimumExactSelectedBufferPlan,
     minimumExactWeightedClassPlan,
     normalizeFinishCapability,
     reduceCycleModelToResidues,
@@ -121,6 +122,35 @@
       prepareReducedModel(model, selectedBuffers),
       orientationWeight,
     );
+  }
+
+  function planExactSelectedModel(
+    model,
+    selectedBuffers,
+    capability = 'even',
+    orientationWeight = 1,
+  ) {
+    const weight = validateOrientationWeight(orientationWeight);
+    const selected = minimumExactSelectedBufferPlan(
+      model,
+      selectedBuffers,
+      capability,
+      weight,
+    );
+    if (!selected) {
+      throw new Error(
+        `No exact selected-buffer ${model.kind} class for ${selectedBuffers.length} buffers.`,
+      );
+    }
+    return {
+      model,
+      selected_buffers: [...selectedBuffers],
+      orientation_weight: weight,
+      permutation_algs: selected.permutation_algs,
+      orientation_algs: selected.orientation_algs,
+      total_algs: selected.cost,
+      ...(selected.finish ? { finish: selected.finish } : {}),
+    };
   }
 
   function setPlacement(state, slotGroup, placedPieceGroup, orientation) {
@@ -349,6 +379,43 @@
     };
   }
 
+  function planCornerStateBySelectedBuffers(
+    state,
+    selectedBuffers,
+    capability = 'none',
+    orientationWeight = 1,
+  ) {
+    if (isFullFloatingBufferSet(decomposeCornerState(state), selectedBuffers)) {
+      return planCornerStateByResidues(
+        state,
+        selectedBuffers,
+        capability,
+        orientationWeight,
+      );
+    }
+    const normalizedCapability = normalizeFinishCapability(capability);
+    const weight = validateOrientationWeight(orientationWeight);
+    const model = decomposeCornerState(state);
+    const baseline = planExactSelectedModel(
+      model,
+      selectedBuffers,
+      model.permutation_parity ? 'none' : 'even',
+      weight,
+    );
+    const optimized = model.permutation_parity && normalizedCapability !== 'none'
+      ? planExactSelectedModel(model, selectedBuffers, normalizedCapability, weight)
+      : baseline;
+    return {
+      ...optimized,
+      model,
+      baseline_total_algs: baseline.total_algs,
+      baseline_permutation_algs: baseline.permutation_algs,
+      baseline_orientation_algs: baseline.orientation_algs,
+      finish_capability: normalizedCapability,
+      finish_adjustment: optimized.total_algs - baseline.total_algs,
+    };
+  }
+
   function planEdgeStateByResidues(state, parity, selectedBuffers, orientationWeight = 1) {
     const physicalModel = decomposeEdgeState(state);
     if (Boolean(parity) !== Boolean(physicalModel.permutation_parity)) {
@@ -368,6 +435,38 @@
     };
   }
 
+  function planEdgeStateBySelectedBuffers(
+    state,
+    parity,
+    selectedBuffers,
+    orientationWeight = 1,
+  ) {
+    const physicalModel = decomposeEdgeState(state);
+    if (isFullFloatingBufferSet(physicalModel, selectedBuffers)) {
+      return planEdgeStateByResidues(
+        state,
+        parity,
+        selectedBuffers,
+        orientationWeight,
+      );
+    }
+    if (Boolean(parity) !== Boolean(physicalModel.permutation_parity)) {
+      throw new Error('Corner parity does not match the physical edge permutation parity.');
+    }
+    const goalState = buildParityEdgeGoal(parity, physicalModel.piece_groups);
+    const relativeState = stateRelativeToGoal(state, goalState);
+    const model = decomposeEdgeState(relativeState);
+    if (model.permutation_parity) {
+      throw new Error('Parity-relative edge goal must have an even permutation.');
+    }
+    return {
+      ...planExactSelectedModel(model, selectedBuffers, 'even', orientationWeight),
+      physical_state: state,
+      goal_state: goalState,
+      relative_state: relativeState,
+    };
+  }
+
   const api = {
     FULL_CORNER_BUFFERS,
     FULL_EDGE_BUFFERS,
@@ -375,8 +474,10 @@
     buildParityEdgeGoal,
     isFullFloatingBufferSet,
     planCornerStateByResidues,
+    planCornerStateBySelectedBuffers,
     planCornerStateByTerminalEnumeration,
     planEdgeStateByResidues,
+    planEdgeStateBySelectedBuffers,
     proveFullBufferCoverage,
   };
 
