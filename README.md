@@ -23,12 +23,9 @@ floating. Existing LTCT behavior remains available in every counting mode.
 Partial weakswap floating retains its earlier DLin implementation pending a
 separate method review.
 
-### Legacy Version
+### Archived Python Core
 
-The deprecated version, hosted on Streamlit, is still available here: [Legacy app](https://scramble-set-insight.streamlit.app/)
-
-Its archived modular Python core and Streamlit source live in
-`python/legacy/`, beside the handwritten reference oracle. They are retained
-for historical inspection only; production lives in `web/`, and
-`python/ssi_handmade.py` plus `baseline/truth-*.json` define stored reference
-truth.
+The archived modular Python core lives in `python/legacy/`, beside the
+handwritten reference oracle. It is retained for historical inspection only;
+production lives in `web/`, and `python/ssi_handmade.py` plus
+`baseline/truth-*.json` define stored reference truth.

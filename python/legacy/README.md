@@ -1,14 +1,8 @@
 # Legacy Python implementation
 
-This directory contains the archived modular Python core and deprecated
-Streamlit application. They are retained for historical inspection only and
-are not production code or an active correctness oracle.
-
-The old application can still be started from the repository root with:
-
-```sh
-streamlit run python/legacy/streamlit_app.py
-```
+This directory contains the archived modular Python core. It is retained for
+historical inspection only and is not production code or an active correctness
+oracle.
 
 Its historical regression test can be run manually with:
 
