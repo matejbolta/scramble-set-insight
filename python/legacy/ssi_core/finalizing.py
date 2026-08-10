@@ -32,8 +32,14 @@ def build_corner_breakdown(scr, tracing_orientation, corner_buffers, twist_weigh
     twist_number = len(twist_list)
     cw, ccw = twist_direction_indentifier(scr, tracing_orientation) if twist_number else (0, 0)
     two_twists = min(cw, ccw)
-    single_twists = abs(cw - ccw)
-    twist_algs = two_twists * twist_weight + single_twists
+    same_direction_triples, single_twists = divmod(abs(cw - ccw), 3)
+    twist_algs = two_twists * twist_weight
+    if 2 * twist_weight < 3:
+        two_twists += same_direction_triples * 2
+        twist_algs += same_direction_triples * 2 * twist_weight
+    else:
+        twist_algs += same_direction_triples * 3
+    twist_algs += single_twists
     ltct_adjustment = -1 if corner_analysis['corner_parity'] and ltct and single_twists > 0 else 0
 
     return {

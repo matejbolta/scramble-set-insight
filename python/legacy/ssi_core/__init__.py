@@ -1,4 +1,4 @@
-'''Public import surface for the current SSI core implementation.'''
+'''Public import surface for the archived modular Python core.'''
 
 from .finalizing import (
     alg_counter_main,

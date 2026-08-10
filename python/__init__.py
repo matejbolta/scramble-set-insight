@@ -1,1 +1,1 @@
-'''Package containing the frozen handwritten legacy oracle.'''
+'''Python reference oracle and archived Python implementations.'''

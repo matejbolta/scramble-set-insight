@@ -7,14 +7,14 @@ are not production code or an active correctness oracle.
 The old application can still be started from the repository root with:
 
 ```sh
-streamlit run legacy/streamlit_app.py
+streamlit run python/legacy/streamlit_app.py
 ```
 
 Its historical regression test can be run manually with:
 
 ```sh
-python3 legacy/test_ssi_core.py
+python3 python/legacy/test_ssi_core.py
 ```
 
-Production lives in `web/`. The immutable handwritten oracle remains
-`python/ssi_handmade.py`, and the frozen outputs live in `baseline/`.
+Production lives in `web/`. The handwritten reference oracle is the sibling
+`python/ssi_handmade.py`, and its stored outputs live in `baseline/`.

@@ -2,11 +2,11 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from legacy import ssi_core
+from python.legacy import ssi_core
 
 PARAM_FILES = [
     ROOT / 'baseline' / 'truth-weakswap-params.json',
@@ -16,8 +16,8 @@ PARAM_FILES = [
 
 def assert_matches(params_path):
     params = json.loads(params_path.read_text())
-    input_path = Path(params['input_file'])
-    output_path = Path(params['output_file'])
+    input_path = ROOT / params['input_file']
+    output_path = ROOT / params['output_file']
 
     text = input_path.read_text()
     expected_alg_count_list = json.loads(output_path.read_text())
@@ -54,6 +54,9 @@ def assert_matches(params_path):
                 f"alg_count_list mismatch for {params['edge_method']}: lists differ in length after zip comparison"
             )
         raise AssertionError(f"alg_count_list mismatch for {params['edge_method']}")
+
+    assert result[4] == params['total_two_flips']
+    assert result[5] == params['total_two_twists']
 
     print(
         'PASS: ssi_core matches baseline '
@@ -143,9 +146,36 @@ def assert_primary_floating_buffer_validation():
     print('PASS: ssi_core primary floating buffer validation')
 
 
+def assert_three_equal_twists_regression():
+    scramble = (
+        "F2 D L2 U2 L2 B2 L2 D R2 D2 R2 F2 L' B' D2 U' "
+        "F U' L U' B2 Fw' Uw'"
+    )
+    for edge_method in ('weakswap', 'pseudoswap'):
+        for weight, expected in (
+            (1, (10, 0, 2)),
+            (1.25, (10.5, 0, 2)),
+            (1.5, (11, 0, 0)),
+        ):
+            actual = ssi_core.count_scramble_algs(
+                scramble,
+                '',
+                edge_method,
+                weight,
+                weight,
+                False,
+                ['UFR'],
+                ['UF'],
+            )
+            assert actual == expected, (edge_method, weight, actual)
+
+    print('PASS: ssi_core weighted t+t+t regression')
+
+
 def main():
     for params_path in PARAM_FILES:
         assert_matches(params_path)
+    assert_three_equal_twists_regression()
     assert_pseudoswap_floating_closure_regressions()
     assert_primary_floating_buffer_validation()
 
