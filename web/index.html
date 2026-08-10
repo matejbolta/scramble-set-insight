@@ -8,7 +8,7 @@
       name="description"
       content="Analyze scramble-set luck with a static browser app powered by the JavaScript port of the core engine."
     />
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./favicon.svg?v=2" type="image/svg+xml" />
     <script>
       (() => {
         const storedTheme = localStorage.getItem('ssi-theme');
@@ -21,12 +21,15 @@
   <body>
     <div class="page-shell">
       <header class="hero-card hero-card--minimal">
-        <div class="hero-card__copy">
-          <p class="eyebrow">3BLD / MBLD</p>
-          <h1>Scramble Set Insight</h1>
-          <p class="hero-card__lede">
-            Alg counts and distributions for your tracing setup.
-          </p>
+        <div class="hero-card__brand">
+          <img class="hero-card__mark" src="./favicon.svg?v=2" alt="" width="76" height="76" />
+          <div class="hero-card__copy">
+            <p class="eyebrow">3BLD / MBLD</p>
+            <h1>Scramble Set Insight</h1>
+            <p class="hero-card__lede">
+              Alg counts and distributions for your tracing setup.
+            </p>
+          </div>
         </div>
         <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
           <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" aria-hidden="true">

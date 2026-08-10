@@ -170,6 +170,11 @@ assert.equal(ssiCore.extractScrambleRecords(examplePoolText, false).length, 6667
 console.log('PASS JS example pool DNF distribution');
 
 const appHtml = fs.readFileSync(path.join(root, 'web', 'index.html'), 'utf8');
+assert.match(
+  appHtml,
+  /<div class="hero-card__brand">\s*<img class="hero-card__mark" src="\.\/favicon\.svg\?v=2" alt="" width="76" height="76" \/>/,
+  'hero should reuse the shared cube mark before its title copy',
+);
 function inputTagById(id) {
   const match = appHtml.match(new RegExp(`<input\\b[^>]*\\bid="${id}"[^>]*>`));
   assert.ok(match, `missing #${id} input`);
