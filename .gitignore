@@ -111,3 +111,6 @@ AGENTS.md
 /design/
 /.agents/
 /.codex/
+
+# Large local benchmark fixtures
+/baseline/testing-1m-scrams.txt
