@@ -23,6 +23,10 @@ floating. Existing LTCT behavior remains available in every counting mode.
 Partial weakswap floating retains its earlier DLin implementation pending a
 separate method review.
 
+Partial floating follows the displayed learning order: choosing a buffer also
+includes every earlier buffer. Pseudo swap additionally supports the common
+`UF + UB` setup without `UR`; weak swap keeps `UR` before `UB`.
+
 ### Archived Python Core
 
 The archived modular Python core lives in `python/legacy/`, beside the

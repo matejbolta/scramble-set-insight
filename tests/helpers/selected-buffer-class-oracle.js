@@ -1,8 +1,10 @@
 const cornerTracing = require('../../web/corner-tracing');
 const cycleModel = require('../../web/cycle-model');
+const {
+  CORNER_BUFFER_ORDER,
+  EDGE_BUFFER_ORDER,
+} = require('../../web/buffer-selection');
 
-const CORNER_BUFFER_ORDER = Object.freeze(['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL']);
-const EDGE_BUFFER_ORDER = Object.freeze(['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL']);
 const graphCache = new Map();
 const frontierCache = new Map();
 const commActionCache = new Map();

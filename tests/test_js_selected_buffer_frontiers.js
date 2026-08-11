@@ -203,7 +203,7 @@ for (const [index, scramble] of scrambles.entries()) {
 }
 
 console.log('PASS selected-buffer compact graph reproduces all exact full-floating frontiers');
-console.log('PASS selected-buffer graph depends on buffer count, not checkbox identity');
+console.log('PASS selected-buffer graph depends on buffer count, not selected physical identities');
 console.log('PASS embedded two-buffer frontiers match the independent compact oracle');
 console.log('PASS singleton UFR class path lifts to two twists, one comm, and parity');
 console.log('PASS embedded selected-buffer catalogs cover all 10000 stored scrambles');

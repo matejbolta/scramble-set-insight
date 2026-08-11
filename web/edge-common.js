@@ -1,12 +1,16 @@
 (function (global) {
   const deps = typeof module !== 'undefined' && module.exports
-    ? require('./scrambling')
+    ? { ...require('./scrambling'), ...require('./buffer-selection') }
     : global.SsiCoreModules;
 
-  const { scrToScrambledStateEdg } = deps;
+  const {
+    EDGE_BUFFER_ORDER,
+    normalizeEdgeBuffers,
+    scrToScrambledStateEdg,
+  } = deps;
 
-  const EDGE_FLOAT_BUFFER_ORDER_PSEUDOSWAP = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
-  const EDGE_FLOAT_BUFFER_ORDER_WEAKSWAP = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
+  const EDGE_FLOAT_BUFFER_ORDER_PSEUDOSWAP = EDGE_BUFFER_ORDER;
+  const EDGE_FLOAT_BUFFER_ORDER_WEAKSWAP = EDGE_BUFFER_ORDER;
   const STICKER_LETTER_MAP = {
     UBL: 'C', UB: 'C', UBR: 'B', UR: 'B', UFR: 'Q', UF: 'Q', UFL: 'D', UL: 'D',
     LUB: 'E', LU: 'E', LUF: 'F', LF: 'F', LDF: 'G', LD: 'G', LDB: 'H', LB: 'H',
@@ -25,18 +29,6 @@
 
   function getPieceGroupEdg(sticker) {
     return [sticker, sticker.split('').reverse().join('')];
-  }
-
-  function normalizeEdgeBuffers(edgeBuffers, edgeMethod) {
-    const bufferOrder = edgeMethod === 'weakswap' ? EDGE_FLOAT_BUFFER_ORDER_WEAKSWAP : EDGE_FLOAT_BUFFER_ORDER_PSEUDOSWAP;
-    if (edgeBuffers === 'all') return [...bufferOrder];
-    if (edgeBuffers == null) return ['UF'];
-    const allowedBuffers = new Set(edgeBuffers);
-    if (!allowedBuffers.has('UF')) {
-      throw new Error('Edge buffer selection must include UF.');
-    }
-    const normalized = bufferOrder.filter((buffer) => allowedBuffers.has(buffer));
-    return normalized;
   }
 
   function switchWithBufferEdg(buffer, target, state) {

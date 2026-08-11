@@ -214,8 +214,8 @@ for (const [index, scramble] of scrambles.slice(0, 100).entries()) {
     1.1,
     1.25,
     true,
-    ['UFR', 'FDL'],
-    ['UF', 'DL'],
+    ['UFR', 'UFL'],
+    ['UF', 'UR'],
   );
   const partialWeak = ssiCore.analyzeScramble(
     scramble,
@@ -224,8 +224,8 @@ for (const [index, scramble] of scrambles.slice(0, 100).entries()) {
     1.1,
     1.25,
     true,
-    ['UFR', 'FDL'],
-    ['UF', 'DL'],
+    ['UFR', 'UFL'],
+    ['UF', 'UR'],
   );
   const widerPartial = ssiCore.analyzeScramble(
     scramble,
@@ -234,8 +234,8 @@ for (const [index, scramble] of scrambles.slice(0, 100).entries()) {
     1.1,
     1.25,
     true,
-    ['UFR', 'FDL', 'UFL', 'UBR'],
-    ['UF', 'DL', 'UR', 'FR'],
+    ['UFR', 'UFL', 'UBR', 'UBL'],
+    ['UF', 'UR', 'UB', 'UL'],
   );
   const weightedStandard = ssiCore.analyzeScramble(
     scramble,

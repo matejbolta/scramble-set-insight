@@ -1,8 +1,15 @@
-const worker = new Worker('./worker.js?v=weakswap-v1');
+const worker = new Worker('./worker.js?v=buffer-order-v1');
 let requestId = 0;
 
-const CORNER_BUFFER_OPTIONS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
-const EDGE_BUFFER_OPTIONS = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
+const {
+  bufferCountThroughFurthest,
+  CORNER_BUFFER_ORDER: CORNER_BUFFER_OPTIONS,
+  cornerBuffersThroughCount,
+  EDGE_BUFFER_ORDER: EDGE_BUFFER_OPTIONS,
+  edgeBuffersThroughCount,
+  isPseudoswapUbException,
+  selectEdgeBufferLevel,
+} = window.SsiBufferSelection;
 const LEGACY_CORNER_BUFFERS = ['UFR'];
 const LEGACY_EDGE_BUFFERS = ['UF'];
 const THEME_STORAGE_KEY = 'ssi-theme';
@@ -49,6 +56,7 @@ const elements = {
   partialBuffers: document.getElementById('partial-buffers'),
   cornerPills: document.getElementById('corner-pills'),
   edgePills: document.getElementById('edge-pills'),
+  edgeBufferExceptionHint: document.getElementById('edge-buffer-exception-hint'),
   themeToggle: document.getElementById('theme-toggle'),
   scrambleDialog: document.getElementById('scramble-dialog'),
   scrambleDialogNumber: document.getElementById('scramble-dialog-number'),
@@ -57,8 +65,9 @@ const elements = {
 };
 
 const state = {
-  cornerBuffers: [...LEGACY_CORNER_BUFFERS],
-  edgeBuffers: [...LEGACY_EDGE_BUFFERS],
+  cornerBufferCount: LEGACY_CORNER_BUFFERS.length,
+  edgeBufferCount: LEGACY_EDGE_BUFFERS.length,
+  edgeUbWithoutUr: false,
   breakdownSort: { key: 'index', direction: 'asc' },
   scrambleBreakdowns: [],
   selectScramblesOnNextClick: false,
@@ -81,12 +90,30 @@ function setCheckedRadio(name, value) {
   if (input) input.checked = true;
 }
 
+function selectedCornerBuffers() {
+  return cornerBuffersThroughCount(state.cornerBufferCount);
+}
+
+function selectedEdgeBuffers(edgeMethod = getEdgeMethod()) {
+  return edgeBuffersThroughCount(
+    state.edgeBufferCount,
+    edgeMethod,
+    state.edgeUbWithoutUr,
+  );
+}
+
+function savedBufferCount(value, options, fallbackBuffers) {
+  if (Number.isInteger(value) && value >= 1 && value <= options.length) return value;
+  return bufferCountThroughFurthest(options, fallbackBuffers);
+}
+
 function getCurrentSettingsForStorage() {
   return {
     edgeMethod: getEdgeMethod(),
     bufferMode: getBufferMode(),
-    cornerBuffers: [...state.cornerBuffers],
-    edgeBuffers: [...state.edgeBuffers],
+    cornerBufferCount: state.cornerBufferCount,
+    edgeBufferCount: state.edgeBufferCount,
+    edgeUbWithoutUr: state.edgeUbWithoutUr,
     dnf: elements.dnf.checked,
     finishCapability: getFinishCapability(),
     tracingOrientation: elements.tracingOrientation.value,
@@ -147,15 +174,19 @@ function restoreSettings() {
     }
   }
 
-  if (Array.isArray(saved.cornerBuffers) && saved.cornerBuffers.length) {
-    const cornerBuffers = saved.cornerBuffers.filter((buffer) => CORNER_BUFFER_OPTIONS.includes(buffer));
-    if (cornerBuffers.length) state.cornerBuffers = [...new Set([...LEGACY_CORNER_BUFFERS, ...cornerBuffers])];
-  }
-
-  if (Array.isArray(saved.edgeBuffers) && saved.edgeBuffers.length) {
-    const edgeBuffers = saved.edgeBuffers.filter((buffer) => EDGE_BUFFER_OPTIONS.includes(buffer));
-    if (edgeBuffers.length) state.edgeBuffers = [...new Set([...LEGACY_EDGE_BUFFERS, ...edgeBuffers])];
-  }
+  state.cornerBufferCount = savedBufferCount(
+    saved.cornerBufferCount,
+    CORNER_BUFFER_OPTIONS,
+    saved.cornerBuffers,
+  );
+  state.edgeBufferCount = savedBufferCount(
+    saved.edgeBufferCount,
+    EDGE_BUFFER_OPTIONS,
+    saved.edgeBuffers,
+  );
+  state.edgeUbWithoutUr = getEdgeMethod() === 'pseudoswap'
+    && state.edgeBufferCount === 3
+    && (saved.edgeUbWithoutUr === true || isPseudoswapUbException(saved.edgeBuffers));
 }
 
 function updateBufferModeUI() {
@@ -164,17 +195,22 @@ function updateBufferModeUI() {
     || (mode === 'partial' && getEdgeMethod() === 'pseudoswap');
   elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
   elements.edgeMethodSettings.classList.toggle('is-hidden', mode === 'full');
+  elements.edgeBufferExceptionHint.classList.toggle('is-hidden', getEdgeMethod() !== 'pseudoswap');
   elements.finishT2c.disabled = !supportsT2c;
   if (!supportsT2c && getFinishCapability() === 't2c') {
     setCheckedRadio('finish-capability', 'ltct');
   }
 
   if (mode === 'standard') {
-    state.cornerBuffers = [...LEGACY_CORNER_BUFFERS];
-    state.edgeBuffers = [...LEGACY_EDGE_BUFFERS];
+    state.cornerBufferCount = LEGACY_CORNER_BUFFERS.length;
+    state.edgeBufferCount = LEGACY_EDGE_BUFFERS.length;
+    state.edgeUbWithoutUr = false;
   } else if (mode === 'full') {
-    state.cornerBuffers = [...CORNER_BUFFER_OPTIONS];
-    state.edgeBuffers = [...EDGE_BUFFER_OPTIONS];
+    state.cornerBufferCount = CORNER_BUFFER_OPTIONS.length;
+    state.edgeBufferCount = EDGE_BUFFER_OPTIONS.length;
+    state.edgeUbWithoutUr = false;
+  } else if (getEdgeMethod() === 'weakswap' && state.edgeUbWithoutUr) {
+    state.edgeUbWithoutUr = false;
   }
 
   syncPills();
@@ -190,30 +226,43 @@ function createPills(container, options, selectedValues, group) {
     button.textContent = option;
     button.dataset.value = option;
     button.dataset.group = group;
+    button.setAttribute('aria-pressed', String(selectedValues.includes(option)));
     const requiredBuffers = group === 'corner' ? LEGACY_CORNER_BUFFERS : LEGACY_EDGE_BUFFERS;
     button.disabled = requiredBuffers.includes(option);
     if (button.disabled) button.title = 'Primary buffer (always included)';
-    button.addEventListener('click', () => toggleBuffer(group, option));
+    if (
+      group === 'edge'
+      && option === 'UR'
+      && getEdgeMethod() === 'pseudoswap'
+      && state.edgeBufferCount === 3
+    ) {
+      button.title = 'Toggle the UF + UB without UR exception';
+    }
+    button.addEventListener('click', () => selectBufferLevel(group, option));
     container.appendChild(button);
   }
 }
 
 function syncPills() {
-  createPills(elements.cornerPills, CORNER_BUFFER_OPTIONS, state.cornerBuffers, 'corner');
-  createPills(elements.edgePills, EDGE_BUFFER_OPTIONS, state.edgeBuffers, 'edge');
+  createPills(elements.cornerPills, CORNER_BUFFER_OPTIONS, selectedCornerBuffers(), 'corner');
+  createPills(elements.edgePills, EDGE_BUFFER_OPTIONS, selectedEdgeBuffers(), 'edge');
 }
 
-function toggleBuffer(group, value) {
+function selectBufferLevel(group, value) {
   const requiredBuffers = group === 'corner' ? LEGACY_CORNER_BUFFERS : LEGACY_EDGE_BUFFERS;
   if (requiredBuffers.includes(value)) return;
 
-  const current = group === 'corner' ? state.cornerBuffers : state.edgeBuffers;
-  const index = current.indexOf(value);
-
-  if (index >= 0) {
-    current.splice(index, 1);
+  if (group === 'corner') {
+    state.cornerBufferCount = CORNER_BUFFER_OPTIONS.indexOf(value) + 1;
   } else {
-    current.push(value);
+    const selection = selectEdgeBufferLevel(
+      state.edgeBufferCount,
+      state.edgeUbWithoutUr,
+      getEdgeMethod(),
+      value,
+    );
+    state.edgeBufferCount = selection.count;
+    state.edgeUbWithoutUr = selection.ubWithoutUr;
   }
 
   syncPills();
@@ -570,8 +619,8 @@ function renderResult(rawResult) {
 
 function collectSettings() {
   const bufferMode = getBufferMode();
-  const cornerBuffers = bufferMode === 'partial' ? state.cornerBuffers : [...state.cornerBuffers];
-  const edgeBuffers = bufferMode === 'partial' ? state.edgeBuffers : [...state.edgeBuffers];
+  const cornerBuffers = selectedCornerBuffers();
+  const edgeBuffers = selectedEdgeBuffers();
 
   if (!cornerBuffers.length) throw new Error('Select at least one corner buffer.');
   if (!edgeBuffers.length) throw new Error('Select at least one edge buffer.');

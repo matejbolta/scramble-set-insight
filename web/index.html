@@ -70,6 +70,7 @@
               </div>
 
               <div class="partial-buffers is-hidden" id="partial-buffers">
+                <p class="buffer-order-hint">Choose the furthest buffer you know; every earlier buffer is included automatically.</p>
                 <div class="buffer-subgroup">
                   <div class="buffer-subtitle">Corner buffers</div>
                   <div class="pill-grid" id="corner-pills"></div>
@@ -77,6 +78,7 @@
                 <div class="buffer-subgroup">
                   <div class="buffer-subtitle">Edge buffers</div>
                   <div class="pill-grid" id="edge-pills"></div>
+                  <p class="buffer-order-hint" id="edge-buffer-exception-hint">Pseudo swap only: with UB as the last buffer, click UR to toggle the UF + UB exception.</p>
                 </div>
               </div>
             </div>
@@ -269,6 +271,7 @@
       </div>
     </dialog>
 
+    <script src="./buffer-selection.js?v=buffer-order-v1"></script>
     <script src="./app.js" type="module"></script>
   </body>
 </html>

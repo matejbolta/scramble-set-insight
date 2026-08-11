@@ -3,6 +3,8 @@ const path = require('path');
 const crypto = require('crypto');
 const assert = require('assert/strict');
 const ssiCore = require('../web/ssi-core');
+const bufferSelection = require('../web/buffer-selection');
+const cornerTracing = require('../web/corner-tracing');
 const edgeCommon = require('../web/edge-common');
 const cycleResiduePlanner = require('../web/cycle-residue-planner');
 
@@ -127,10 +129,43 @@ assert.equal(weightedWeakPairedFlip.edge_algs, weightedPseudoPairedFlip.edge_alg
 console.log('PASS JS singleton weakswap forced-UR penalty and surviving 2-flip distinction');
 
 const commonEdgeBufferOrder = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
+const commonCornerBufferOrder = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
 assert.deepEqual(edgeCommon.normalizeEdgeBuffers('all', 'weakswap'), commonEdgeBufferOrder);
 assert.deepEqual(edgeCommon.normalizeEdgeBuffers('all', 'pseudoswap'), commonEdgeBufferOrder);
 assert.deepEqual(cycleResiduePlanner.FULL_EDGE_BUFFERS, commonEdgeBufferOrder);
-console.log('PASS JS common edge buffer order');
+assert.deepEqual(cycleResiduePlanner.FULL_CORNER_BUFFERS, commonCornerBufferOrder);
+assert.deepEqual(cornerTracing.normalizeCornerBuffers(['UBR', 'UFR', 'UFL']), commonCornerBufferOrder.slice(0, 3));
+assert.deepEqual(edgeCommon.normalizeEdgeBuffers(['UB', 'UF', 'UR'], 'pseudoswap'), commonEdgeBufferOrder.slice(0, 3));
+assert.deepEqual(edgeCommon.normalizeEdgeBuffers(['UB', 'UF'], 'pseudoswap'), ['UF', 'UB']);
+assert.deepEqual(bufferSelection.edgeBuffersThroughCount(3, 'pseudoswap', true), ['UF', 'UB']);
+assert.deepEqual(bufferSelection.edgeBuffersThroughCount(3, 'weakswap', true), ['UF', 'UR', 'UB']);
+assert.deepEqual(bufferSelection.selectEdgeBufferLevel(1, false, 'pseudoswap', 'UB'), { count: 3, ubWithoutUr: false });
+assert.deepEqual(bufferSelection.selectEdgeBufferLevel(3, false, 'pseudoswap', 'UR'), { count: 3, ubWithoutUr: true });
+assert.deepEqual(bufferSelection.selectEdgeBufferLevel(3, true, 'pseudoswap', 'UR'), { count: 3, ubWithoutUr: false });
+assert.deepEqual(bufferSelection.selectEdgeBufferLevel(4, false, 'pseudoswap', 'UR'), { count: 2, ubWithoutUr: false });
+assert.throws(
+  () => cornerTracing.normalizeCornerBuffers(['UFR', 'UBR']),
+  /prefix of the canonical order/,
+);
+assert.throws(
+  () => edgeCommon.normalizeEdgeBuffers(['UF', 'UB'], 'weakswap'),
+  /prefix of the canonical order/,
+);
+assert.throws(
+  () => edgeCommon.normalizeEdgeBuffers(['UF', 'UB', 'UL'], 'pseudoswap'),
+  /UF \+ UB exception/,
+);
+const pseudoswapUbException = ssiCore.analyzeScramble(
+  'U', '', 'pseudoswap', 1.25, 1.25, false, ['UFR', 'UFL'], ['UF', 'UB'],
+);
+assert.deepEqual(pseudoswapUbException.edges.buffers, ['UF', 'UB']);
+assert.equal(pseudoswapUbException.edges.tracing_model, 'selected-buffer');
+assert.equal(pseudoswapUbException.edges.selected_buffer.count, 2);
+assert.throws(
+  () => ssiCore.analyzeScramble('U', '', 'weakswap', 1, 1, false, ['UFR'], ['UF', 'UB']),
+  /prefix of the canonical order/,
+);
+console.log('PASS JS canonical buffer prefixes and pseudoswap UF + UB exception');
 
 const pseudoswapPrimaryClosure = ssiCore.analyzeScramble(
   'U',

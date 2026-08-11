@@ -1,10 +1,12 @@
 (function (global) {
   const deps = typeof module !== 'undefined' && module.exports
     ? {
+        bufferSelection: require('./buffer-selection'),
         cycleModel: require('./cycle-model'),
         residue: require('./cycle-residue'),
       }
     : {
+        bufferSelection: global.SsiCoreModules,
         cycleModel: global.SsiCoreModules,
         residue: global.SsiCoreModules,
       };
@@ -24,8 +26,10 @@
     validateOrientationWeight,
   } = deps.residue;
 
-  const FULL_CORNER_BUFFERS = Object.freeze(['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL']);
-  const FULL_EDGE_BUFFERS = Object.freeze(['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL']);
+  const {
+    CORNER_BUFFER_ORDER: FULL_CORNER_BUFFERS,
+    EDGE_BUFFER_ORDER: FULL_EDGE_BUFFERS,
+  } = deps.bufferSelection;
   const coverageCache = new Map();
   const cornerFinishGoalCache = new Map();
 

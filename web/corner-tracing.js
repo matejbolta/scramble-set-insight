@@ -1,9 +1,13 @@
 (function (global) {
   const deps = typeof module !== 'undefined' && module.exports
-    ? require('./scrambling')
+    ? { ...require('./scrambling'), ...require('./buffer-selection') }
     : global.SsiCoreModules;
 
-  const { scrToScrambledStateCor } = deps;
+  const {
+    CORNER_BUFFER_ORDER: CORNER_FLOAT_BUFFER_ORDER,
+    normalizeCornerBuffers,
+    scrToScrambledStateCor,
+  } = deps;
 
   const CORNER_PIECE_GROUPS = [
     ['UFR', 'RUF', 'FUR'],
@@ -15,24 +19,11 @@
     ['DBR', 'RDB', 'BDR'],
     ['DBL', 'BDL', 'LDB'],
   ];
-  const CORNER_FLOAT_BUFFER_ORDER = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
-
   function getPieceGroupCor(sticker) {
     for (const group of CORNER_PIECE_GROUPS) {
       if (group.includes(sticker)) return [...group];
     }
     return null;
-  }
-
-  function normalizeCornerBuffers(cornerBuffers) {
-    if (cornerBuffers === 'all') return [...CORNER_FLOAT_BUFFER_ORDER];
-    if (cornerBuffers == null) return ['UFR'];
-    const allowedBuffers = new Set(cornerBuffers);
-    if (!allowedBuffers.has('UFR')) {
-      throw new Error('Corner buffer selection must include UFR.');
-    }
-    const normalized = CORNER_FLOAT_BUFFER_ORDER.filter((buffer) => allowedBuffers.has(buffer));
-    return normalized;
   }
 
   function solvedCor(state) {
