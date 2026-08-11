@@ -2,9 +2,11 @@ const assert = require('assert/strict');
 const fs = require('fs');
 const path = require('path');
 const cycleModel = require('../web/cycle-model');
+const cycleResiduePlanner = require('../web/cycle-residue-planner');
 const dlin = require('../web/dlin-planner');
 const scrambling = require('../web/scrambling');
 const ssiCore = require('../web/ssi-core');
+const weakswapTracing = require('../web/weakswap-tracing');
 
 const root = path.join(__dirname, '..');
 const scrambles = fs.readFileSync(path.join(root, 'baseline', 'testing-10k-scrams.txt'), 'utf8')
@@ -53,6 +55,23 @@ for (const [index, scramble] of scrambles.entries()) {
     edges.cycles.flatMap((cycle) => cycle.sticker_orbits).flat().length,
     24,
     `edge sticker coverage at scramble ${index}`,
+  );
+
+  const weakPlan = cycleResiduePlanner.planEdgeStateBySingletonWeakswap(
+    edgeState,
+    edges.permutation_parity,
+    1,
+  );
+  const [weakTargets, weakFlips] = weakswapTracing.traceStateEdgWeakswap(edgeState);
+  assert.equal(
+    weakPlan.target_count,
+    weakTargets.length,
+    `singleton weak cycle target count at scramble ${index}`,
+  );
+  assert.equal(
+    weakPlan.flip_count,
+    weakFlips.length,
+    `singleton weak cycle flip count at scramble ${index}`,
   );
 }
 
@@ -109,7 +128,7 @@ assert.equal(cornerPlan.total_algs, 4);
 const edgePlan = dlin.planEdgeStateDlin(
   scrambling.scrToScrambledStateEdg(sandwichScramble, ''),
   true,
-  ['UF', 'UB', 'UR', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
+  ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
   1,
 );
 assert.equal(edgePlan.complete, true);
@@ -144,7 +163,7 @@ for (const [index, scramble] of scrambles.slice(0, 1000).entries()) {
   const edges = dlin.planEdgeStateDlin(
     scrambling.scrToScrambledStateEdg(scramble, ''),
     Boolean(corners.model.permutation_parity),
-    ['UF', 'UB', 'UR', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
+    ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'],
     1,
   );
   assert.equal(corners.complete, true, `corner DLin completion at scramble ${index}`);
@@ -273,6 +292,7 @@ for (const [index, scramble] of scrambles.slice(0, 100).entries()) {
 }
 
 console.log(`PASS JS cycle model reconstruction and invariants (${scrambles.length} scrambles)`);
+console.log('PASS singleton weakswap cycle counts match the canonical tracer (10000 scrambles)');
 console.log('PASS JS cycle model distinguishes the final two-edge swap/flip states');
 console.log('PASS JS cycle model exposes sandwich as external BI-ZB versus internal IZ');
 console.log('PASS JS DLin planner finds 9 = 4 + 5 and full residue returns 11 = 5 + 6');

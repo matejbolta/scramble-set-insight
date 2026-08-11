@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=selected-buffer-v2');
+const worker = new Worker('./worker.js?v=weakswap-v1');
 let requestId = 0;
 
 const CORNER_BUFFER_OPTIONS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];

@@ -1,16 +1,16 @@
 self.importScripts(
-  './wide-move-translator.js?v=selected-buffer-v2',
-  './scrambling.js?v=selected-buffer-v2',
-  './corner-tracing.js?v=selected-buffer-v2',
-  './edge-common.js?v=selected-buffer-v2',
-  './cycle-model.js?v=selected-buffer-v2',
-  './cycle-residue.js?v=selected-buffer-v2',
-  './cycle-residue-planner.js?v=selected-buffer-v2',
-  './dlin-planner.js?v=selected-buffer-v2',
-  './weakswap-tracing.js?v=selected-buffer-v2',
-  './pseudoswap-tracing.js?v=selected-buffer-v2',
-  './finalizing.js?v=selected-buffer-v2',
-  './ssi-core.js?v=selected-buffer-v2',
+  './wide-move-translator.js?v=weakswap-v1',
+  './scrambling.js?v=weakswap-v1',
+  './corner-tracing.js?v=weakswap-v1',
+  './edge-common.js?v=weakswap-v1',
+  './cycle-model.js?v=weakswap-v1',
+  './cycle-residue.js?v=weakswap-v1',
+  './cycle-residue-planner.js?v=weakswap-v1',
+  './dlin-planner.js?v=weakswap-v1',
+  './weakswap-tracing.js?v=weakswap-v1',
+  './pseudoswap-tracing.js?v=weakswap-v1',
+  './finalizing.js?v=weakswap-v1',
+  './ssi-core.js?v=weakswap-v1',
 );
 
 const backend = self.SsiCore;

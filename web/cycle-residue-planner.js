@@ -25,7 +25,7 @@
   } = deps.residue;
 
   const FULL_CORNER_BUFFERS = Object.freeze(['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL']);
-  const FULL_EDGE_BUFFERS = Object.freeze(['UF', 'UB', 'UR', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL']);
+  const FULL_EDGE_BUFFERS = Object.freeze(['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL']);
   const coverageCache = new Map();
   const cornerFinishGoalCache = new Map();
 
@@ -472,6 +472,76 @@
     };
   }
 
+  function planEdgeStateBySingletonWeakswap(
+    state,
+    parity,
+    orientationWeight = 1,
+  ) {
+    const weight = validateOrientationWeight(orientationWeight);
+    const physicalModel = decomposeEdgeState(state);
+    if (Boolean(parity) !== Boolean(physicalModel.permutation_parity)) {
+      throw new Error('Corner parity does not match the physical edge permutation parity.');
+    }
+    const goalState = buildParityEdgeGoal(parity, physicalModel.piece_groups);
+    const relativeState = stateRelativeToGoal(state, goalState);
+    const model = decomposeEdgeState(relativeState);
+    if (model.permutation_parity) {
+      throw new Error('Parity-relative edge goal must have an even permutation.');
+    }
+
+    const permutationCycles = model.cycles.filter((cycle) => cycle.length > 1);
+    const externalPermutationCycles = permutationCycles.filter(
+      (cycle) => !cycle.slots.includes('UF'),
+    );
+    let targetCount = permutationCycles.reduce((sum, cycle) => (
+      sum + cycle.length + (cycle.slots.includes('UF') ? -1 : 1)
+    ), 0);
+
+    // In the parity-relative frame, RU in the UR slot is precisely the
+    // correctly placed but flipped weak destination. It survives as a flip
+    // only when no external permutation cycle forces an earlier UR closure.
+    const correctUrPieceFlipped = relativeState.UR === 'RU';
+    const forcedUrBreak = correctUrPieceFlipped && externalPermutationCycles.length > 0;
+    if (forcedUrBreak) targetCount += 2;
+    if (targetCount % 2) {
+      throw new Error('Singleton weakswap must finish with an even target count.');
+    }
+
+    const ordinaryFlips = model.cycles.filter((cycle) => (
+      cycle.length === 1
+      && cycle.orientation_sum === 1
+      && !cycle.slots.includes('UF')
+      && !cycle.slots.includes('UR')
+    )).length;
+    const urSurvivesAsFlip = correctUrPieceFlipped && !forcedUrBreak;
+    const flipCount = ordinaryFlips + Number(urSurvivesAsFlip);
+    const orientationAlgs = Math.floor(flipCount / 2);
+    const singleFlipAlgs = flipCount % 2;
+    const permutationAlgs = targetCount / 2;
+
+    return {
+      complete: true,
+      model,
+      physical_state: state,
+      goal_state: goalState,
+      relative_state: relativeState,
+      orientation_weight: weight,
+      target_count: targetCount,
+      flip_count: flipCount,
+      permutation_algs: permutationAlgs,
+      orientation_algs: orientationAlgs,
+      single_flip_algs: singleFlipAlgs,
+      total_algs: permutationAlgs + orientationAlgs * weight + singleFlipAlgs,
+      weakswap: {
+        correct_ur_piece_flipped: correctUrPieceFlipped,
+        external_permutation_cycle_count: externalPermutationCycles.length,
+        forced_ur_break: forcedUrBreak,
+        ur_survives_as_flip: urSurvivesAsFlip,
+        ordinary_flip_count: ordinaryFlips,
+      },
+    };
+  }
+
   const api = {
     FULL_CORNER_BUFFERS,
     FULL_EDGE_BUFFERS,
@@ -483,6 +553,7 @@
     planCornerStateByTerminalEnumeration,
     planEdgeStateByResidues,
     planEdgeStateBySelectedBuffers,
+    planEdgeStateBySingletonWeakswap,
     proveFullBufferCoverage,
   };
 

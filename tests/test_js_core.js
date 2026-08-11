@@ -3,6 +3,8 @@ const path = require('path');
 const crypto = require('crypto');
 const assert = require('assert/strict');
 const ssiCore = require('../web/ssi-core');
+const edgeCommon = require('../web/edge-common');
+const cycleResiduePlanner = require('../web/cycle-residue-planner');
 
 const root = path.join(__dirname, '..');
 const inputPath = path.join(root, 'baseline', 'testing-10k-scrams.txt');
@@ -54,10 +56,81 @@ function compare(edgeMethod) {
     );
   }
   console.log(`PASS JS UFR/UF core vs stored truth (${edgeMethod}): ${jsList.length} entries match`);
+  return jsList;
 }
 
-compare('weakswap');
-compare('pseudoswap');
+const singletonWeakswapCounts = compare('weakswap');
+const singletonPseudoswapCounts = compare('pseudoswap');
+const singletonMethodDeltas = new Map();
+for (let i = 0; i < singletonWeakswapCounts.length; i += 1) {
+  const delta = singletonWeakswapCounts[i] - singletonPseudoswapCounts[i];
+  singletonMethodDeltas.set(delta, (singletonMethodDeltas.get(delta) || 0) + 1);
+}
+assert.deepEqual(
+  [...singletonMethodDeltas].sort(([left], [right]) => left - right),
+  [[0, 9879], [1, 121]],
+  'singleton weakswap should only pay the known narrow one-alg penalty',
+);
+console.log('PASS JS singleton weakswap/pseudoswap delta distribution (9879 tied, 121 weak +1)');
+
+const weakPenaltyScramble = "U2 B L B2 L2 U2 F2 L2 D' B2 D R2 U' R' U F2 R' B U2 F2 Rw Uw";
+const weakPenalty = ssiCore.analyzeScramble(
+  weakPenaltyScramble, '', 'weakswap', 1, 1, false, ['UFR'], ['UF'],
+);
+const pseudoPenalty = ssiCore.analyzeScramble(
+  weakPenaltyScramble, '', 'pseudoswap', 1, 1, false, ['UFR'], ['UF'],
+);
+assert.equal(weakPenalty.corner.analysis.parity, true);
+assert.equal(weakPenalty.edges.analysis.parity, false, 'final UR/RU target must close weak target parity');
+assert.equal(weakPenalty.edges.tracing_model, 'cycle-model');
+assert.deepEqual(weakPenalty.edges.targets, []);
+assert.equal(weakPenalty.edges.weakswap_cycle.target_count, 10);
+assert.equal(weakPenalty.edges.weakswap_cycle.forced_ur_break, true);
+assert.equal(weakPenalty.edges.weakswap_cycle.ordinary_flip_count, 1);
+assert.equal(weakPenalty.edges.flips.count, 1);
+assert.equal(weakPenalty.edge_algs, 6);
+assert.equal(pseudoPenalty.edge_algs, 5);
+for (const weight of [1.25, 1.5]) {
+  const weightedWeak = ssiCore.analyzeScramble(
+    weakPenaltyScramble, '', 'weakswap', weight, 1, false, ['UFR'], ['UF'],
+  );
+  const weightedPseudo = ssiCore.analyzeScramble(
+    weakPenaltyScramble, '', 'pseudoswap', weight, 1, false, ['UFR'], ['UF'],
+  );
+  assert.equal(
+    weightedWeak.edge_algs - weightedPseudo.edge_algs,
+    2 - weight,
+    `forced-UR penalty at flip weight ${weight}`,
+  );
+}
+
+const weakPairedFlipScramble = "D2 R2 D L2 D R2 D2 R2 U' F2 D B' U L2 F L B' R2 D2 R' F Rw Uw'";
+const weakPairedFlip = ssiCore.analyzeScramble(
+  weakPairedFlipScramble, '', 'weakswap', 1, 1, false, ['UFR'], ['UF'],
+);
+const pseudoPairedFlip = ssiCore.analyzeScramble(
+  weakPairedFlipScramble, '', 'pseudoswap', 1, 1, false, ['UFR'], ['UF'],
+);
+assert.equal(weakPairedFlip.edges.weakswap_cycle.target_count, 8);
+assert.equal(weakPairedFlip.edges.weakswap_cycle.forced_ur_break, false);
+assert.equal(weakPairedFlip.edges.weakswap_cycle.ur_survives_as_flip, true);
+assert.equal(weakPairedFlip.edges.flips.count, 2);
+assert.equal(weakPairedFlip.edge_algs, 5);
+assert.equal(pseudoPairedFlip.edge_algs, 5);
+const weightedWeakPairedFlip = ssiCore.analyzeScramble(
+  weakPairedFlipScramble, '', 'weakswap', 1.25, 1, false, ['UFR'], ['UF'],
+);
+const weightedPseudoPairedFlip = ssiCore.analyzeScramble(
+  weakPairedFlipScramble, '', 'pseudoswap', 1.25, 1, false, ['UFR'], ['UF'],
+);
+assert.equal(weightedWeakPairedFlip.edge_algs, weightedPseudoPairedFlip.edge_algs);
+console.log('PASS JS singleton weakswap forced-UR penalty and surviving 2-flip distinction');
+
+const commonEdgeBufferOrder = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
+assert.deepEqual(edgeCommon.normalizeEdgeBuffers('all', 'weakswap'), commonEdgeBufferOrder);
+assert.deepEqual(edgeCommon.normalizeEdgeBuffers('all', 'pseudoswap'), commonEdgeBufferOrder);
+assert.deepEqual(cycleResiduePlanner.FULL_EDGE_BUFFERS, commonEdgeBufferOrder);
+console.log('PASS JS common edge buffer order');
 
 const pseudoswapPrimaryClosure = ssiCore.analyzeScramble(
   'U',
@@ -121,7 +194,7 @@ for (const edgeMethod of ['weakswap', 'pseudoswap']) {
     assert.equal(result.corner.tracing_model, 'selected-buffer', `${edgeMethod}: exact UFR corners`);
     assert.equal(
       result.edges.tracing_model,
-      edgeMethod === 'pseudoswap' ? 'selected-buffer' : 'legacy',
+      edgeMethod === 'pseudoswap' ? 'selected-buffer' : 'cycle-model',
       `${edgeMethod}: expected UF edge routing`,
     );
   }

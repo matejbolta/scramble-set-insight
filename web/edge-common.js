@@ -5,7 +5,7 @@
 
   const { scrToScrambledStateEdg } = deps;
 
-  const EDGE_FLOAT_BUFFER_ORDER_PSEUDOSWAP = ['UF', 'UB', 'UR', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
+  const EDGE_FLOAT_BUFFER_ORDER_PSEUDOSWAP = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
   const EDGE_FLOAT_BUFFER_ORDER_WEAKSWAP = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
   const STICKER_LETTER_MAP = {
     UBL: 'C', UB: 'C', UBR: 'B', UR: 'B', UFR: 'Q', UF: 'Q', UFL: 'D', UL: 'D',

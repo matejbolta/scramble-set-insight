@@ -5,16 +5,12 @@
         dlinPlanner: require('./dlin-planner'),
         residuePlanner: require('./cycle-residue-planner'),
         edgeCommon: require('./edge-common'),
-        pseudoswapTracing: require('./pseudoswap-tracing'),
-        weakswapTracing: require('./weakswap-tracing'),
       }
     : {
         cornerTracing: global.SsiCoreModules,
         dlinPlanner: global.SsiCoreModules,
         residuePlanner: global.SsiCoreModules,
         edgeCommon: global.SsiCoreModules,
-        pseudoswapTracing: global.SsiCoreModules,
-        weakswapTracing: global.SsiCoreModules,
       };
 
   const {
@@ -36,17 +32,14 @@
     planCornerStateBySelectedBuffers,
     planEdgeStateByResidues,
     planEdgeStateBySelectedBuffers,
+    planEdgeStateBySingletonWeakswap,
   } = deps.residuePlanner;
   const {
-    analyzeEdgeTraceSegments,
-    flattenEdgeTraceSegments,
     normalizeEdgeBuffers,
     pairLetters,
     segmentsToLetterView,
     stickersToLetters,
   } = deps.edgeCommon;
-  const { traceScrEdgPseudoswapSegments } = deps.pseudoswapTracing;
-  const { traceScrEdgWeakswapSegments } = deps.weakswapTracing;
 
   const MOVE_START_RE = /[UDRLFB]/;
   const WCA_ROW_PREFIX_RE = /^(?:[A-Z]\s+)?(?:\d+|Extra\s+\d+)\s+/;
@@ -326,6 +319,40 @@
         },
       };
     }
+    if (normalizedEdgeBuffers.length === 1) {
+      const edgeState = scrToScrambledStateEdg(scr, tracingOrientation);
+      const plan = planEdgeStateBySingletonWeakswap(
+        edgeState,
+        cornerParity,
+        flipWeight,
+      );
+      return {
+        method: edgeMethod,
+        buffers: normalizedEdgeBuffers,
+        tracing_model: 'cycle-model',
+        segments: [],
+        targets: [],
+        analysis: {
+          odd_segment_count: 0,
+          even_segment_count: 0,
+          parity: false,
+          algs: plan.permutation_algs,
+          standalone_algs: plan.permutation_algs,
+          saved_by_pairing: 0,
+        },
+        flips: {
+          list: [],
+          count: plan.flip_count,
+          two_flips: plan.orientation_algs,
+          algs: plan.orientation_algs * flipWeight + plan.single_flip_algs,
+        },
+        weakswap_cycle: {
+          target_count: plan.target_count,
+          single_flip_algs: plan.single_flip_algs,
+          ...plan.weakswap,
+        },
+      };
+    }
     if (normalizedEdgeBuffers.length > 1) {
       const edgeState = scrToScrambledStateEdg(scr, tracingOrientation);
       const plan = planEdgeStateDlin(
@@ -357,36 +384,7 @@
         },
       };
     }
-    const [edgeSegments, flippedList] = edgeMethod === 'weakswap'
-      ? traceScrEdgWeakswapSegments(scr, tracingOrientation, normalizedEdgeBuffers)
-      : traceScrEdgPseudoswapSegments(scr, cornerParity, tracingOrientation, normalizedEdgeBuffers);
-    const edgeTargets = flattenEdgeTraceSegments(edgeSegments);
-    const edgeAnalysis = analyzeEdgeTraceSegments(edgeSegments);
-    const edgeStandaloneAlgs = edgeSegments.reduce((sum, segment) => sum + Math.floor((segment.targets.length + 1) / 2), 0);
-    const flipNumber = flippedList.length;
-    const twoFlips = Math.floor(flipNumber / 2);
-    const flipAlgs = twoFlips * flipWeight + (flipNumber % 2);
-    return {
-      method: edgeMethod,
-      buffers: normalizedEdgeBuffers,
-      tracing_model: 'legacy',
-      segments: edgeSegments,
-      targets: edgeTargets,
-      analysis: {
-        odd_segment_count: edgeAnalysis.odd_segments.length,
-        even_segment_count: edgeAnalysis.even_segments.length,
-        parity: edgeAnalysis.edge_parity,
-        algs: edgeAnalysis.algs,
-        standalone_algs: edgeStandaloneAlgs,
-        saved_by_pairing: edgeStandaloneAlgs - edgeAnalysis.algs,
-      },
-      flips: {
-        list: flippedList,
-        count: flipNumber,
-        two_flips: twoFlips,
-        algs: flipAlgs,
-      },
-    };
+    throw new Error(`Unsupported edge counting route: ${edgeMethod}.`);
   }
 
   function countScrambleAlgs(scr, tracingOrientation, edgeMethod, flipWeight, twistWeight, finishCapability, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {

@@ -3,7 +3,7 @@ const cycleModel = require('../../web/cycle-model');
 const residue = require('../../web/cycle-residue');
 
 const CORNER_BUFFERS = ['UFR', 'UFL', 'UBR', 'UBL', 'RDF', 'FDL'];
-const EDGE_BUFFERS = ['UF', 'UB', 'UR', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
+const EDGE_BUFFERS = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
 
 function pieceGroups(kind) {
   return kind === 'corner' ? cornerTracing.CORNER_PIECE_GROUPS : cycleModel.EDGE_PIECE_GROUPS;

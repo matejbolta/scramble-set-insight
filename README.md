@@ -12,8 +12,8 @@ It supports:
 
 - weak swap and pseudo swap
 - corrected exact weighted UF/UFR pseudoswap counting, exact UFR corner
-  counting with legacy singleton weakswap edges, exact weighted full floating,
-  and exact weighted partial pseudoswap floating
+  counting with exact cycle-model singleton weakswap counting, exact weighted
+  full floating, and exact weighted partial pseudoswap floating
 - custom tracing/scrambling orientation
 - custom 2-flip and 2-twist weights
 - optional DNF inclusion and Advanced `None / LTCT / T2C` counting
