@@ -228,8 +228,7 @@ function createPills(container, options, selectedValues, group) {
     button.dataset.group = group;
     button.setAttribute('aria-pressed', String(selectedValues.includes(option)));
     const requiredBuffers = group === 'corner' ? LEGACY_CORNER_BUFFERS : LEGACY_EDGE_BUFFERS;
-    button.disabled = requiredBuffers.includes(option);
-    if (button.disabled) button.title = 'Primary buffer (always included)';
+    if (requiredBuffers.includes(option)) button.title = 'Primary buffer (click to reset)';
     if (
       group === 'edge'
       && option === 'UR'
@@ -249,9 +248,6 @@ function syncPills() {
 }
 
 function selectBufferLevel(group, value) {
-  const requiredBuffers = group === 'corner' ? LEGACY_CORNER_BUFFERS : LEGACY_EDGE_BUFFERS;
-  if (requiredBuffers.includes(value)) return;
-
   if (group === 'corner') {
     state.cornerBufferCount = CORNER_BUFFER_OPTIONS.indexOf(value) + 1;
   } else {

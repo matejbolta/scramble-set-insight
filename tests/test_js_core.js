@@ -143,6 +143,7 @@ assert.deepEqual(bufferSelection.selectEdgeBufferLevel(1, false, 'pseudoswap', '
 assert.deepEqual(bufferSelection.selectEdgeBufferLevel(3, false, 'pseudoswap', 'UR'), { count: 3, ubWithoutUr: true });
 assert.deepEqual(bufferSelection.selectEdgeBufferLevel(3, true, 'pseudoswap', 'UR'), { count: 3, ubWithoutUr: false });
 assert.deepEqual(bufferSelection.selectEdgeBufferLevel(4, false, 'pseudoswap', 'UR'), { count: 2, ubWithoutUr: false });
+assert.deepEqual(bufferSelection.selectEdgeBufferLevel(3, true, 'pseudoswap', 'UF'), { count: 1, ubWithoutUr: false });
 assert.throws(
   () => cornerTracing.normalizeCornerBuffers(['UFR', 'UBR']),
   /prefix of the canonical order/,
@@ -583,7 +584,8 @@ delete global.self;
 
 const appSource = fs.readFileSync(path.join(root, 'web', 'app.js'), 'utf8');
 const workerSource = fs.readFileSync(path.join(root, 'web', 'worker.js'), 'utf8');
-assert.match(appSource, /button\.disabled = requiredBuffers\.includes\(option\)/, 'partial floating must pin primary buffer pills');
+assert.doesNotMatch(appSource, /button\.disabled = requiredBuffers\.includes\(option\)/, 'primary buffer pills must remain clickable level-one resets');
+assert.match(appSource, /Primary buffer \(click to reset\)/, 'primary buffer pills must explain their reset behavior');
 assert.doesNotMatch(
   appHtml,
   /<script src="\.\/cycle-residue\.js"><\/script>/,
