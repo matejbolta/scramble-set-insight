@@ -370,10 +370,10 @@ function propagateFrontiers(graph, seeds) {
   return frontiers;
 }
 
-function exactSelectedBufferFrontiers(kind, selectedBuffers, capability = 'none') {
-  const rooted = kind === 'corner' && capability !== 'even';
-  const normalizedCapability = rooted ? capability : 'even';
-  const cacheKey = `${kind}|${selectedBuffers.join(',')}|${normalizedCapability}`;
+function exactSelectedBufferFrontiers(kind, selectedBuffers, finishMode = 'none') {
+  const rooted = kind === 'corner' && finishMode !== 'even-permutation';
+  const normalizedFinishMode = rooted ? finishMode : 'even-permutation';
+  const cacheKey = `${kind}|${selectedBuffers.join(',')}|${normalizedFinishMode}`;
   if (frontierCache.has(cacheKey)) return frontierCache.get(cacheKey);
 
   let graphResult;
@@ -389,7 +389,7 @@ function exactSelectedBufferFrontiers(kind, selectedBuffers, capability = 'none'
     const groups = pieceGroups('corner');
     const solved = cycleModel.solvedStateFromPieceGroups(groups);
     const solvedModel = decompose('corner', solved);
-    const goals = cycleResiduePlanner.buildCornerFinishGoals(solvedModel, capability);
+    const goals = cycleResiduePlanner.buildCornerFinishGoals(solvedModel, finishMode);
     graphResult = buildSelectedBufferClassGraph('corner', selectedBuffers, {
       root_primary: true,
       seed: goals[0].state,
@@ -410,7 +410,7 @@ function exactSelectedBufferFrontiers(kind, selectedBuffers, capability = 'none'
 
   const result = {
     ...graphResult,
-    capability: normalizedCapability,
+    finish_mode: normalizedFinishMode,
     frontiers: propagateFrontiers(graphResult.graph, seeds),
   };
   frontierCache.set(cacheKey, result);
@@ -432,7 +432,7 @@ function solveSelectedBufferState(
   const exact = exactSelectedBufferFrontiers(
     kind,
     selectedBuffers,
-    rooted ? capability : 'even',
+    rooted ? capability : 'even-permutation',
   );
   const keyOptions = rooted ? { root_primary: true } : {};
   const goals = rooted

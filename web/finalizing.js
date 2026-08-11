@@ -94,7 +94,9 @@
         segments: [],
         targets: [],
         analysis: {
-          odd_segment_count: Number(Boolean(plan.model.permutation_parity)),
+          // Exact counting has no traced segment path. Permutation parity is
+          // reported separately below and must not be presented as a segment.
+          odd_segment_count: 0,
           even_segment_count: 0,
           parity: Boolean(plan.model.permutation_parity),
           algs: plan.baseline_permutation_algs,
@@ -144,7 +146,9 @@
         segments: [],
         targets: [],
         analysis: {
-          odd_segment_count: Number(Boolean(plan.model.permutation_parity)),
+          // Exact counting has no traced segment path. Permutation parity is
+          // reported separately below and must not be presented as a segment.
+          odd_segment_count: 0,
           even_segment_count: 0,
           parity: Boolean(plan.model.permutation_parity),
           algs: plan.baseline_permutation_algs,

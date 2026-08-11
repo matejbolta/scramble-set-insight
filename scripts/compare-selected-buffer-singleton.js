@@ -16,9 +16,17 @@ const scrambles = fs.readFileSync(
   'utf8',
 ).trim().split(/\r?\n/);
 
-const evenCorners = exactSelectedBufferFrontiers('corner', ['UFR'], 'even');
-const oddCorners = exactSelectedBufferFrontiers('corner', ['UFR'], 'none');
-const evenEdges = exactSelectedBufferFrontiers('edge', ['UF'], 'even');
+const evenPermutationCorners = exactSelectedBufferFrontiers(
+  'corner',
+  ['UFR'],
+  'even-permutation',
+);
+const oddPermutationCorners = exactSelectedBufferFrontiers('corner', ['UFR'], 'none');
+const evenPermutationEdges = exactSelectedBufferFrontiers(
+  'edge',
+  ['UF'],
+  'even-permutation',
+);
 const differences = new Map();
 const examples = [];
 
@@ -35,7 +43,7 @@ for (const [index, scramble] of scrambles.entries()) {
     root_primary: Boolean(cornerModel.permutation_parity),
   });
   const cornerAlgs = selectedCost(
-    cornerModel.permutation_parity ? oddCorners : evenCorners,
+    cornerModel.permutation_parity ? oddPermutationCorners : evenPermutationCorners,
     cornerKey,
   );
 
@@ -46,7 +54,7 @@ for (const [index, scramble] of scrambles.entries()) {
   );
   const relativeEdgeState = cycleModel.stateRelativeToGoal(edgeState, edgeGoal);
   const edgeKey = selectedBufferClassKey('edge', relativeEdgeState, ['UF']);
-  const edgeAlgs = selectedCost(evenEdges, edgeKey);
+  const edgeAlgs = selectedCost(evenPermutationEdges, edgeKey);
   const exactTotal = cornerAlgs + edgeAlgs;
 
   const production = ssiCore.analyzeScramble(
@@ -74,9 +82,9 @@ for (const [index, scramble] of scrambles.entries()) {
 
 console.log(JSON.stringify({
   classes: {
-    even_corners: evenCorners.graph.size,
-    odd_corners: oddCorners.graph.size,
-    even_edges: evenEdges.graph.size,
+    even_permutation_corners: evenPermutationCorners.graph.size,
+    odd_permutation_corners: oddPermutationCorners.graph.size,
+    even_permutation_edges: evenPermutationEdges.graph.size,
   },
   exact_minus_production: Object.fromEntries([...differences].sort(([left], [right]) => left - right)),
   examples,

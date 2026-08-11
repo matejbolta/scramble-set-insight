@@ -127,14 +127,14 @@
   function planExactSelectedModel(
     model,
     selectedBuffers,
-    capability = 'even',
+    finishMode = 'even-permutation',
     orientationWeight = 1,
   ) {
     const weight = validateOrientationWeight(orientationWeight);
     const selected = minimumExactSelectedBufferPlan(
       model,
       selectedBuffers,
-      capability,
+      finishMode,
       weight,
     );
     if (!selected) {
@@ -399,7 +399,7 @@
     const baseline = planExactSelectedModel(
       model,
       selectedBuffers,
-      model.permutation_parity ? 'none' : 'even',
+      model.permutation_parity ? 'none' : 'even-permutation',
       weight,
     );
     const optimized = model.permutation_parity && normalizedCapability !== 'none'
@@ -460,7 +460,12 @@
       throw new Error('Parity-relative edge goal must have an even permutation.');
     }
     return {
-      ...planExactSelectedModel(model, selectedBuffers, 'even', orientationWeight),
+      ...planExactSelectedModel(
+        model,
+        selectedBuffers,
+        'even-permutation',
+        orientationWeight,
+      ),
       physical_state: state,
       goal_state: goalState,
       relative_state: relativeState,

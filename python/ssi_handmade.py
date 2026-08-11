@@ -834,7 +834,7 @@ def scr_to_scrambled_state_cor(scr, tracing_orientation):
 
 def count_scramble_algs(scr, tracing_orientation, edge_method, flip_weight, twist_weight, ltct):
     algs = 0
-    corner_list = trace_scr_cor(scr, tracing_orientation) # Odd or Even length
+    corner_list = trace_scr_cor(scr, tracing_orientation) # Odd/even target count, not physical-cycle length
     twist_number = len(twisted_cor(scr_to_scrambled_state_cor(scramble_transform(scr), tracing_orientation)))
 
     parity = bool(len(corner_list) % 2)

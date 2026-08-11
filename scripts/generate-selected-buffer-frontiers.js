@@ -30,7 +30,7 @@ function generate() {
   const output = {
     edge: {},
     corner: {
-      even: {},
+      even_permutation: {},
       rooted: { none: {}, ltct: {}, t2c: {} },
     },
   };
@@ -38,7 +38,7 @@ function generate() {
   for (let selectedCount = 1; selectedCount < EDGE_BUFFER_ORDER.length; selectedCount += 1) {
     const buffers = EDGE_BUFFER_ORDER.slice(0, selectedCount);
     output.edge[selectedCount] = encodedFrontiers(
-      exactSelectedBufferFrontiers('edge', buffers, 'even'),
+      exactSelectedBufferFrontiers('edge', buffers, 'even-permutation'),
       false,
     );
     clearSelectedBufferOracleCaches();
@@ -46,8 +46,8 @@ function generate() {
 
   for (let selectedCount = 1; selectedCount < CORNER_BUFFER_ORDER.length; selectedCount += 1) {
     const buffers = CORNER_BUFFER_ORDER.slice(0, selectedCount);
-    output.corner.even[selectedCount] = encodedFrontiers(
-      exactSelectedBufferFrontiers('corner', buffers, 'even'),
+    output.corner.even_permutation[selectedCount] = encodedFrontiers(
+      exactSelectedBufferFrontiers('corner', buffers, 'even-permutation'),
       false,
     );
     for (const capability of ['none', 'ltct', 't2c']) {

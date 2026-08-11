@@ -56,7 +56,7 @@ for (const [kind, buffers] of [
   ['edge', EDGE_BUFFER_ORDER],
   ['corner', CORNER_BUFFER_ORDER],
 ]) {
-  const selected = exactSelectedBufferFrontiers(kind, buffers, 'even');
+  const selected = exactSelectedBufferFrontiers(kind, buffers, 'even-permutation');
   const existing = exactWeightedClassFrontiers(kind).frontiers;
   assert.equal(selected.frontiers.size, existing.size, `${kind} full selected class count`);
   for (const [key, frontier] of selected.frontiers) {
@@ -70,7 +70,7 @@ for (const [kind, buffers] of [
       ? cycleModel.decomposeCornerState(state)
       : cycleModel.decomposeEdgeState(state);
     assert.deepEqual(
-      vectors(residue.exactSelectedBufferFrontier(model, buffers, 'even')),
+      vectors(residue.exactSelectedBufferFrontier(model, buffers, 'even-permutation')),
       vectors(frontier),
       `${kind} full selected production endpoint ${key}`,
     );
@@ -102,13 +102,13 @@ for (const capability of ['none', 'ltct', 't2c']) {
 }
 
 assert.deepEqual(
-  catalogVectors(exactSelectedBufferFrontiers('edge', ['UF', 'DL'], 'even')),
-  catalogVectors(exactSelectedBufferFrontiers('edge', ['UF', 'UB'], 'even')),
+  catalogVectors(exactSelectedBufferFrontiers('edge', ['UF', 'DL'], 'even-permutation')),
+  catalogVectors(exactSelectedBufferFrontiers('edge', ['UF', 'UB'], 'even-permutation')),
   'two selected edge pieces are equivalent up to physical relabeling',
 );
 assert.deepEqual(
-  catalogVectors(exactSelectedBufferFrontiers('corner', ['UFR', 'FDL'], 'even')),
-  catalogVectors(exactSelectedBufferFrontiers('corner', ['UFR', 'UFL'], 'even')),
+  catalogVectors(exactSelectedBufferFrontiers('corner', ['UFR', 'FDL'], 'even-permutation')),
+  catalogVectors(exactSelectedBufferFrontiers('corner', ['UFR', 'UFL'], 'even-permutation')),
   'two selected corner pieces are equivalent up to physical relabeling',
 );
 assert.deepEqual(
@@ -117,23 +117,23 @@ assert.deepEqual(
   'rooted selected corner pieces are equivalent up to relabeling that fixes UFR',
 );
 
-function assertEmbeddedCatalog(kind, buffers, capability) {
-  const exact = exactSelectedBufferFrontiers(kind, buffers, capability);
+function assertEmbeddedCatalog(kind, buffers, finishMode) {
+  const exact = exactSelectedBufferFrontiers(kind, buffers, finishMode);
   for (const [key, compact] of exact.representatives) {
     const state = stateFromCompact(kind, compact);
     const model = kind === 'corner'
       ? cycleModel.decomposeCornerState(state)
       : cycleModel.decomposeEdgeState(state);
     assert.deepEqual(
-      vectors(residue.exactSelectedBufferFrontier(model, buffers, capability)),
+      vectors(residue.exactSelectedBufferFrontier(model, buffers, finishMode)),
       vectors(exact.frontiers.get(key)),
-      `${kind} ${capability} embedded frontier ${key}`,
+      `${kind} ${finishMode} embedded frontier ${key}`,
     );
   }
 }
 
-assertEmbeddedCatalog('edge', ['UF', 'UB'], 'even');
-assertEmbeddedCatalog('corner', ['UFR', 'UFL'], 'even');
+assertEmbeddedCatalog('edge', ['UF', 'UB'], 'even-permutation');
+assertEmbeddedCatalog('corner', ['UFR', 'UFL'], 'even-permutation');
 for (const capability of ['none', 'ltct', 't2c']) {
   assertEmbeddedCatalog('corner', ['UFR', 'UFL'], capability);
 }
@@ -171,13 +171,13 @@ for (const [index, scramble] of scrambles.entries()) {
   const cornerModel = cycleModel.decomposeCornerState(cornerState);
   for (let count = 1; count < CORNER_BUFFER_ORDER.length; count += 1) {
     const buffers = CORNER_BUFFER_ORDER.slice(0, count);
-    const capabilities = cornerModel.permutation_parity
+    const finishModes = cornerModel.permutation_parity
       ? ['none', 'ltct', 't2c']
-      : ['even'];
-    for (const capability of capabilities) {
+      : ['even-permutation'];
+    for (const finishMode of finishModes) {
       assert.ok(
-        residue.exactSelectedBufferFrontier(cornerModel, buffers, capability),
-        `corner ${count}/${capability} catalog coverage at scramble ${index}`,
+        residue.exactSelectedBufferFrontier(cornerModel, buffers, finishMode),
+        `corner ${count}/${finishMode} catalog coverage at scramble ${index}`,
       );
     }
   }
@@ -195,7 +195,7 @@ for (const [index, scramble] of scrambles.entries()) {
       residue.exactSelectedBufferFrontier(
         relativeEdgeModel,
         EDGE_BUFFER_ORDER.slice(0, count),
-        'even',
+        'even-permutation',
       ),
       `edge ${count} catalog coverage at scramble ${index}`,
     );

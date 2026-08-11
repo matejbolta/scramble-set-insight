@@ -109,6 +109,8 @@
       cycles.push({
         id: start,
         kind,
+        // `length` is the physical piece count. A k-cycle contributes
+        // permutation parity (k - 1) mod 2, so these two parities are opposite.
         length: placements.length,
         slots,
         placements,

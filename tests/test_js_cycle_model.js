@@ -72,7 +72,7 @@ const flippedEdgeModel = cycleModel.decomposeEdgeState(twoFlippedEdges);
 assert.deepEqual(
   swappedEdgeModel.active_cycles.map((cycle) => [cycle.length, cycle.permutation_parity, cycle.orientation_sum]),
   [[2, 1, 0]],
-  'two unresolved swapped edges must be one odd-permutation cycle',
+  'two unresolved swapped edges must be one length-2 physical cycle with odd permutation parity',
 );
 assert.deepEqual(
   flippedEdgeModel.active_cycles.map((cycle) => [cycle.length, cycle.permutation_parity, cycle.orientation_sum]),

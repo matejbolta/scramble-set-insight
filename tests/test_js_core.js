@@ -72,6 +72,8 @@ const pseudoswapPrimaryClosure = ssiCore.analyzeScramble(
 assert.equal(pseudoswapPrimaryClosure.corner.analysis.parity, true);
 assert.equal(pseudoswapPrimaryClosure.corner.tracing_model, 'selected-buffer');
 assert.equal(pseudoswapPrimaryClosure.edges.tracing_model, 'selected-buffer');
+assert.equal(pseudoswapPrimaryClosure.corner.analysis.odd_segment_count, 0);
+assert.equal(pseudoswapPrimaryClosure.corner.analysis.even_segment_count, 0);
 assert.deepEqual(pseudoswapPrimaryClosure.edges.targets, []);
 assert.equal(pseudoswapPrimaryClosure.edges.selected_buffer.count, 1);
 assert.equal(pseudoswapPrimaryClosure.edges.analysis.parity, false);
