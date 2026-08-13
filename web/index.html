@@ -125,9 +125,27 @@
                     <input type="radio" name="finish-capability" value="ltct" />
                     <span>LTCT</span>
                   </label>
-                  <label class="radio-option" title="T2C requires full floating or exact partial pseudoswap floating.">
+                  <label class="radio-option" title="T2C requires partial or full floating.">
                     <input id="finish-t2c" type="radio" name="finish-capability" value="t2c" disabled />
                     <span>T2C</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="weak-2e2e-capability-option" role="group" aria-labelledby="weak-2e2e-label">
+                <div class="field-label" id="weak-2e2e-label">Weak algset</div>
+                <div class="radio-group radio-group--compact" id="weak-2e2e-capability-group">
+                  <label class="radio-option">
+                    <input type="radio" name="weak-2e2e-capability" value="none" checked />
+                    <span>None</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" name="weak-2e2e-capability" value="2e2e" />
+                    <span>2E2E</span>
+                  </label>
+                  <label class="radio-option" title="2E2E′ includes the normal 2E2E subset.">
+                    <input type="radio" name="weak-2e2e-capability" value="2e2e-prime" />
+                    <span>2E2E′</span>
                   </label>
                 </div>
               </div>
@@ -272,6 +290,6 @@
     </dialog>
 
     <script src="./buffer-selection.js?v=buffer-order-v1"></script>
-    <script src="./app.js" type="module"></script>
+    <script src="./app.js?v=weak-capability-v2" type="module"></script>
   </body>
 </html>

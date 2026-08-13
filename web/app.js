@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=buffer-order-v1');
+const worker = new Worker('./worker.js?v=weak-capability-v2');
 let requestId = 0;
 
 const {
@@ -20,6 +20,7 @@ const elements = {
   tracingOrientation: document.getElementById('tracing-orientation'),
   dnf: document.getElementById('dnf'),
   finishT2c: document.getElementById('finish-t2c'),
+  weak2e2eCapabilityOption: document.getElementById('weak-2e2e-capability-option'),
   edgeMethodSettings: document.getElementById('edge-method-settings'),
   flipWeight: document.getElementById('flip-weight'),
   twistWeight: document.getElementById('twist-weight'),
@@ -85,6 +86,10 @@ function getFinishCapability() {
   return document.querySelector('input[name="finish-capability"]:checked').value;
 }
 
+function getWeak2e2eCapability() {
+  return document.querySelector('input[name="weak-2e2e-capability"]:checked').value;
+}
+
 function setCheckedRadio(name, value) {
   const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
   if (input) input.checked = true;
@@ -116,6 +121,7 @@ function getCurrentSettingsForStorage() {
     edgeUbWithoutUr: state.edgeUbWithoutUr,
     dnf: elements.dnf.checked,
     finishCapability: getFinishCapability(),
+    weak2e2eCapability: getWeak2e2eCapability(),
     tracingOrientation: elements.tracingOrientation.value,
     flipWeight: elements.flipWeight.value,
     twistWeight: elements.twistWeight.value,
@@ -151,6 +157,11 @@ function restoreSettings() {
   setCheckedRadio(
     'finish-capability',
     saved.finishCapability || (saved.ltct ? 'ltct' : 'none'),
+  );
+  setCheckedRadio(
+    'weak-2e2e-capability',
+    saved.weak2e2eCapability
+      || (saved.weak2e2ePrime ? '2e2e-prime' : '2e2e'),
   );
   elements.tracingOrientation.value = saved.tracingOrientation || '';
   elements.flipWeight.value = saved.flipWeight || '1';
@@ -191,10 +202,9 @@ function restoreSettings() {
 
 function updateBufferModeUI() {
   const mode = getBufferMode();
-  const supportsT2c = mode === 'full'
-    || (mode === 'partial' && getEdgeMethod() === 'pseudoswap');
+  const supportsT2c = mode === 'full' || mode === 'partial';
   elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
-  elements.edgeMethodSettings.classList.toggle('is-hidden', mode === 'full');
+  elements.edgeMethodSettings.classList.remove('is-hidden');
   elements.edgeBufferExceptionHint.classList.toggle('is-hidden', getEdgeMethod() !== 'pseudoswap');
   elements.finishT2c.disabled = !supportsT2c;
   if (!supportsT2c && getFinishCapability() === 't2c') {
@@ -245,6 +255,13 @@ function createPills(container, options, selectedValues, group) {
 function syncPills() {
   createPills(elements.cornerPills, CORNER_BUFFER_OPTIONS, selectedCornerBuffers(), 'corner');
   createPills(elements.edgePills, EDGE_BUFFER_OPTIONS, selectedEdgeBuffers(), 'edge');
+  const supportsWeak2e2e = getEdgeMethod() === 'weakswap'
+    && getBufferMode() !== 'standard'
+    && state.edgeBufferCount >= 3;
+  elements.weak2e2eCapabilityOption.classList.toggle('is-hidden', !supportsWeak2e2e);
+  document.querySelectorAll('input[name="weak-2e2e-capability"]').forEach((input) => {
+    input.disabled = !supportsWeak2e2e;
+  });
 }
 
 function selectBufferLevel(group, value) {
@@ -625,9 +642,9 @@ function collectSettings() {
 
   const finishCapability = getFinishCapability();
   const supportsT2c = bufferMode === 'full'
-    || (bufferMode === 'partial' && getEdgeMethod() === 'pseudoswap');
+    || bufferMode === 'partial';
   if (finishCapability === 't2c' && !supportsT2c) {
-    throw new Error('T2C requires full floating or exact partial pseudoswap floating.');
+    throw new Error('T2C requires partial or full floating.');
   }
 
   const flipWeight = Number(elements.flipWeight.value);
@@ -647,6 +664,9 @@ function collectSettings() {
     flipWeight,
     twistWeight,
     finishCapability,
+    weak2e2eCapability: elements.weak2e2eCapabilityOption.classList.contains('is-hidden')
+      ? 'none'
+      : getWeak2e2eCapability(),
     dnf: elements.dnf.checked,
     cornerBuffers,
     edgeBuffers,
@@ -730,6 +750,10 @@ function initialize() {
   });
 
   document.querySelectorAll('input[name="finish-capability"]').forEach((input) => {
+    input.addEventListener('change', saveSettings);
+  });
+
+  document.querySelectorAll('input[name="weak-2e2e-capability"]').forEach((input) => {
     input.addEventListener('change', saveSettings);
   });
 

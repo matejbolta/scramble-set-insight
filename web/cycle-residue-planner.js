@@ -20,8 +20,10 @@
   const {
     minimumExactRootedCornerFinishPlan,
     minimumExactSelectedBufferPlan,
+    minimumExactWeakswapFloatingPlan,
     minimumExactWeightedClassPlan,
     normalizeFinishCapability,
+    normalizeWeak2e2eCapability,
     reduceCycleModelToResidues,
     validateOrientationWeight,
   } = deps.residue;
@@ -476,6 +478,54 @@
     };
   }
 
+  function planEdgeStateByWeakswapFloating(
+    state,
+    parity,
+    selectedBuffers,
+    capability = '2e2e',
+    orientationWeight = 1,
+  ) {
+    const weight = validateOrientationWeight(orientationWeight);
+    const normalizedCapability = normalizeWeak2e2eCapability(capability);
+    const physicalModel = decomposeEdgeState(state);
+    if (Boolean(parity) !== Boolean(physicalModel.permutation_parity)) {
+      throw new Error('Corner parity does not match the physical edge permutation parity.');
+    }
+    const goalState = buildParityEdgeGoal(parity, physicalModel.piece_groups);
+    const relativeState = stateRelativeToGoal(state, goalState);
+    const model = decomposeEdgeState(relativeState);
+    if (model.permutation_parity) {
+      throw new Error('Parity-relative edge goal must have an even permutation.');
+    }
+    const selected = minimumExactWeakswapFloatingPlan(
+      model,
+      selectedBuffers,
+      normalizedCapability,
+      weight,
+    );
+    if (!selected) {
+      throw new Error(
+        `No exact weakswap floating class for ${selectedBuffers.length} buffers.`,
+      );
+    }
+    const fixedAlgs = selected.fixed_algs ?? selected.permutation_algs;
+    return {
+      complete: true,
+      model,
+      physical_state: state,
+      goal_state: goalState,
+      relative_state: relativeState,
+      selected_buffers: [...selectedBuffers],
+      orientation_weight: weight,
+      weak_2e2e_capability: normalizedCapability,
+      allow_2e2e_prime: normalizedCapability === '2e2e-prime',
+      fixed_algs: fixedAlgs,
+      permutation_algs: fixedAlgs,
+      orientation_algs: selected.orientation_algs,
+      total_algs: selected.cost,
+    };
+  }
+
   function planEdgeStateBySingletonWeakswap(
     state,
     parity,
@@ -558,7 +608,9 @@
     planEdgeStateByResidues,
     planEdgeStateBySelectedBuffers,
     planEdgeStateBySingletonWeakswap,
+    planEdgeStateByWeakswapFloating,
     proveFullBufferCoverage,
+    normalizeWeak2e2eCapability,
   };
 
   global.SsiCoreModules = global.SsiCoreModules || {};

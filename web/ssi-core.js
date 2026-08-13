@@ -13,6 +13,7 @@
     extractScrambleList: deps.extractScrambleList,
     extractScrambleRecords: deps.extractScrambleRecords,
     normalizeFinishCapability: deps.normalizeFinishCapability,
+    normalizeWeak2e2eCapability: deps.normalizeWeak2e2eCapability,
     scrambleTransform: deps.scrambleTransform || global.SsiCoreModules.scrambleTransform,
   };
 

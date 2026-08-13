@@ -2,29 +2,21 @@
   const deps = typeof module !== 'undefined' && module.exports
     ? {
         cornerTracing: require('./corner-tracing'),
-        dlinPlanner: require('./dlin-planner'),
         residuePlanner: require('./cycle-residue-planner'),
         edgeCommon: require('./edge-common'),
       }
     : {
         cornerTracing: global.SsiCoreModules,
-        dlinPlanner: global.SsiCoreModules,
         residuePlanner: global.SsiCoreModules,
         edgeCommon: global.SsiCoreModules,
       };
 
   const {
-    analyzeCornerTraceSegments,
-    flattenCornerTraceSegments,
     normalizeCornerBuffers,
-    traceStateCorSegments,
-    twistDirectionIndentifier,
-    twistedCor,
   } = deps.cornerTracing;
   const { scrToScrambledStateCor, scrToScrambledStateEdg } = typeof module !== 'undefined' && module.exports
     ? require('./scrambling')
     : global.SsiCoreModules;
-  const { planCornerStateDlin, planEdgeStateDlin } = deps.dlinPlanner;
   const {
     FULL_CORNER_BUFFERS,
     FULL_EDGE_BUFFERS,
@@ -33,6 +25,8 @@
     planEdgeStateByResidues,
     planEdgeStateBySelectedBuffers,
     planEdgeStateBySingletonWeakswap,
+    planEdgeStateByWeakswapFloating,
+    normalizeWeak2e2eCapability,
   } = deps.residuePlanner;
   const {
     normalizeEdgeBuffers,
@@ -119,135 +113,68 @@
     if (normalizedCornerBuffers.length === 1 && normalizedFinishCapability === 't2c') {
       throw new Error('T2C requires floating beyond the primary buffers.');
     }
-    if (normalizedCornerBuffers.length === 1 || edgeMethod === 'pseudoswap') {
-      const plan = planCornerStateBySelectedBuffers(
-        cornerState,
-        normalizedCornerBuffers,
-        normalizedFinishCapability,
-        twistWeight,
-      );
-      const twoTwists = plan.baseline_orientation_algs;
-      const finishType = plan.finish_adjustment < -1e-12
-        && ['ltct', 't2c'].includes(plan.finish?.type)
-        ? plan.finish.type
-        : null;
-      return {
-        buffers: normalizedCornerBuffers,
-        tracing_model: 'selected-buffer',
-        finish_capability: normalizedFinishCapability,
-        finish_type: finishType,
-        segments: [],
-        targets: [],
-        analysis: {
-          // Exact counting has no traced segment path. Permutation parity is
-          // reported separately below and must not be presented as a segment.
-          odd_segment_count: 0,
-          even_segment_count: 0,
-          parity: Boolean(plan.model.permutation_parity),
-          algs: plan.baseline_permutation_algs,
-          standalone_algs: plan.baseline_permutation_algs,
-          saved_by_pairing: 0,
-        },
-        twists: {
-          list: [],
-          count: twoTwists * 2,
-          cw: twoTwists,
-          ccw: twoTwists,
-          two_twists: twoTwists,
-          single_twists: 0,
-          algs: plan.baseline_orientation_algs * twistWeight,
-        },
-        ltct_adjustment: plan.finish_adjustment,
-        finish_adjustment: plan.finish_adjustment,
-        selected_buffer: {
-          count: normalizedCornerBuffers.length,
-          orientation_weight: twistWeight,
-          finish: plan.finish,
-        },
-      };
-    }
-    if (normalizedCornerBuffers.length > 1) {
-      if (normalizedFinishCapability === 't2c') {
-        throw new Error('T2C requires exact pseudoswap floating.');
-      }
-      const plan = planCornerStateDlin(
-        cornerState,
-        normalizedCornerBuffers,
-        twistWeight,
-        normalizedFinishCapability === 'ltct',
-      );
-      if (!plan.complete) throw new Error('DLin corner planning did not cover every permutation cycle.');
-      return {
-        buffers: normalizedCornerBuffers,
-        tracing_model: 'dlin',
-        finish_capability: normalizedFinishCapability,
-        finish_type: plan.ltct_adjustment < -1e-12 ? 'ltct' : null,
-        segments: plan.segments,
-        targets: plan.segments.flatMap((segment) => segment.targets),
-        analysis: {
-          odd_segment_count: plan.segment_analysis.odd_segment_count,
-          even_segment_count: plan.segment_analysis.even_segment_count,
-          parity: plan.segment_analysis.parity,
-          algs: plan.permutation_algs,
-          standalone_algs: plan.segment_analysis.standalone_algs,
-          saved_by_pairing: plan.segment_analysis.saved_by_linking,
-        },
-        twists: plan.orientations,
-        ltct_adjustment: plan.ltct_adjustment,
-        finish_adjustment: plan.ltct_adjustment,
-        dlin: {
-          states_explored: plan.states_explored,
-          cycle_count: plan.model.active_cycles.length,
-          permutation_cycle_count: plan.segments.length,
-        },
-      };
-    }
-    const cornerSegments = traceStateCorSegments(cornerState, normalizedCornerBuffers);
-    const cornerTargets = flattenCornerTraceSegments(cornerSegments);
-    const cornerAnalysis = analyzeCornerTraceSegments(cornerSegments);
-    const cornerStandaloneAlgs = cornerSegments.reduce((sum, segment) => sum + Math.floor((segment.targets.length + 1) / 2), 0);
-    const twistList = twistedCor(cornerState);
-    const [cw, ccw] = twistList.length ? twistDirectionIndentifier(scr, tracingOrientation) : [0, 0];
-    const twoTwists = Math.min(cw, ccw);
-    const singleTwists = Math.abs(cw - ccw);
-    const twistAlgs = twoTwists * twistWeight + singleTwists;
-    const ltctAdjustment = cornerAnalysis.corner_parity
-      && normalizedFinishCapability === 'ltct'
-      && singleTwists > 0
-      ? -1
-      : 0;
+    const plan = planCornerStateBySelectedBuffers(
+      cornerState,
+      normalizedCornerBuffers,
+      normalizedFinishCapability,
+      twistWeight,
+    );
+    const twoTwists = plan.baseline_orientation_algs;
+    const finishType = plan.finish_adjustment < -1e-12
+      && ['ltct', 't2c'].includes(plan.finish?.type)
+      ? plan.finish.type
+      : null;
     return {
       buffers: normalizedCornerBuffers,
-      tracing_model: 'legacy',
+      tracing_model: 'selected-buffer',
       finish_capability: normalizedFinishCapability,
-      finish_type: ltctAdjustment < 0 ? 'ltct' : null,
-      segments: cornerSegments,
-      targets: cornerTargets,
+      finish_type: finishType,
+      segments: [],
+      targets: [],
       analysis: {
-        odd_segment_count: cornerAnalysis.odd_segments.length,
-        even_segment_count: cornerAnalysis.even_segments.length,
-        parity: cornerAnalysis.corner_parity,
-        algs: cornerAnalysis.algs,
-        standalone_algs: cornerStandaloneAlgs,
-        saved_by_pairing: cornerStandaloneAlgs - cornerAnalysis.algs,
+        odd_segment_count: 0,
+        even_segment_count: 0,
+        parity: Boolean(plan.model.permutation_parity),
+        algs: plan.baseline_permutation_algs,
+        standalone_algs: plan.baseline_permutation_algs,
+        saved_by_pairing: 0,
       },
       twists: {
-        list: twistList,
-        count: twistList.length,
-        cw,
-        ccw,
+        list: [],
+        count: twoTwists * 2,
+        cw: twoTwists,
+        ccw: twoTwists,
         two_twists: twoTwists,
-        single_twists: singleTwists,
-        algs: twistAlgs,
+        single_twists: 0,
+        algs: plan.baseline_orientation_algs * twistWeight,
       },
-      ltct_adjustment: ltctAdjustment,
-      finish_adjustment: ltctAdjustment,
+      ltct_adjustment: plan.finish_adjustment,
+      finish_adjustment: plan.finish_adjustment,
+      selected_buffer: {
+        count: normalizedCornerBuffers.length,
+        orientation_weight: twistWeight,
+        finish: plan.finish,
+      },
     };
   }
 
-  function buildEdgeBreakdown(scr, tracingOrientation, edgeMethod, edgeBuffers, flipWeight, cornerParity) {
+  function buildEdgeBreakdown(
+    scr,
+    tracingOrientation,
+    edgeMethod,
+    edgeBuffers,
+    flipWeight,
+    cornerParity,
+    weak2e2eCapability = '2e2e',
+  ) {
     const normalizedEdgeBuffers = normalizeEdgeBuffers(edgeBuffers, edgeMethod);
-    if (sameBufferSet(normalizedEdgeBuffers, FULL_EDGE_BUFFERS)) {
+    const normalizedWeak2e2eCapability = normalizeWeak2e2eCapability(
+      weak2e2eCapability,
+    );
+    if (
+      edgeMethod === 'pseudoswap'
+      && sameBufferSet(normalizedEdgeBuffers, FULL_EDGE_BUFFERS)
+    ) {
       const edgeState = scrToScrambledStateEdg(scr, tracingOrientation);
       const plan = planEdgeStateByResidues(
         edgeState,
@@ -355,39 +282,60 @@
     }
     if (normalizedEdgeBuffers.length > 1) {
       const edgeState = scrToScrambledStateEdg(scr, tracingOrientation);
-      const plan = planEdgeStateDlin(
+      const plan = planEdgeStateByWeakswapFloating(
         edgeState,
         cornerParity,
         normalizedEdgeBuffers,
+        normalizedWeak2e2eCapability,
         flipWeight,
       );
-      if (!plan.complete) throw new Error('DLin edge planning did not cover every permutation cycle.');
       return {
         method: edgeMethod,
         buffers: normalizedEdgeBuffers,
-        tracing_model: 'dlin',
-        segments: plan.segments,
-        targets: plan.segments.flatMap((segment) => segment.targets),
+        tracing_model: 'weakswap-selected-buffer',
+        segments: [],
+        targets: [],
         analysis: {
-          odd_segment_count: plan.segment_analysis.odd_segment_count,
-          even_segment_count: plan.segment_analysis.even_segment_count,
-          parity: plan.segment_analysis.parity,
+          odd_segment_count: 0,
+          even_segment_count: 0,
+          parity: false,
           algs: plan.permutation_algs,
-          standalone_algs: plan.segment_analysis.standalone_algs,
-          saved_by_pairing: plan.segment_analysis.saved_by_linking,
+          standalone_algs: plan.permutation_algs,
+          saved_by_pairing: 0,
         },
-        flips: plan.orientations,
-        dlin: {
-          states_explored: plan.states_explored,
-          cycle_count: plan.model.active_cycles.length,
-          permutation_cycle_count: plan.segments.length,
+        flips: {
+          list: [],
+          count: plan.orientation_algs * 2,
+          two_flips: plan.orientation_algs,
+          algs: plan.orientation_algs * flipWeight,
+        },
+        weakswap_floating: {
+          count: normalizedEdgeBuffers.length,
+          orientation_weight: flipWeight,
+          capability: normalizedEdgeBuffers.length >= 3
+            ? normalizedWeak2e2eCapability
+            : 'none',
+          two_e_two_e_cost: 1,
+          two_e_two_e_prime: normalizedEdgeBuffers.length >= 3
+            && normalizedWeak2e2eCapability === '2e2e-prime',
+          two_e_two_e_prime_cost: 1,
         },
       };
     }
     throw new Error(`Unsupported edge counting route: ${edgeMethod}.`);
   }
 
-  function countScrambleAlgs(scr, tracingOrientation, edgeMethod, flipWeight, twistWeight, finishCapability, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {
+  function countScrambleAlgs(
+    scr,
+    tracingOrientation,
+    edgeMethod,
+    flipWeight,
+    twistWeight,
+    finishCapability,
+    cornerBuffers = ['UFR'],
+    edgeBuffers = ['UF'],
+    weak2e2eCapability = '2e2e',
+  ) {
     const corner = buildCornerBreakdown(
       scr,
       tracingOrientation,
@@ -396,7 +344,15 @@
       finishCapability,
       edgeMethod,
     );
-    const edges = buildEdgeBreakdown(scr, tracingOrientation, edgeMethod, edgeBuffers, flipWeight, corner.analysis.parity);
+    const edges = buildEdgeBreakdown(
+      scr,
+      tracingOrientation,
+      edgeMethod,
+      edgeBuffers,
+      flipWeight,
+      corner.analysis.parity,
+      weak2e2eCapability,
+    );
     // The unpaired parity execution is already included in the corner comm count.
     const cornerAlgs = corner.analysis.algs + corner.twists.algs + corner.ltct_adjustment;
     const edgeAlgs = edges.analysis.algs + edges.flips.algs;
@@ -413,7 +369,20 @@
     ];
   }
 
-  function analyzeScramble(scr, tracingOrientation = '', edgeMethod = 'weakswap', flipWeight = 1, twistWeight = 1, finishCapability = false, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {
+  function analyzeScramble(
+    scr,
+    tracingOrientation = '',
+    edgeMethod = 'weakswap',
+    flipWeight = 1,
+    twistWeight = 1,
+    finishCapability = false,
+    cornerBuffers = ['UFR'],
+    edgeBuffers = ['UF'],
+    weak2e2eCapability = '2e2e',
+  ) {
+    const normalizedWeak2e2eCapability = normalizeWeak2e2eCapability(
+      weak2e2eCapability,
+    );
     const corner = buildCornerBreakdown(
       scr,
       tracingOrientation,
@@ -422,7 +391,15 @@
       finishCapability,
       edgeMethod,
     );
-    const edges = buildEdgeBreakdown(scr, tracingOrientation, edgeMethod, edgeBuffers, flipWeight, corner.analysis.parity);
+    const edges = buildEdgeBreakdown(
+      scr,
+      tracingOrientation,
+      edgeMethod,
+      edgeBuffers,
+      flipWeight,
+      corner.analysis.parity,
+      normalizedWeak2e2eCapability,
+    );
     const cornerAlgs = corner.analysis.algs + corner.twists.algs + corner.ltct_adjustment;
     const edgeAlgs = edges.analysis.algs + edges.flips.algs;
     const totalAlgs = cornerAlgs + edgeAlgs;
@@ -430,6 +407,13 @@
       scramble: scr,
       tracing_orientation: tracingOrientation,
       edge_method: edgeMethod,
+      weak_2e2e_capability: edgeMethod === 'weakswap'
+        && edges.buffers.length >= 3
+        ? normalizedWeak2e2eCapability
+        : 'none',
+      weak_2e2e_prime: edgeMethod === 'weakswap'
+        && edges.buffers.length >= 3
+        && normalizedWeak2e2eCapability === '2e2e-prime',
       corner_buffers: corner.buffers,
       edge_buffers: edges.buffers,
       corner: {
@@ -437,7 +421,6 @@
         segments: corner.segments,
         targets: corner.targets,
         analysis: corner.analysis,
-        ...(corner.dlin ? { dlin: corner.dlin } : {}),
         ...(corner.cycle_residue ? { cycle_residue: corner.cycle_residue } : {}),
         ...(corner.selected_buffer ? { selected_buffer: corner.selected_buffer } : {}),
       },
@@ -525,11 +508,40 @@
     return extractScrambleRecords(text, dnf).map((record) => record.scramble);
   }
 
-  function algCounterMain(text, tracingOrientation = '', edgeMethod = 'weakswap', flipWeight = 1, twistWeight = 1, finishCapability = false, dnf = false, cornerBuffers = ['UFR'], edgeBuffers = ['UF']) {
+  function algCounterMain(
+    text,
+    tracingOrientation = '',
+    edgeMethod = 'weakswap',
+    flipWeight = 1,
+    twistWeight = 1,
+    finishCapability = false,
+    dnf = false,
+    cornerBuffers = ['UFR'],
+    edgeBuffers = ['UF'],
+    weak2e2eCapability = '2e2e',
+  ) {
     const normalizedFinishCapability = normalizeFinishCapability(finishCapability);
+    const normalizedWeak2e2eCapability = normalizeWeak2e2eCapability(
+      weak2e2eCapability,
+    );
+    const normalizedEdgeBuffers = normalizeEdgeBuffers(edgeBuffers, edgeMethod);
+    const activeWeak2e2eCapability = edgeMethod === 'weakswap'
+      && normalizedEdgeBuffers.length >= 3
+      ? normalizedWeak2e2eCapability
+      : 'none';
     const scrambleRecords = extractScrambleRecords(text, dnf);
     const scrList = scrambleRecords.map((record) => record.scramble);
-    const algBreakdownList = scrList.map((scr) => countScrambleAlgs(scr, tracingOrientation, edgeMethod, flipWeight, twistWeight, normalizedFinishCapability, cornerBuffers, edgeBuffers));
+    const algBreakdownList = scrList.map((scr) => countScrambleAlgs(
+      scr,
+      tracingOrientation,
+      edgeMethod,
+      flipWeight,
+      twistWeight,
+      normalizedFinishCapability,
+      cornerBuffers,
+      normalizedEdgeBuffers,
+      normalizedWeak2e2eCapability,
+    ));
     const finalCount = {};
     let totalTwoFlips = 0;
     let totalTwoTwists = 0;
@@ -564,6 +576,8 @@
       finish_saved_algs: result[5],
       ltct_used: result[6] === 'ltct',
       ltct_saved_algs: result[6] === 'ltct' ? result[5] : 0,
+      weak_2e2e_capability: activeWeak2e2eCapability,
+      weak_2e2e_prime: activeWeak2e2eCapability === '2e2e-prime',
     }));
     return [
       algCountList.length,
@@ -589,6 +603,7 @@
     extractScrambleList,
     extractScrambleRecords,
     normalizeFinishCapability,
+    normalizeWeak2e2eCapability,
   };
 
   global.SsiCoreModules = global.SsiCoreModules || {};

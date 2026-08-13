@@ -270,8 +270,8 @@ for (const [index, scramble] of scrambles.slice(0, 100).entries()) {
   assert.equal(partial.corner.tracing_model, 'selected-buffer');
   assert.equal(partial.edges.tracing_model, 'selected-buffer');
   assert.ok(Number.isFinite(partial.total_algs), `weighted partial exact plan at scramble ${index}`);
-  assert.equal(partialWeak.corner.tracing_model, 'dlin');
-  assert.equal(partialWeak.edges.tracing_model, 'dlin');
+  assert.equal(partialWeak.corner.tracing_model, 'selected-buffer');
+  assert.equal(partialWeak.edges.tracing_model, 'weakswap-selected-buffer');
   assert.ok(
     partial.total_algs <= weightedStandard.total_algs + 1e-12,
     `selected buffers must not increase exact pseudoswap cost at scramble ${index}`,
@@ -284,10 +284,9 @@ for (const [index, scramble] of scrambles.slice(0, 100).entries()) {
     fullPseudo.total_algs <= widerPartial.total_algs + 1e-12,
     `full pseudoswap must not exceed a partial exact plan at scramble ${index}`,
   );
-  assert.equal(
-    fullWeak.total_algs,
-    fullPseudo.total_algs,
-    `full weighted minimum must not depend on legacy edge memo order at scramble ${index}`,
+  assert.ok(
+    fullWeak.total_algs <= fullPseudo.total_algs + 1e-12,
+    `full weak 2E2E capability must not exceed exact pseudoswap at scramble ${index}`,
   );
 }
 
@@ -297,4 +296,4 @@ console.log('PASS JS cycle model distinguishes the final two-edge swap/flip stat
 console.log('PASS JS cycle model exposes sandwich as external BI-ZB versus internal IZ');
 console.log('PASS JS DLin planner finds 9 = 4 + 5 and full residue returns 11 = 5 + 6');
 console.log('PASS JS DLin planning/replay invariants (1000 scrambles)');
-console.log('PASS JS weighted partial exact pseudoswap and unchanged weakswap invariants (100 scrambles)');
+console.log('PASS JS weighted exact partial/full pseudo and weak floating invariants (100 scrambles)');

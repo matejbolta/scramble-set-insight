@@ -6,6 +6,8 @@ const ssiCore = require('../web/ssi-core');
 const bufferSelection = require('../web/buffer-selection');
 const cornerTracing = require('../web/corner-tracing');
 const edgeCommon = require('../web/edge-common');
+const cycleModel = require('../web/cycle-model');
+const cycleResidue = require('../web/cycle-residue');
 const cycleResiduePlanner = require('../web/cycle-residue-planner');
 
 const root = path.join(__dirname, '..');
@@ -168,6 +170,115 @@ assert.throws(
 );
 console.log('PASS JS canonical buffer prefixes and pseudoswap UF + UB exception');
 
+const solvedWeakEdges = cycleModel.solvedStateFromPieceGroups(cycleModel.EDGE_PIECE_GROUPS);
+const normal2e2eState = {
+  ...solvedWeakEdges,
+  UF: 'UR', FU: 'RU', UR: 'UF', RU: 'FU',
+  UB: 'UL', BU: 'LU', UL: 'UB', LU: 'BU',
+};
+const nonSubsetChargeZero2e2eState = {
+  ...solvedWeakEdges,
+  UF: 'RU', FU: 'UR', UR: 'FU', RU: 'UF',
+  UB: 'UL', BU: 'LU', UL: 'UB', LU: 'BU',
+};
+const prime2e2eState = {
+  ...solvedWeakEdges,
+  UF: 'UR', FU: 'RU', UR: 'FU', RU: 'UF',
+  UB: 'UL', BU: 'LU', UL: 'BU', LU: 'UB',
+};
+const weakThreeBuffers = ['UF', 'UR', 'UB'];
+const pseudoNormal2e2e = cycleResiduePlanner.planEdgeStateBySelectedBuffers(
+  normal2e2eState, false, weakThreeBuffers, 1,
+);
+const weakNormal2e2e = cycleResiduePlanner.planEdgeStateByWeakswapFloating(
+  normal2e2eState, false, weakThreeBuffers, false, 1,
+);
+const weakNo2e2e = cycleResiduePlanner.planEdgeStateByWeakswapFloating(
+  normal2e2eState, false, weakThreeBuffers, 'none', 1,
+);
+const pseudoNonSubsetChargeZero = cycleResiduePlanner.planEdgeStateBySelectedBuffers(
+  nonSubsetChargeZero2e2eState, false, weakThreeBuffers, 1,
+);
+const weakNonSubsetChargeZero = cycleResiduePlanner.planEdgeStateByWeakswapFloating(
+  nonSubsetChargeZero2e2eState, false, weakThreeBuffers, false, 1,
+);
+const weakPrimeBasic = cycleResiduePlanner.planEdgeStateByWeakswapFloating(
+  prime2e2eState, false, weakThreeBuffers, false, 1,
+);
+const weakPrimeMaximal = cycleResiduePlanner.planEdgeStateByWeakswapFloating(
+  prime2e2eState, false, weakThreeBuffers, true, 1,
+);
+assert.equal(pseudoNormal2e2e.total_algs, 2);
+assert.equal(weakNormal2e2e.total_algs, 1, 'normal P + P uses one 2E2E');
+assert.equal(weakNo2e2e.total_algs, 2, 'None must not assume the normal 2E2E subset');
+assert.equal(pseudoNonSubsetChargeZero.total_algs, 2);
+assert.equal(
+  weakNonSubsetChargeZero.total_algs,
+  2,
+  'charge-zero UF-RU-UF is not part of the literal UF-UR 2E2E subset',
+);
+assert.notEqual(
+  cycleResidue.weakswapFloatingClassKey(
+    cycleModel.decomposeEdgeState(normal2e2eState),
+    weakThreeBuffers,
+  ),
+  cycleResidue.weakswapFloatingClassKey(
+    cycleModel.decomposeEdgeState(nonSubsetChargeZero2e2eState),
+    weakThreeBuffers,
+  ),
+  'weak class key must retain rooted UF-to-UR sticker phase',
+);
+assert.equal(weakPrimeBasic.total_algs, 2, 'basic weak floating has no PF + PF shortcut');
+assert.equal(weakPrimeMaximal.total_algs, 1, 'maximal weak floating uses one 2E2E prime');
+assert.deepEqual(
+  cycleModel.decomposeEdgeState(prime2e2eState).active_cycles
+    .map((cycle) => [cycle.length, cycle.orientation_sum]),
+  [[2, 1], [2, 1]],
+  '2E2E prime is two orientation-open 2E prime cycles',
+);
+console.log('PASS JS exact weak floating distinguishes literal 2E2E from non-subset P + P and 2E prime + 2E prime');
+
+assert.equal(ssiCore.normalizeWeak2e2eCapability('none'), 'none');
+assert.equal(ssiCore.normalizeWeak2e2eCapability('2e2e'), '2e2e');
+assert.equal(ssiCore.normalizeWeak2e2eCapability('2e2e-prime'), '2e2e-prime');
+assert.equal(ssiCore.normalizeWeak2e2eCapability(false), '2e2e', 'legacy false means basic');
+assert.equal(ssiCore.normalizeWeak2e2eCapability(true), '2e2e-prime', 'legacy true means maximal');
+assert.throws(() => ssiCore.normalizeWeak2e2eCapability('unknown'), /Unknown weak 2E2E capability/);
+console.log('PASS JS weak algset capability hierarchy and legacy boolean compatibility');
+
+const literalTerminalScramble = "B' U' R2 D' R2 U2 L2 D' R2 B2 D R2 U' L' U F R U F R Rw Uw'";
+const intermediateOnly2e2eScramble = "R' U' F2 U2 R2 U' R2 B2 D2 L2 U F' L D' F R' U' L2 B' D B Rw'";
+const intermediateOnly2e2ePrimeScramble = "R U F' D2 L' U' D L F R2 U2 L2 U2 R2 B2 U2 D' F2 U B2 Fw Uw'";
+const pseudoLiteralTerminal = ssiCore.analyzeScramble(
+  literalTerminalScramble, '', 'pseudoswap', 1, 1, false, 'all', 'all', false,
+);
+const weakLiteralTerminal = ssiCore.analyzeScramble(
+  literalTerminalScramble, '', 'weakswap', 1, 1, false, 'all', 'all', false,
+);
+const pseudoIntermediateOnly = ssiCore.analyzeScramble(
+  intermediateOnly2e2eScramble, '', 'pseudoswap', 1, 1, false, 'all', 'all', false,
+);
+const weakIntermediateOnly = ssiCore.analyzeScramble(
+  intermediateOnly2e2eScramble, '', 'weakswap', 1, 1, false, 'all', 'all', false,
+);
+const maximalIntermediateOnly = ssiCore.analyzeScramble(
+  intermediateOnly2e2ePrimeScramble, '', 'weakswap', 1, 1, false, 'all', 'all', true,
+);
+assert.equal(pseudoLiteralTerminal.edge_algs, 4);
+assert.equal(weakLiteralTerminal.edge_algs, 3, 'literal 2E2E remains a legal final-alg saving');
+assert.equal(pseudoIntermediateOnly.edge_algs, 6);
+assert.equal(
+  weakIntermediateOnly.edge_algs,
+  6,
+  '2E2E cannot be used as an intermediate transition before further comms',
+);
+assert.equal(
+  maximalIntermediateOnly.edge_algs,
+  6,
+  '2E2E prime is also a terminal finish, not an intermediate transition',
+);
+console.log('PASS JS weak 2E2E is sticker-specific and terminal-only');
+
 const pseudoswapPrimaryClosure = ssiCore.analyzeScramble(
   'U',
   '',
@@ -297,6 +408,9 @@ function isCheckedInput(tag) {
 
 assert.equal(isCheckedInput(inputTagById('dnf')), true, 'Include DNFs should default on');
 assert.match(appHtml, /<input[^>]*name="finish-capability"[^>]*value="none"[^>]*checked[^>]*>/, 'Advanced should default to None');
+assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="none"[^>]*checked[^>]*>/, 'Weak floating should default to no assumed algset');
+assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="2e2e"[^>]*>/, 'Weak floating should expose normal 2E2E');
+assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="2e2e-prime"[^>]*>/, 'Weak floating should expose the hierarchical 2E2E prime capability');
 assert.match(inputTagById('finish-t2c'), /\sdisabled/, 'T2C should start disabled outside full floating');
 assert.match(appHtml, /id="advanced-label">Advanced</, 'Advanced group label');
 assert.match(appHtml, /Partial floating \(advanced\)/, 'partial floating should be marked advanced');
@@ -577,6 +691,21 @@ assert.equal(partialT2c.edges.tracing_model, 'selected-buffer');
 assert.equal(partialT2c.corner_algs, 3);
 assert.equal(partialT2c.finish_type, 't2c');
 assert.equal(partialT2c.corner.selected_buffer.finish.primary_role, 'is-T');
+const partialWeakT2c = ssiCore.analyzeScramble(
+  t2cScramble,
+  '',
+  'weakswap',
+  1,
+  1,
+  't2c',
+  ['UFR', 'UFL'],
+  ['UF', 'UR'],
+);
+assert.equal(partialWeakT2c.corner.tracing_model, 'selected-buffer');
+assert.equal(partialWeakT2c.edges.tracing_model, 'weakswap-selected-buffer');
+assert.equal(partialWeakT2c.corner_algs, partialT2c.corner_algs);
+assert.equal(partialWeakT2c.finish_type, 't2c');
+assert.equal(partialWeakT2c.corner.selected_buffer.finish.primary_role, 'is-T');
 assert.equal(ssiCore.normalizeFinishCapability(true), 'ltct');
 assert.equal(ssiCore.normalizeFinishCapability(false), 'none');
 
@@ -610,3 +739,4 @@ require('./test_js_cycle_residue_oracle');
 require('./test_js_weighted_class_frontiers');
 require('./test_js_residue_planner');
 require('./test_js_selected_buffer_frontiers');
+require('./test_js_weakswap_floating_frontiers');

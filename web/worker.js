@@ -1,17 +1,14 @@
 self.importScripts(
-  './buffer-selection.js?v=buffer-order-v1',
-  './wide-move-translator.js?v=buffer-order-v1',
-  './scrambling.js?v=buffer-order-v1',
-  './corner-tracing.js?v=buffer-order-v1',
-  './edge-common.js?v=buffer-order-v1',
-  './cycle-model.js?v=buffer-order-v1',
-  './cycle-residue.js?v=buffer-order-v1',
-  './cycle-residue-planner.js?v=buffer-order-v1',
-  './dlin-planner.js?v=buffer-order-v1',
-  './weakswap-tracing.js?v=buffer-order-v1',
-  './pseudoswap-tracing.js?v=buffer-order-v1',
-  './finalizing.js?v=buffer-order-v1',
-  './ssi-core.js?v=buffer-order-v1',
+  './buffer-selection.js?v=weak-capability-v2',
+  './wide-move-translator.js?v=weak-capability-v2',
+  './scrambling.js?v=weak-capability-v2',
+  './corner-tracing.js?v=weak-capability-v2',
+  './edge-common.js?v=weak-capability-v2',
+  './cycle-model.js?v=weak-capability-v2',
+  './cycle-residue.js?v=weak-capability-v2',
+  './cycle-residue-planner.js?v=weak-capability-v2',
+  './finalizing.js?v=weak-capability-v2',
+  './ssi-core.js?v=weak-capability-v2',
 );
 
 const backend = self.SsiCore;
@@ -35,6 +32,9 @@ self.onmessage = (event) => {
     const finishCapability = backend.normalizeFinishCapability(
       payload.finishCapability ?? payload.ltct,
     );
+    const weak2e2eCapability = backend.normalizeWeak2e2eCapability(
+      payload.weak2e2eCapability ?? Boolean(payload.weak2e2ePrime),
+    );
     const result = backend.algCounterMain(
       payload.scrambles,
       payload.tracingOrientation,
@@ -45,6 +45,7 @@ self.onmessage = (event) => {
       payload.dnf,
       payload.cornerBuffers,
       payload.edgeBuffers,
+      weak2e2eCapability,
     );
 
     const hasFloatingComparison = payload.bufferMode !== 'standard';
@@ -63,6 +64,7 @@ self.onmessage = (event) => {
         payload.dnf,
         ['UFR'],
         ['UF'],
+        'none',
       );
     }
 
@@ -77,6 +79,7 @@ self.onmessage = (event) => {
         payload.dnf,
         payload.cornerBuffers,
         payload.edgeBuffers,
+        weak2e2eCapability,
       );
     }
 

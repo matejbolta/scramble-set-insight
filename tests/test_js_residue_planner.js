@@ -169,7 +169,12 @@ for (const [number, expectedCorners, expectedEdges] of [
 for (const [index, scramble] of scrambles.slice(0, 500).entries()) {
   const weak = ssiCore.analyzeScramble(scramble, '', 'weakswap', 1, 1, false, 'all', 'all');
   const pseudo = ssiCore.analyzeScramble(scramble, '', 'pseudoswap', 1, 1, false, 'all', 'all');
-  assert.equal(weak.total_algs, pseudo.total_algs, `full residue method independence ${index}`);
+  const maximalWeak = ssiCore.analyzeScramble(
+    scramble, '', 'weakswap', 1, 1, false, 'all', 'all', true,
+  );
+  assert.equal(weak.edges.tracing_model, 'weakswap-selected-buffer');
+  assert.ok(weak.total_algs <= pseudo.total_algs, `full weak basic dominance ${index}`);
+  assert.ok(maximalWeak.total_algs <= weak.total_algs, `full weak maximal dominance ${index}`);
 }
 
 for (const [index, scramble] of scrambles.slice(0, 1000).entries()) {
