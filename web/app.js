@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=weak-capability-v2');
+const worker = new Worker('./worker.js?v=slice-moves-v3');
 let requestId = 0;
 
 const {

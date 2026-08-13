@@ -2,6 +2,17 @@
   const FACE_ORDER = ['U', 'D', 'F', 'B', 'R', 'L'];
   const OPPOSITE_FACE = { U: 'D', D: 'U', F: 'B', B: 'F', R: 'L', L: 'R' };
   const WIDE_MOVE_ROTATION = { U: 'y', D: "y'", R: 'x', L: "x'", F: 'z', B: "z'" };
+  const SPECIAL_MOVE_EXPANSIONS = Object.freeze({
+    S: Object.freeze(['Fw', "F'"]),
+    "S'": Object.freeze(["Fw'", 'F']),
+    S2: Object.freeze(['Fw2', 'F2']),
+    M: Object.freeze(["Rw'", 'R']),
+    "M'": Object.freeze(['Rw', "R'"]),
+    M2: Object.freeze(['Rw2', 'R2']),
+    E: Object.freeze(["Uw'", 'U']),
+    "E'": Object.freeze(['Uw', "U'"]),
+    E2: Object.freeze(['Uw2', 'U2']),
+  });
   const ROTATION_TRANSFORMS = {
     x: { U: 'F', F: 'D', D: 'B', B: 'U', L: 'L', R: 'R' },
     "x'": { U: 'B', B: 'D', D: 'F', F: 'U', L: 'L', R: 'R' },
@@ -65,8 +76,9 @@
     return rotation + "'";
   }
 
-  function translateMove(move, orientation) {
+  function translateAtomicMove(move, orientation) {
     const [face, isWide, suffix] = splitMove(move);
+    if (!FACE_ORDER.includes(face)) throw new Error(`Unsupported move: ${move}`);
     if (!isWide) return [orientation[face] + suffix, orientation];
     const translatedFace = orientation[OPPOSITE_FACE[face]];
     const translatedMove = translatedFace + suffix;
@@ -75,8 +87,26 @@
     return [translatedMove, updatedOrientation];
   }
 
+  function expandSpecialMove(move) {
+    return SPECIAL_MOVE_EXPANSIONS[move] || [move];
+  }
+
+  function translateMove(move, orientation) {
+    const translatedMoves = [];
+    let updatedOrientation = orientation;
+    for (const atomicMove of expandSpecialMove(move)) {
+      const [translatedMove, updated] = translateAtomicMove(
+        atomicMove,
+        updatedOrientation,
+      );
+      translatedMoves.push(translatedMove);
+      updatedOrientation = updated;
+    }
+    return [translatedMoves.join(' '), updatedOrientation];
+  }
+
   function scrambleTransform(scr, tracingOrientation = '') {
-    const scrList = scr.split(' ').filter(Boolean);
+    const scrList = scr.trim().split(/\s+/).filter(Boolean);
     let orientation = orientationToMoveMapping(tracingOrientation);
     const translatedMoves = [];
     for (const move of scrList) {
@@ -89,12 +119,14 @@
 
   const api = {
     applyRotationToOrientation,
+    expandSpecialMove,
     inverseOrientation,
     orientationToMoveMapping,
     orientationToOrientationList,
     scrambleTransform,
     splitMove,
     suffixToRotation,
+    SPECIAL_MOVE_EXPANSIONS,
     translateMove,
   };
 

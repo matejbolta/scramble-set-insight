@@ -733,6 +733,7 @@ assert.ok(
 console.log('PASS JS production Advanced LTCT/T2C comparison metadata');
 console.log('PASS JS analysis worker cache versions stay synchronized');
 
+require('./test_js_special_moves');
 require('./test_js_cycle_model');
 require('./test_js_cycle_residue');
 require('./test_js_cycle_residue_oracle');

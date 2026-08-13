@@ -1,14 +1,14 @@
 self.importScripts(
-  './buffer-selection.js?v=weak-capability-v2',
-  './wide-move-translator.js?v=weak-capability-v2',
-  './scrambling.js?v=weak-capability-v2',
-  './corner-tracing.js?v=weak-capability-v2',
-  './edge-common.js?v=weak-capability-v2',
-  './cycle-model.js?v=weak-capability-v2',
-  './cycle-residue.js?v=weak-capability-v2',
-  './cycle-residue-planner.js?v=weak-capability-v2',
-  './finalizing.js?v=weak-capability-v2',
-  './ssi-core.js?v=weak-capability-v2',
+  './buffer-selection.js?v=slice-moves-v3',
+  './wide-move-translator.js?v=slice-moves-v3',
+  './scrambling.js?v=slice-moves-v3',
+  './corner-tracing.js?v=slice-moves-v3',
+  './edge-common.js?v=slice-moves-v3',
+  './cycle-model.js?v=slice-moves-v3',
+  './cycle-residue.js?v=slice-moves-v3',
+  './cycle-residue-planner.js?v=slice-moves-v3',
+  './finalizing.js?v=slice-moves-v3',
+  './ssi-core.js?v=slice-moves-v3',
 );
 
 const backend = self.SsiCore;

@@ -35,7 +35,7 @@
     stickersToLetters,
   } = deps.edgeCommon;
 
-  const MOVE_START_RE = /[UDRLFB]/;
+  const MOVE_START_RE = /(^|\s)(?:[UDRLFB](?:w)?|[MES])(?:2|')?(?=\s|$)/;
   const WCA_ROW_PREFIX_RE = /^(?:[A-Z]\s+)?(?:\d+|Extra\s+\d+)\s+/;
 
   function sameBufferSet(actual, expected) {
@@ -494,7 +494,9 @@
       line = line.replace(/DNF/g, '');
       line = line.replace(WCA_ROW_PREFIX_RE, '');
       const matchMove = line.match(MOVE_START_RE);
-      if (matchMove && matchMove.index !== undefined) line = line.slice(matchMove.index);
+      if (matchMove && matchMove.index !== undefined) {
+        line = line.slice(matchMove.index + matchMove[1].length);
+      }
       else continue;
       const atIndex = line.indexOf('@');
       if (atIndex !== -1) line = line.slice(0, atIndex);

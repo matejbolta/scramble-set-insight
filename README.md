@@ -15,6 +15,7 @@ It supports:
   counting with exact cycle-model singleton weakswap counting, and exact
   weighted partial/full floating for both edge methods
 - custom tracing/scrambling orientation
+- `S / M / E` slice moves, including prime and double suffixes
 - custom 2-flip and 2-twist weights
 - optional DNF inclusion and Advanced `None / LTCT / T2C` counting
 - hierarchical weak-floating capability `None / 2E2E / 2E2E′`; normal
