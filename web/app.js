@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=algset-controls-v1');
+const worker = new Worker('./worker.js?v=fixed-ufr-t2c-v1');
 let requestId = 0;
 
 const {
@@ -31,7 +31,6 @@ const elements = {
   edgeBufferSubtitle: document.getElementById('edge-buffer-subtitle'),
   wingParitySettings: document.getElementById('wing-parity-settings'),
   dnf: document.getElementById('dnf'),
-  finishT2c: document.getElementById('finish-t2c'),
   cornerFloatingParityOption: document.getElementById('corner-floating-parity-option'),
   cornerFloatingParity: document.getElementById('corner-floating-parity'),
   weak2e2eCapabilityOption: document.getElementById('weak-2e2e-capability-option'),
@@ -301,7 +300,6 @@ function updateBufferModeUI() {
   const isFourByFour = getPuzzle() === '4x4';
   const isBigCube = getPuzzle() !== '3x3';
   const effectiveEdgeMethod = getEffectiveEdgeMethod();
-  const supportsT2c = mode === 'full' || mode === 'partial';
   elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
   elements.edgeMethodSettings.classList.toggle('is-hidden', isBigCube);
   elements.edgeBufferSubgroup.classList.toggle('is-hidden', isFourByFour);
@@ -309,11 +307,6 @@ function updateBufferModeUI() {
     'is-hidden',
     isFourByFour || effectiveEdgeMethod !== 'pseudoswap',
   );
-  elements.finishT2c.disabled = !supportsT2c;
-  if (!supportsT2c && getFinishCapability() === 't2c') {
-    setCheckedRadio('finish-capability', 'ltct');
-  }
-
   if (mode === 'standard') {
     state.cornerBufferCount = LEGACY_CORNER_BUFFERS.length;
     state.edgeBufferCount = LEGACY_EDGE_BUFFERS.length;
@@ -958,11 +951,6 @@ function collectSettings() {
   }
 
   const finishCapability = getFinishCapability();
-  const supportsT2c = bufferMode === 'full'
-    || bufferMode === 'partial';
-  if (finishCapability === 't2c' && !supportsT2c) {
-    throw new Error('T2C requires partial or full floating.');
-  }
 
   const flipWeight = Number(elements.flipWeight.value);
   const twistWeight = Number(elements.twistWeight.value);

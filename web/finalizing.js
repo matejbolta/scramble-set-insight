@@ -125,9 +125,6 @@
         },
       };
     }
-    if (normalizedCornerBuffers.length === 1 && normalizedFinishCapability === 't2c') {
-      throw new Error('T2C requires floating beyond the primary buffers.');
-    }
     const plan = planCornerStateBySelectedBuffers(
       cornerState,
       normalizedCornerBuffers,

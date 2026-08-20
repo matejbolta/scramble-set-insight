@@ -39,11 +39,11 @@ center tracing are currently deterministic: there is no wing floating, and
 interchangeable center targets follow the documented non-U-first canonical
 order. Global center-target optimization and center floating are later steps.
 
-T2C is available with exact partial and full floating. Existing LTCT behavior
-remains available in every counting mode. `F2E` adds the terminal family whose
-root swap has the edge in the UF slot flipped; `FF2E` additionally adds the
-UR-slot-flipped family. The fourth, both-flipped UF/UR root swap is not part of
-these sets.
+T2C and LTCT are available in every corner-buffer mode, including fixed UFR;
+neither algset requires a secondary floating buffer. `F2E` adds the terminal
+family whose root swap has the edge in the UF slot flipped; `FF2E` additionally
+adds the UR-slot-flipped family. The fourth, both-flipped UF/UR root swap is not
+part of these sets.
 Every weak floating plan first follows the physical UF/UR weak state machine;
 the selected-buffer optimizer begins only after a legal closure or explicitly
 authorized open-root transition.

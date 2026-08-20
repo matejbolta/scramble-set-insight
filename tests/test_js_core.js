@@ -559,7 +559,11 @@ for (const terminalWeightId of [
   assert.match(inputTagById(terminalWeightId), /min="1"/);
   assert.match(inputTagById(terminalWeightId), /max="2"/);
 }
-assert.match(inputTagById('finish-t2c'), /\sdisabled/, 'T2C should start disabled outside full floating');
+assert.doesNotMatch(
+  inputTagById('finish-t2c'),
+  /\sdisabled/,
+  'T2C is a terminal algset and must remain available with fixed UFR',
+);
 assert.match(appHtml, /id="corner-parity-algset-label">Corner parity algset</, 'corner parity algset group label');
 assert.match(appHtml, /<span>Partial floating<\/span>/, 'partial floating should use its plain name');
 assert.doesNotMatch(appHtml, /Partial floating \(advanced\)/);
@@ -829,10 +833,33 @@ assert.equal(floatingT2cResult[10].finish_saved_algs, 1);
 assert.equal(floatingT2cResult[10].floating_saved_algs, 1);
 assert.equal(floatingT2cResult[10].combined_saved_algs, 2);
 
-assert.throws(
-  () => ssiCore.analyzeScramble(t2cScramble, '', 'pseudoswap', 1, 1, 't2c', ['UFR'], ['UF']),
-  /T2C requires floating beyond the primary buffers/,
-);
+for (const edgeMethod of ['pseudoswap', 'weakswap']) {
+  const singletonT2c = ssiCore.analyzeScramble(
+    t2cScramble,
+    '',
+    edgeMethod,
+    1,
+    1,
+    't2c',
+    ['UFR'],
+    ['UF'],
+  );
+  assert.equal(singletonT2c.total_algs, 8);
+  assert.equal(singletonT2c.corner_algs, 3);
+  assert.equal(singletonT2c.edge_algs, 5);
+  assert.equal(singletonT2c.finish_type, 't2c');
+  assert.equal(singletonT2c.corner.selected_buffer.finish.primary_role, 'is-T');
+}
+const standardT2cResult = runWorker({
+  ...standardPayload,
+  scrambles: t2cScramble,
+  finishCapability: 't2c',
+});
+assert.equal(standardT2cResult[9][0].baseline_total_algs, 9);
+assert.equal(standardT2cResult[9][0].total_algs, 8);
+assert.equal(standardT2cResult[9][0].finish_type, 't2c');
+assert.equal(standardT2cResult[10].has_floating_comparison, false);
+assert.equal(standardT2cResult[10].finish_saved_algs, 1);
 const partialT2c = ssiCore.analyzeScramble(
   t2cScramble,
   '',
