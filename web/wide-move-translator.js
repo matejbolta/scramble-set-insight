@@ -13,6 +13,11 @@
     "E'": Object.freeze(['Uw', "U'"]),
     E2: Object.freeze(['Uw2', 'U2']),
   });
+  const ROTATION_MOVE_BASES = Object.freeze({
+    x: Object.freeze(['Rw', 'L']),
+    y: Object.freeze(['Uw', 'D']),
+    z: Object.freeze(['Fw', 'B']),
+  });
   const ROTATION_TRANSFORMS = {
     x: { U: 'F', F: 'D', D: 'B', B: 'U', L: 'L', R: 'R' },
     "x'": { U: 'B', B: 'D', D: 'F', F: 'U', L: 'L', R: 'R' },
@@ -22,10 +27,28 @@
     "z'": { U: 'R', R: 'D', D: 'L', L: 'U', F: 'F', B: 'B' },
   };
 
+  function normalizeHalfTurnPrime(move) {
+    return move.endsWith("2'") ? move.slice(0, -1) : move;
+  }
+
+  function rotationMoveExpansion(move) {
+    const normalizedMove = normalizeHalfTurnPrime(move);
+    const rotation = normalizedMove[0]?.toLowerCase();
+    const base = ROTATION_MOVE_BASES[rotation];
+    if (!base) return null;
+    const suffix = normalizedMove.slice(1);
+    if (!['', "'", '2'].includes(suffix)) return null;
+    const [wide, opposite] = base;
+    if (suffix === '2') return [`${wide}2`, `${opposite}2`];
+    if (suffix === "'") return [`${wide}'`, opposite];
+    return [wide, `${opposite}'`];
+  }
+
   function splitMove(move) {
     if (!move) throw new Error('Assertion failed');
-    const face = move[0];
-    const rest = move.slice(1);
+    const normalizedMove = normalizeHalfTurnPrime(move);
+    const face = normalizedMove[0];
+    const rest = normalizedMove.slice(1);
     const isWide = rest.startsWith('w');
     const suffix = isWide ? rest.slice(1) : rest;
     if (!['', "'", '2'].includes(suffix)) throw new Error('Assertion failed');
@@ -88,7 +111,10 @@
   }
 
   function expandSpecialMove(move) {
-    return SPECIAL_MOVE_EXPANSIONS[move] || [move];
+    const normalizedMove = normalizeHalfTurnPrime(move);
+    return SPECIAL_MOVE_EXPANSIONS[normalizedMove]
+      || rotationMoveExpansion(normalizedMove)
+      || [normalizedMove];
   }
 
   function translateMove(move, orientation) {
@@ -121,8 +147,11 @@
     applyRotationToOrientation,
     expandSpecialMove,
     inverseOrientation,
+    normalizeHalfTurnPrime,
     orientationToMoveMapping,
     orientationToOrientationList,
+    ROTATION_MOVE_BASES,
+    rotationMoveExpansion,
     scrambleTransform,
     splitMove,
     suffixToRotation,
