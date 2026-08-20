@@ -3,6 +3,7 @@ const cycleModel = require('../web/cycle-model');
 const residue = require('../web/cycle-residue');
 const {
   exactRootedCornerFinishFrontiers,
+  exactRootedCornerTerminalFrontiers,
   exactWeightedClassFrontiers,
 } = require('./helpers/weighted-class-oracle');
 
@@ -10,6 +11,31 @@ function decompose(kind, state) {
   return kind === 'corner'
     ? cycleModel.decomposeCornerState(state)
     : cycleModel.decomposeEdgeState(state);
+}
+
+for (const terminalType of [
+  'parity',
+  'ltct',
+  't2c',
+  'corner-floating-parity',
+]) {
+  const exact = exactRootedCornerTerminalFrontiers(terminalType);
+  for (const [key, state] of exact.representatives) {
+    const model = cycleModel.decomposeCornerState(state);
+    const generated = exact.frontiers.get(key).map((plan) => [
+      plan.permutation_algs,
+      plan.orientation_algs,
+    ]);
+    const production = residue.exactRootedCornerTerminalFrontier(
+      model,
+      terminalType,
+    ).map((plan) => [plan.permutation_algs, plan.orientation_algs]);
+    assert.deepEqual(
+      production,
+      generated,
+      `${terminalType} rooted terminal frontier ${key}`,
+    );
+  }
 }
 
 for (const [kind, expectedClassCount] of [['edge', 302], ['corner', 140]]) {
@@ -87,3 +113,4 @@ for (const capability of ['none', 'ltct', 't2c']) {
 console.log('PASS all 302 edge and 140 corner weighted class frontiers match exhaustive search');
 console.log('PASS weighted selection preserves whole-cycle comm/orientation tradeoffs');
 console.log('PASS all 416 rooted corner parity/LTCT/T2C frontiers match exhaustive search');
+console.log('PASS independent rooted corner terminal-family frontiers match exhaustive search');

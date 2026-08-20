@@ -13,6 +13,7 @@ const {
   CORNER_BUFFER_ORDER,
   EDGE_BUFFER_ORDER,
   exactSelectedBufferFrontiers,
+  exactSelectedBufferTerminalFrontiers,
   solveSelectedBufferState,
   stateFromCompact,
 } = require('./helpers/selected-buffer-class-oracle');
@@ -23,6 +24,32 @@ function ordinaryKey(selectedKey) {
     const [, length, charge] = record.split(':');
     return `${length}:${charge}`;
   }).sort().join('|');
+}
+
+for (const terminalType of [
+  'parity',
+  'ltct',
+  't2c',
+  'corner-floating-parity',
+]) {
+  const buffers = CORNER_BUFFER_ORDER.slice(0, 2);
+  const exact = exactSelectedBufferTerminalFrontiers(buffers, terminalType);
+  for (const [key, compact] of exact.representatives) {
+    const model = cycleModel.decomposeCornerState(stateFromCompact('corner', compact));
+    assert.deepEqual(
+      residue.exactSelectedBufferTerminalFrontier(
+        model,
+        buffers,
+        terminalType,
+      ).map((plan) => [plan.permutation_algs, plan.orientation_algs, plan.finish.type]),
+      exact.frontiers.get(key).map((plan) => [
+        plan.permutation_algs,
+        plan.orientation_algs,
+        plan.finish.type,
+      ]),
+      `${terminalType} two-buffer terminal frontier ${key}`,
+    );
+  }
 }
 
 function rootedKey(selectedKey) {
@@ -116,6 +143,79 @@ assert.deepEqual(
   catalogVectors(exactSelectedBufferFrontiers('corner', ['UFR', 'UFL'], 't2c')),
   'rooted selected corner pieces are equivalent up to relabeling that fixes UFR',
 );
+
+const solvedCornerModel = cycleModel.decomposeCornerState(
+  cycleModel.solvedStateFromPieceGroups(require('../web/corner-tracing').CORNER_PIECE_GROUPS),
+);
+const fullCornerFloatingGoals = residuePlanner.buildCornerTerminalGoals(
+  solvedCornerModel,
+  'corner-floating-parity',
+  CORNER_BUFFER_ORDER,
+);
+const dbrDblGoal = fullCornerFloatingGoals.find((goal) => (
+  goal.pieces.permutation.includes('DBR')
+  && goal.pieces.permutation.includes('DBL')
+  && goal.state.DBR === 'DBL'
+));
+assert.ok(dbrDblGoal, 'full corner-floating parity must include DBR-DBL');
+assert.equal(
+  residuePlanner.planCornerStateBySelectedBuffers(
+    dbrDblGoal.state,
+    CORNER_BUFFER_ORDER.slice(0, 5),
+    'none',
+    1,
+    true,
+  ).total_algs,
+  2,
+  'the DBR-DBL exception must remain unavailable before FDL',
+);
+const fullDbrDblPlan = residuePlanner.planCornerStateBySelectedBuffers(
+  dbrDblGoal.state,
+  CORNER_BUFFER_ORDER,
+  'none',
+  1,
+  true,
+);
+assert.equal(fullDbrDblPlan.total_algs, 1);
+assert.equal(fullDbrDblPlan.finish.type, 'corner-floating-parity');
+assert.equal(
+  residuePlanner.planCornerStateBySelectedBuffers(
+    dbrDblGoal.state,
+    CORNER_BUFFER_ORDER,
+    'none',
+    1,
+    true,
+    { 'corner-floating-parity': 1.25 },
+  ).total_algs,
+  1.25,
+  'corner terminal weight must be applied at runtime without regenerating tables',
+);
+
+for (const [terminalType, capability, allowCornerFloatingParity] of [
+  ['parity', 'none', false],
+  ['ltct', 'ltct', false],
+  ['t2c', 't2c', false],
+  ['corner-floating-parity', 'none', true],
+]) {
+  const goals = residuePlanner.buildCornerTerminalGoals(
+    solvedCornerModel,
+    terminalType,
+    terminalType === 'corner-floating-parity' ? CORNER_BUFFER_ORDER : [],
+  );
+  const goal = terminalType === 'corner-floating-parity'
+    ? goals.find((candidate) => !candidate.pieces.permutation.includes('UFR'))
+    : goals[0];
+  const weighted = residuePlanner.planCornerStateBySelectedBuffers(
+    goal.state,
+    CORNER_BUFFER_ORDER,
+    capability,
+    1,
+    allowCornerFloatingParity,
+    { [terminalType]: 1.25 },
+  );
+  assert.equal(weighted.total_algs, 1.25, `${terminalType} runtime terminal weight`);
+  assert.equal(weighted.finish.type, terminalType);
+}
 
 function assertEmbeddedCatalog(kind, buffers, finishMode) {
   const exact = exactSelectedBufferFrontiers(kind, buffers, finishMode);

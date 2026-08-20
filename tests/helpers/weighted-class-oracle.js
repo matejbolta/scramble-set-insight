@@ -7,6 +7,7 @@ const {
 const exactCache = new Map();
 let rootedCornerGraphCache = null;
 const rootedCornerFrontierCache = new Map();
+const rootedCornerTerminalFrontierCache = new Map();
 
 function stateKey(state) {
   return Object.keys(state).sort().map((key) => state[key]).join(',');
@@ -294,9 +295,64 @@ function exactRootedCornerFinishFrontiers(capability) {
   return result;
 }
 
+function exactRootedCornerTerminalFrontiers(terminalType) {
+  if (rootedCornerTerminalFrontierCache.has(terminalType)) {
+    return rootedCornerTerminalFrontierCache.get(terminalType);
+  }
+  const planner = require('../../web/cycle-residue-planner');
+  const built = buildRootedCornerGraph();
+  const frontiers = new Map([...built.graph.keys()].map((key) => [key, []]));
+  const goals = planner.buildCornerTerminalGoals(
+    built.solved_model,
+    terminalType,
+    terminalType === 'corner-floating-parity'
+      ? require('../../web/buffer-selection').CORNER_BUFFER_ORDER
+      : [],
+  );
+  for (const goal of goals) {
+    const key = rootedCornerClassKey(goal.state);
+    frontiers.set(key, pruneFinishLabels([
+      ...frontiers.get(key),
+      {
+        permutation_algs: 0,
+        orientation_algs: 0,
+        finish: { type: goal.type, primary_role: goal.primary_role },
+      },
+    ]));
+  }
+
+  const queue = [...frontiers].filter(([, labels]) => labels.length).map(([key]) => key);
+  const queued = new Set(queue);
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const key = queue[cursor];
+    queued.delete(key);
+    const source = frontiers.get(key);
+    for (const edge of built.graph.get(key)) {
+      const translated = source.map((label) => ({
+        permutation_algs: label.permutation_algs + edge.permutation_algs,
+        orientation_algs: label.orientation_algs + edge.orientation_algs,
+        finish: label.finish,
+      }));
+      const previous = frontiers.get(edge.key);
+      const next = pruneFinishLabels([...previous, ...translated]);
+      if (sameFinishFrontier(previous, next)) continue;
+      frontiers.set(edge.key, next);
+      if (!queued.has(edge.key)) {
+        queue.push(edge.key);
+        queued.add(edge.key);
+      }
+    }
+  }
+
+  const result = { ...built, frontiers };
+  rootedCornerTerminalFrontierCache.set(terminalType, result);
+  return result;
+}
+
 module.exports = {
   classKey,
   exactRootedCornerFinishFrontiers,
+  exactRootedCornerTerminalFrontiers,
   exactWeightedClassFrontiers,
   rootedCornerClassKey,
 };

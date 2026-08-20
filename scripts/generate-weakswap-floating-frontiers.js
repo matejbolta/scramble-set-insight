@@ -3,7 +3,7 @@ const path = require('path');
 const { EDGE_BUFFER_ORDER } = require('../web/buffer-selection');
 const residue = require('../web/cycle-residue');
 const {
-  exactWeakCapabilityFrontiersCompact,
+  exactWeakTerminalFrontiersCompact,
 } = require('../tests/helpers/weakswap-selected-buffer-oracle');
 
 const START_MARKER = '  // BEGIN GENERATED EXACT WEAKSWAP FLOATING FRONTIERS';
@@ -36,20 +36,12 @@ function pseudoKey(weakKey, selectedCount) {
   }).sort().join('|');
 }
 
-function sameEncoded(left, right) {
-  return left.length === right.length && left.every((plan, index) => (
-    plan[0] === right[index][0] && plan[1] === right[index][1]
-  ));
-}
-
 function compactAgainstPseudoswap(output) {
   const compact = {};
   for (const [countText, catalog] of Object.entries(output)) {
     const selectedCount = Number(countText);
     const overrides = {};
-    for (const [key, capabilities] of Object.entries(catalog)) {
-      const basic = capabilities[0];
-      const maximal = capabilities[1] || basic;
+    for (const [key, terminalFrontiers] of Object.entries(catalog)) {
       const pseudoFrontier = residue.exactEdgeSelectedBufferFrontierByClassKey(
         selectedCount,
         pseudoKey(key, selectedCount),
@@ -59,13 +51,15 @@ function compactAgainstPseudoswap(output) {
         plan.permutation_algs,
         plan.orientation_algs,
       ]);
-      const basicOverride = sameEncoded(basic, pseudo) ? null : basic;
-      const maximalBase = basicOverride || pseudo;
-      const maximalOverride = sameEncoded(maximal, maximalBase) ? null : maximal;
-      if (basicOverride || maximalOverride) {
-        overrides[key] = maximalOverride
-          ? [basicOverride, maximalOverride]
-          : [basicOverride];
+      const useful = terminalFrontiers.map((frontier) => frontier.filter((candidate) => (
+        !pseudo.some((ordinary) => (
+          ordinary[0] <= candidate[0] + 1
+          && ordinary[1] <= candidate[1]
+        ))
+      )));
+      while (useful.length && !useful.at(-1).length) useful.pop();
+      if (useful.some((frontier) => frontier.length)) {
+        overrides[key] = useful.map((frontier) => frontier.length ? frontier : null);
       }
     }
     compact[selectedCount] = overrides;
@@ -80,21 +74,22 @@ function compactAgainstPseudoswap(output) {
 
 function generate(counts) {
   const output = {};
-  // UF+UR needs no disjoint weak correction: every overlap is already a UR
-  // comm, so production reuses the ordinary exact two-buffer frontier.
+  // The generated tables are post-entry suffix frontiers. UF+UR needs no
+  // disjoint weak correction after legal entry; the production entry
+  // automaton remains mandatory before any suffix lookup.
   for (const selectedCount of counts) {
     const buffers = EDGE_BUFFER_ORDER.slice(0, selectedCount);
-    const exact = exactWeakCapabilityFrontiersCompact(buffers, {
+    const exact = exactWeakTerminalFrontiersCompact(buffers, {
       on_progress(progress) {
         console.error(JSON.stringify({ selected_count: selectedCount, ...progress }));
       },
     });
     const rows = exact.keys.map((key, index) => {
-      const basic = exact.basic[index];
-      const maximal = exact.maximal[index];
       return [
         key,
-        sameEncoded(basic, maximal) ? [basic] : [basic, maximal],
+        ['2e2e', 'f2e', 'ff2e'].map((terminalType) => (
+          exact.terminal[terminalType][index]
+        )),
       ];
     });
     rows.sort(([left], [right]) => left.localeCompare(right));

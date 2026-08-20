@@ -5,13 +5,12 @@ const {
   EDGE_BUFFER_ORDER,
   clearSelectedBufferOracleCaches,
   exactSelectedBufferFrontiers,
+  exactSelectedBufferTerminalFrontiers,
 } = require('../tests/helpers/selected-buffer-class-oracle');
 
 const START_MARKER = '  // BEGIN GENERATED EXACT SELECTED BUFFER FRONTIERS';
 const END_MARKER = '  // END GENERATED EXACT SELECTED BUFFER FRONTIERS';
-const finishCode = { parity: 0, ltct: 1, t2c: 2 };
-
-function encodedFrontiers(exact, includeFinish) {
+function encodedFrontiers(exact) {
   return Object.fromEntries(
     [...exact.frontiers]
       .sort(([left], [right]) => left.localeCompare(right))
@@ -20,7 +19,6 @@ function encodedFrontiers(exact, includeFinish) {
         frontier.map((plan) => [
           plan.permutation_algs,
           plan.orientation_algs,
-          ...(includeFinish ? [finishCode[plan.finish.type]] : []),
         ]),
       ]),
   );
@@ -31,7 +29,12 @@ function generate() {
     edge: {},
     corner: {
       even_permutation: {},
-      rooted: { none: {}, ltct: {}, t2c: {} },
+      terminal: {
+        parity: {},
+        ltct: {},
+        t2c: {},
+        'corner-floating-parity': {},
+      },
     },
   };
 
@@ -39,7 +42,6 @@ function generate() {
     const buffers = EDGE_BUFFER_ORDER.slice(0, selectedCount);
     output.edge[selectedCount] = encodedFrontiers(
       exactSelectedBufferFrontiers('edge', buffers, 'even-permutation'),
-      false,
     );
     clearSelectedBufferOracleCaches();
   }
@@ -48,12 +50,15 @@ function generate() {
     const buffers = CORNER_BUFFER_ORDER.slice(0, selectedCount);
     output.corner.even_permutation[selectedCount] = encodedFrontiers(
       exactSelectedBufferFrontiers('corner', buffers, 'even-permutation'),
-      false,
     );
-    for (const capability of ['none', 'ltct', 't2c']) {
-      output.corner.rooted[capability][selectedCount] = encodedFrontiers(
-        exactSelectedBufferFrontiers('corner', buffers, capability),
-        true,
+    for (const terminalType of [
+      'parity',
+      'ltct',
+      't2c',
+      'corner-floating-parity',
+    ]) {
+      output.corner.terminal[terminalType][selectedCount] = encodedFrontiers(
+        exactSelectedBufferTerminalFrontiers(buffers, terminalType),
       );
     }
     clearSelectedBufferOracleCaches();

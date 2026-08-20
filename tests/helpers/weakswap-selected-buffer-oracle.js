@@ -4,6 +4,11 @@ const selectedOracle = require('./selected-buffer-class-oracle');
 const graphCache = new Map();
 const frontierCache = new Map();
 
+// This oracle covers the exact rooted suffix after a legal UF/UR weak entry.
+// The production entry automaton is tested separately; these action graphs
+// must never be interpreted as permission to start from an arbitrary weak
+// state with a pseudo-style UR comm.
+
 class Uint32ChunkList {
   constructor(chunkSize = 1 << 20) {
     this.chunkSize = chunkSize;
@@ -98,9 +103,8 @@ function weakClassKeyFromCompact(compact, selectedIndices, meta = metadata()) {
       rootPhase = `:${phase}`;
     }
     // A 2E cycle closes on its starting sticker and has charge zero; a 2E'
-    // cycle closes on the opposite sticker and has charge one. The latter is
-    // legal only together with another orientation-open residue, as in
-    // conventional 2E2E' (that is, 2E' + 2E').
+    // cycle closes on the opposite sticker and has charge one. F2E and FF2E
+    // pair two such orientation-open residues, with different rooted frames.
     records.push(`${minimumRotation(colors)}:${slots.length}:${orientationSum}${rootPhase}`);
   }
   records.sort();
@@ -166,9 +170,8 @@ function weakCorrectionActions(selectedBuffers, allowPrime = false) {
         : [[0, 0], [1, 1]];
       // The learned anchor subset is sticker-specific: UF-UR-UF (whose
       // companion orbit is FU-RU-FU). The distinct charge-zero
-      // UF-RU-UF swap is not part of the subset. For 2E2E', both anchor
-      // patterns are retained because they are inverse directions of the
-      // same UF-UR-FU-RU sticker orbit.
+      // UF-RU-UF swap is not part of the subset. The two charge-one anchor
+      // patterns are retained separately as F2E and FF2E.
       const anchorPatterns = prime ? [[0, 1], [1, 0]] : [[0, 0]];
       for (const anchorPattern of anchorPatterns) {
         for (const floatingPattern of floatingPatterns) {
@@ -186,6 +189,9 @@ function weakCorrectionActions(selectedBuffers, allowPrime = false) {
           seen.add(key);
           actions.push({
             type: prime ? '2E2E-prime' : '2E2E',
+            terminal_type: prime
+              ? anchorPattern[0] === 1 ? 'f2e' : 'ff2e'
+              : '2e2e',
             buffer,
             target,
             generator,
@@ -301,6 +307,12 @@ function buildWeakClassGraph(selectedBuffers, _allowPrime = false, options = {})
     prime_terminal_keys: [...new Set(correctionActions
       .filter((action) => action.type === '2E2E-prime')
       .map((action) => keyFor(action.generator)))],
+    terminal_keys: Object.fromEntries(['2e2e', 'f2e', 'ff2e'].map((terminalType) => [
+      terminalType,
+      [...new Set(correctionActions
+        .filter((action) => action.terminal_type === terminalType)
+        .map((action) => keyFor(action.generator)))],
+    ])),
     fixed_generator_count: fixedGenerators.length,
     comm_generator_count: commGenerators.length,
     correction_generator_count: correctionActions.length,
@@ -376,7 +388,7 @@ function sameEncodedFrontier(left, right) {
 // transitions. This is the same quotient graph as buildWeakClassGraph, stored
 // as packed target/flag integers instead of one JavaScript object per edge.
 // Bit 0 encodes orientation cost; the remaining bits encode the target class
-// id. 2E2E and 2E2E' are terminal seeds, never graph transitions.
+// id. 2E2E, F2E, and FF2E are terminal seeds, never graph transitions.
 function buildCompactWeakClassGraph(selectedBuffers, options = {}) {
   if (selectedBuffers.length < 2 || selectedBuffers[0] !== 'UF' || selectedBuffers[1] !== 'UR') {
     throw new Error('Weak floating class graphs require the UF, UR prefix.');
@@ -481,6 +493,18 @@ function buildCompactWeakClassGraph(selectedBuffers, options = {}) {
     seed_id: 0,
     normal_terminal_ids: terminalIds('2E2E'),
     prime_terminal_ids: terminalIds('2E2E-prime'),
+    terminal_ids: Object.fromEntries(['2e2e', 'f2e', 'ff2e'].map((terminalType) => [
+      terminalType,
+      [...new Set(correctionActions
+        .filter((action) => action.terminal_type === terminalType)
+        .map((action) => {
+          const id = keyToId.get(keyFor(action.generator));
+          if (id === undefined) {
+            throw new Error(`Weak terminal is unreachable: ${terminalType}`);
+          }
+          return id;
+        }))],
+    ])),
   };
 }
 
@@ -548,6 +572,75 @@ function exactWeakCapabilityFrontiersCompact(selectedBuffers, options = {}) {
   };
 }
 
+function exactWeakTerminalFrontiersCompact(selectedBuffers, options = {}) {
+  const graph = buildCompactWeakClassGraph(selectedBuffers, options);
+  graph.representatives = null;
+  if (typeof global.gc === 'function') global.gc();
+  const terminal = {};
+  for (const terminalType of ['2e2e', 'f2e', 'ff2e']) {
+    if (options.on_progress) {
+      options.on_progress({ phase: `${terminalType}-start` });
+    }
+    terminal[terminalType] = propagateCompactWeakFrontiersFromSeeds(
+      graph,
+      graph.terminal_ids[terminalType],
+      terminalType,
+      options,
+    );
+  }
+  return {
+    graph_edges: graph.graph_edges,
+    keys: graph.keys,
+    terminal,
+  };
+}
+
+function propagateCompactWeakFrontiersFromSeeds(
+  graph,
+  terminalIds,
+  terminalType,
+  options = {},
+) {
+  const frontiers = Array.from({ length: graph.keys.length }, () => []);
+  for (const id of terminalIds) frontiers[id] = [[0, 0]];
+  const queue = [...new Set(terminalIds)];
+  const queued = new Uint8Array(graph.keys.length);
+  for (const id of queue) queued[id] = 1;
+  const onProgress = options.on_progress;
+
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const id = queue[cursor];
+    queued[id] = 0;
+    const source = frontiers[id];
+    for (let edgeIndex = graph.offsets[id]; edgeIndex < graph.offsets[id + 1]; edgeIndex += 1) {
+      const encoded = graph.edges.get(edgeIndex);
+      const orientationCost = encoded & 1;
+      const target = Math.floor(encoded / 4);
+      const fixedCost = orientationCost ? 0 : 1;
+      const translated = source.map((label) => [
+        label[0] + fixedCost,
+        label[1] + orientationCost,
+      ]);
+      const previous = frontiers[target];
+      const next = pruneEncodedFrontier([...previous, ...translated]);
+      if (sameEncodedFrontier(previous, next)) continue;
+      frontiers[target] = next;
+      if (!queued[target]) {
+        queue.push(target);
+        queued[target] = 1;
+      }
+    }
+    if (onProgress && cursor > 0 && cursor % 250000 === 0) {
+      onProgress({
+        phase: terminalType,
+        processed_queue_entries: cursor,
+        queued_entries: queue.length,
+      });
+    }
+  }
+  return frontiers;
+}
+
 function clearWeakOracleCaches() {
   graphCache.clear();
   frontierCache.clear();
@@ -557,6 +650,7 @@ module.exports = {
   buildWeakClassGraph,
   clearWeakOracleCaches,
   exactWeakCapabilityFrontiersCompact,
+  exactWeakTerminalFrontiersCompact,
   exactWeakFrontiers,
   weakClassKey,
   weakClassKeyFromCompact,

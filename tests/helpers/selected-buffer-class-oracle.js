@@ -419,6 +419,50 @@ function exactSelectedBufferFrontiers(kind, selectedBuffers, finishMode = 'none'
   return result;
 }
 
+function exactSelectedBufferTerminalFrontiers(
+  selectedBuffers,
+  terminalType,
+) {
+  const cacheKey = `corner|${selectedBuffers.join(',')}|terminal:${terminalType}`;
+  if (frontierCache.has(cacheKey)) return frontierCache.get(cacheKey);
+
+  const cycleResiduePlanner = require('../../web/cycle-residue-planner');
+  const groups = pieceGroups('corner');
+  const solved = cycleModel.solvedStateFromPieceGroups(groups);
+  const solvedModel = decompose('corner', solved);
+  const goals = cycleResiduePlanner.buildCornerTerminalGoals(
+    solvedModel,
+    terminalType,
+    selectedBuffers,
+  );
+  if (!goals.length) {
+    throw new Error(`Corner terminal ${terminalType} has no legal goals.`);
+  }
+  const graphResult = buildSelectedBufferClassGraph('corner', selectedBuffers, {
+    root_primary: true,
+    seed: goals[0].state,
+  });
+  const seeds = new Map();
+  for (const goal of goals) {
+    const key = selectedBufferClassKey('corner', goal.state, selectedBuffers, {
+      root_primary: true,
+    });
+    if (!seeds.has(key)) seeds.set(key, []);
+    seeds.get(key).push({
+      permutation_algs: 0,
+      orientation_algs: 0,
+      finish: { type: goal.type, primary_role: goal.primary_role },
+    });
+  }
+  const result = {
+    ...graphResult,
+    finish_mode: terminalType,
+    frontiers: propagateFrontiers(graphResult.graph, seeds),
+  };
+  frontierCache.set(cacheKey, result);
+  return result;
+}
+
 function solveSelectedBufferState(
   kind,
   initialState,
@@ -534,6 +578,7 @@ module.exports = {
   buildSelectedBufferClassGraph,
   clearSelectedBufferOracleCaches,
   exactSelectedBufferFrontiers,
+  exactSelectedBufferTerminalFrontiers,
   selectedCommActions,
   selectedOrientationActions,
   selectedBufferClassKey,
