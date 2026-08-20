@@ -16,7 +16,7 @@
         document.documentElement.dataset.theme = storedTheme || (prefersDark ? 'dark' : 'light');
       })();
     </script>
-    <link rel="stylesheet" href="./app.css" />
+    <link rel="stylesheet" href="./app.css?v=instant-algset-hints-v1" />
   </head>
   <body>
     <div class="page-shell">
@@ -182,30 +182,45 @@
               <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="weak-2e2e-capability-option" role="group" aria-labelledby="weak-2e2e-label">
                 <div class="field-label" id="weak-2e2e-label">Edge parity algset</div>
                 <div class="radio-group radio-group--compact" id="weak-2e2e-capability-group">
-                  <label class="radio-option" title="No additional edge terminal algset.">
-                    <input type="radio" name="weak-2e2e-capability" value="none" checked />
-                    <span>None</span>
-                  </label>
-                  <label class="radio-option" title="Swaps the literal UF–UR stickers and performs another oriented edge 2-swap.">
-                    <input type="radio" name="weak-2e2e-capability" value="2e2e" />
-                    <span>UF–UR 2E2E</span>
-                  </label>
-                  <label class="radio-option" title="Includes UF–UR 2E2E. F2E solves the terminal family with the root edge in the UF slot flipped plus another flipped edge 2-swap.">
-                    <input type="radio" name="weak-2e2e-capability" value="f2e" />
-                    <span>F2E</span>
-                  </label>
-                  <label class="radio-option" title="Includes UF–UR 2E2E and F2E. FF2E adds the terminal family with the root edge in the UR slot flipped plus another flipped edge 2-swap.">
-                    <input type="radio" name="weak-2e2e-capability" value="ff2e" />
-                    <span>FF2E</span>
-                  </label>
+                  <div class="algset-option-row">
+                    <label class="radio-option">
+                      <input type="radio" name="weak-2e2e-capability" value="none" checked />
+                      <span>None</span>
+                    </label>
+                    <span class="field-hint" tabindex="0" data-hint="No additional edge terminal algset. Ordinary comms and floating 2-flips remain available." aria-label="No additional edge terminal algset. Ordinary comms and floating 2-flips remain available.">?</span>
+                  </div>
+                  <div class="algset-option-row">
+                    <label class="radio-option">
+                      <input type="radio" name="weak-2e2e-capability" value="2e2e" />
+                      <span>UF–UR 2E2E</span>
+                    </label>
+                    <span class="field-hint" tabindex="0" data-hint="A terminal alg that swaps the literal UF–UR stickers and performs another oriented edge 2-swap. The other swap must touch your learned floating-buffer prefix." aria-label="A terminal alg that swaps the literal UF–UR stickers and performs another oriented edge 2-swap. The other swap must touch your learned floating-buffer prefix.">?</span>
+                  </div>
+                  <div class="algset-option-row">
+                    <label class="radio-option">
+                      <input type="radio" name="weak-2e2e-capability" value="f2e" />
+                      <span>F2E</span>
+                    </label>
+                    <span class="field-hint" tabindex="0" data-hint="Includes UF–UR 2E2E. F2E additionally solves a terminal with the root edge flipped in the UF slot plus another flipped edge 2-swap." aria-label="Includes UF–UR 2E2E. F2E additionally solves a terminal with the root edge flipped in the UF slot plus another flipped edge 2-swap.">?</span>
+                  </div>
+                  <div class="algset-option-row">
+                    <label class="radio-option">
+                      <input type="radio" name="weak-2e2e-capability" value="ff2e" />
+                      <span>FF2E</span>
+                    </label>
+                    <span class="field-hint" tabindex="0" data-hint="Includes UF–UR 2E2E and F2E. FF2E additionally solves a terminal with the root edge flipped in the UR slot plus another flipped edge 2-swap." aria-label="Includes UF–UR 2E2E and F2E. FF2E additionally solves a terminal with the root edge flipped in the UR slot plus another flipped edge 2-swap.">?</span>
+                  </div>
                 </div>
                 <p class="buffer-order-hint">Each option includes every edge parity algset before it. The other 2-swap must touch your selected edge/midge-buffer prefix; full floating also includes BR–BL.</p>
               </div>
 
-              <label class="checkbox-option parameter-subgroup--separated is-hidden" id="ltef-option" title="Weak swap only and independent of 2E2E/F2E/FF2E. LTEF solves an oriented UF/UR piece in UR, the forced one-target UF→RU closure, and one additional flipped edge.">
-                <input id="ltef" type="checkbox" />
-                <span>LTEF</span>
-              </label>
+              <div class="algset-option-row parameter-subgroup--separated is-hidden" id="ltef-option">
+                <label class="checkbox-option">
+                  <input id="ltef" type="checkbox" />
+                  <span>LTEF</span>
+                </label>
+                <span class="field-hint" tabindex="0" data-hint="Weak swap only and independent of 2E2E/F2E/FF2E. LTEF solves an oriented UF/UR piece in UR, the forced one-target UF→RU closure, and one additional flipped edge. It works with fixed UF as well as floating." aria-label="Weak swap only and independent of 2E2E/F2E/FF2E. LTEF solves an oriented UF/UR piece in UR, the forced one-target UF→RU closure, and one additional flipped edge. It works with fixed UF as well as floating.">?</span>
+              </div>
 
               <details class="parameter-subgroup parameter-subgroup--separated" id="terminal-weights">
                 <summary class="field-label">Weights</summary>
@@ -409,6 +424,6 @@
     </dialog>
 
     <script src="./buffer-selection.js?v=buffer-order-v1"></script>
-    <script src="./app.js?v=big-cube-comparisons-v1" type="module"></script>
+    <script src="./app.js?v=fixed-5x5-orientation-v1" type="module"></script>
   </body>
 </html>

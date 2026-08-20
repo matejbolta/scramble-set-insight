@@ -1,18 +1,18 @@
 self.importScripts(
-  './buffer-selection.js?v=big-cube-comparisons-v1',
-  './wide-move-translator.js?v=big-cube-comparisons-v1',
-  './scrambling.js?v=big-cube-comparisons-v1',
-  './corner-tracing.js?v=big-cube-comparisons-v1',
-  './edge-common.js?v=big-cube-comparisons-v1',
-  './cycle-model.js?v=big-cube-comparisons-v1',
-  './cycle-residue.js?v=big-cube-comparisons-v1',
-  './cycle-residue-planner.js?v=big-cube-comparisons-v1',
-  './finalizing.js?v=big-cube-comparisons-v1',
-  './big-cube-model.js?v=big-cube-comparisons-v1',
-  './big-cube-tracing.js?v=big-cube-comparisons-v1',
-  './four-by-four.js?v=big-cube-comparisons-v1',
-  './five-by-five.js?v=big-cube-comparisons-v1',
-  './ssi-core.js?v=big-cube-comparisons-v1',
+  './buffer-selection.js?v=fixed-5x5-orientation-v1',
+  './wide-move-translator.js?v=fixed-5x5-orientation-v1',
+  './scrambling.js?v=fixed-5x5-orientation-v1',
+  './corner-tracing.js?v=fixed-5x5-orientation-v1',
+  './edge-common.js?v=fixed-5x5-orientation-v1',
+  './cycle-model.js?v=fixed-5x5-orientation-v1',
+  './cycle-residue.js?v=fixed-5x5-orientation-v1',
+  './cycle-residue-planner.js?v=fixed-5x5-orientation-v1',
+  './finalizing.js?v=fixed-5x5-orientation-v1',
+  './big-cube-model.js?v=fixed-5x5-orientation-v1',
+  './big-cube-tracing.js?v=fixed-5x5-orientation-v1',
+  './four-by-four.js?v=fixed-5x5-orientation-v1',
+  './five-by-five.js?v=fixed-5x5-orientation-v1',
+  './ssi-core.js?v=fixed-5x5-orientation-v1',
 );
 
 const backend = self.SsiCore;
@@ -33,7 +33,7 @@ function bigCubeOptions(payload, overrides = {}) {
     terminalWeights: payload.advancedOptions?.terminal_weights,
     wingParityCapability: payload.wingParityCapability,
     midgeBuffers: payload.midgeBuffers ?? payload.edgeBuffers,
-    midgeFinishCapability: payload.advancedOptions?.edge_finish_capability,
+    midgeFinishCapability: 'none',
     flipWeight: payload.flipWeight,
     ...overrides,
   };
@@ -92,8 +92,7 @@ self.onmessage = (event) => {
       const result = analyzeBigCubeSet(payload);
       const advancedOptions = payload.advancedOptions || {};
       const hasFinishComparison = (payload.finishCapability || 'none') !== 'none'
-        || Boolean(advancedOptions.corner_floating_parity)
-        || (advancedOptions.edge_finish_capability || 'none') !== 'none';
+        || Boolean(advancedOptions.corner_floating_parity);
       const noFinishResult = hasFinishComparison
         ? analyzeBigCubeSet(payload, {
             cornerFinishCapability: 'none',

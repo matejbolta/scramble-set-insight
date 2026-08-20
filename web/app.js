@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=big-cube-comparisons-v1');
+const worker = new Worker('./worker.js?v=fixed-5x5-orientation-v1');
 let requestId = 0;
 
 const {
@@ -336,7 +336,7 @@ function updatePuzzleUI() {
   const isBigCube = isFourByFour || isFiveByFive;
   elements.standardBufferLabel.textContent = isFourByFour ? 'UFR' : 'UF/UFR';
   elements.threeByThreeOrientationSetting.classList.toggle('is-hidden', isBigCube);
-  elements.bigCubeOrientationSetting.classList.toggle('is-hidden', !isBigCube);
+  elements.bigCubeOrientationSetting.classList.toggle('is-hidden', !isFourByFour);
   const optimalOrientationOption = elements.bigCubeOrientation
     .querySelector('option[value="optimal"]');
   if (optimalOrientationOption) {
@@ -397,7 +397,7 @@ function syncPills() {
   createPills(elements.cornerPills, CORNER_BUFFER_OPTIONS, selectedCornerBuffers(), 'corner');
   createPills(elements.edgePills, EDGE_BUFFER_OPTIONS, selectedEdgeBuffers(), 'edge');
   const selectedEdges = selectedEdgeBuffers();
-  const supportsWeak2e2e = !isFourByFour
+  const supportsWeak2e2e = getPuzzle() === '3x3'
     && getBufferMode() !== 'standard'
     && selectedEdges.length >= 3
     && selectedEdges.includes('UR');
@@ -1069,7 +1069,6 @@ function collectSettings() {
       scrambles: elements.scrambleInput.value,
       bufferMode,
       dnf: elements.dnf.checked,
-      orientedCornerSticker: elements.bigCubeOrientation.value,
       cornerBuffers,
       midgeBuffers: edgeBuffers,
       flipWeight,

@@ -572,6 +572,16 @@ assert.match(appHtml, /<span>UF–UR 2E2E<\/span>/, '2E2E should identify its ro
 assert.match(appHtml, /<span>UFr–XYz<\/span>/, 'full wing parity should name a wing sticker');
 assert.match(inputTagById('compare-optimal-orientation'), /type="checkbox"/);
 assert.match(appHtml, /<span>Compare with optimal<\/span>/);
+assert.match(
+  appHtml,
+  /data-hint="A terminal alg that swaps the literal UF–UR stickers/,
+  '2E2E explanation should use an immediate focusable hint',
+);
+assert.match(
+  appHtml,
+  /data-hint="Weak swap only and independent of 2E2E\/F2E\/FF2E/,
+  'LTEF explanation should use an immediate focusable hint',
+);
 assert.match(appHtml, /<summary class="field-label">Weights<\/summary>/, 'all weights should share one panel');
 for (const id of ['show-overview', 'show-breakdown', 'show-compact-breakdown', 'show-distribution']) {
   assert.equal(isCheckedInput(inputTagById(id)), true, `#${id} should default on`);
@@ -987,8 +997,17 @@ const fiveByFiveWorkerResult = runWorker({
 });
 assert.equal(fiveByFiveWorkerResult.puzzle, '5x5');
 assert.equal(fiveByFiveWorkerResult.number_of_solves, 1);
-assert.equal(fiveByFiveWorkerResult.breakdowns[0].orientation.corner_sticker_at_UFR, 'LDF');
+assert.equal(
+  fiveByFiveWorkerResult.breakdowns[0].orientation.corner_sticker_at_UFR,
+  'UFR',
+  '5x5 true centers must fix the tracing frame regardless of a legacy orientation input',
+);
 assert.deepEqual(fiveByFiveWorkerResult.breakdowns[0].midges.buffers, ['UF', 'UR', 'UB']);
+assert.equal(
+  fiveByFiveWorkerResult.breakdowns[0].midges.finish_capability,
+  'none',
+  '5x5 midges must ignore legacy edge parity terminal capabilities',
+);
 assert.equal(
   fiveByFiveWorkerResult.breakdowns[0].total_algs,
   Number((

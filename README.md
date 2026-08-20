@@ -34,12 +34,18 @@ It supports:
 
 The 4x4 and 5x5 MVPs accept ordinary and two-layer wide moves, cube rotations,
 lowercase inner-slice shorthands, and `M / E / S`. The 5x5 parser additionally
-accepts triple-wide moves (`3Rw`, etc.) and lowercase `m / e / s`. Wing and
+accepts triple-wide moves (`3Rw`, etc.) and lowercase `m / e / s`. Its fixed
+true centers uniquely determine the tracing orientation; only 4x4 exposes the
+24 possible UFR-sticker orientations. Wing and
 center tracing are currently deterministic: there is no wing floating, and
 interchangeable center targets follow the documented non-U-first canonical
 order. A fixed 4x4 orientation can be compared with the best of all 24
 orientations; weighted algset savings are reported for both big-cube MVPs.
 Global center-target optimization and center floating are later steps.
+
+5x5 midges use parity-relative pseudoswap counting but have no separate
+`2E2E / F2E / FF2E` parity-terminal capability; corner parity execution fixes
+their `UF/UR` goal.
 
 T2C and LTCT are available in every corner-buffer mode, including fixed UFR;
 neither algset requires a secondary floating buffer. `F2E` adds the terminal

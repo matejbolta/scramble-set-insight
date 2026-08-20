@@ -481,6 +481,7 @@ button,
 
 .field-hint {
   position: relative;
+  flex: 0 0 auto;
   display: inline-grid;
   place-items: center;
   width: 18px;
@@ -544,6 +545,13 @@ button,
   width: 18px;
   height: 18px;
   margin: 0;
+}
+
+.algset-option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .radio-option:has(input:disabled) {

@@ -14,10 +14,8 @@
     countWingTrace,
     decomposeCornerState,
     extractBigCubeScrambleRecords,
-    isPseudoswapUbException,
     normalizeCornerBuffers,
     normalizeEdgeBuffers,
-    normalizeWeak2e2eCapability,
     normalizeWingParityCapability,
     planCornerStateBySelectedBuffers,
     planEdgeStateBySelectedBuffers,
@@ -35,18 +33,9 @@
         ?? ['UF'],
       'pseudoswap',
     );
-    const requestedMidgeCapability = normalizeWeak2e2eCapability(
-      options.midge_finish_capability
-        ?? options.midgeFinishCapability
-        ?? options.edge_finish_capability
-        ?? options.edgeFinishCapability
-        ?? 'none',
-    );
-    const pseudoException = isPseudoswapUbException(midgeBuffers);
     return {
-      oriented_corner_sticker: options.oriented_corner_sticker
-        ?? options.orientedCornerSticker
-        ?? 'UFR',
+      // Fixed true centers determine the 5x5 tracing frame uniquely.
+      oriented_corner_sticker: 'UFR',
       corner_buffers: normalizeCornerBuffers(
         options.corner_buffers ?? options.cornerBuffers ?? ['UFR'],
       ),
@@ -58,9 +47,9 @@
       ),
       twist_weight: options.twist_weight ?? options.twistWeight ?? 1,
       midge_buffers: midgeBuffers,
-      midge_finish_capability: midgeBuffers.length >= 3 && !pseudoException
-        ? requestedMidgeCapability
-        : 'none',
+      // Midge parity terminal algsets do not exist. Corner parity execution
+      // fixes the parity-relative UF/UR midge goal.
+      midge_finish_capability: 'none',
       flip_weight: options.flip_weight ?? options.flipWeight ?? 1,
       terminal_weights: options.terminal_weights ?? options.terminalWeights ?? {},
       wing_parity_capability: normalizeWingParityCapability(
