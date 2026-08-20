@@ -65,7 +65,7 @@
                 </label>
                 <label class="radio-option">
                   <input type="radio" name="buffer-mode" value="partial" />
-                  <span>Partial floating (advanced)</span>
+                  <span>Partial floating</span>
                 </label>
               </div>
 
@@ -136,7 +136,7 @@
                   </label>
                   <label class="radio-option">
                     <input type="radio" name="wing-parity-capability" value="full" />
-                    <span>UFr–XYZ</span>
+                    <span>UFr–XYz</span>
                   </label>
                 </div>
               </div>
@@ -149,104 +149,131 @@
                 <span>Include DNFs</span>
               </label>
 
-              <div class="parameter-subgroup parameter-subgroup--separated" role="group" aria-labelledby="advanced-label">
-                <div class="field-label" id="advanced-label">Advanced</div>
+              <div class="parameter-subgroup parameter-subgroup--separated" role="group" aria-labelledby="corner-parity-algset-label">
+                <div class="field-label" id="corner-parity-algset-label">Corner parity algset</div>
                 <div class="radio-group radio-group--compact" id="finish-capability-group">
-                  <label class="radio-option">
+                  <label class="radio-option" title="Classic parity swaps UF–UR and performs an oriented UFR–X corner 2-swap.">
                     <input type="radio" name="finish-capability" value="none" checked />
-                    <span>None</span>
+                    <span>UF–UR UFR–XYZ</span>
                   </label>
-                  <label class="radio-option">
+                  <label class="radio-option" title="Includes classic parity. LTCT solves a twisted UFR–X 2-swap plus one additional corner twist.">
                     <input type="radio" name="finish-capability" value="ltct" />
                     <span>LTCT</span>
                   </label>
-                  <label class="radio-option" title="T2C requires partial or full floating.">
+                  <label class="radio-option" title="Includes classic parity and LTCT. T2C solves UFR twisted in place plus a twisted 2-swap elsewhere; it requires corner floating.">
                     <input id="finish-t2c" type="radio" name="finish-capability" value="t2c" disabled />
                     <span>T2C</span>
                   </label>
                 </div>
-                <label class="checkbox-option" id="corner-floating-parity-option">
-                  <input id="corner-floating-parity" type="checkbox" />
-                  <span>Corner-floating parity (2E2C)</span>
-                </label>
+                <p class="buffer-order-hint">Each option includes every corner parity algset before it.</p>
+                <div id="corner-floating-parity-option">
+                  <label class="checkbox-option" title="Adds UF–UR plus an oriented corner 2-swap. With partial floating, at least one swapped corner must be within your selected buffer prefix; full floating also includes DBR–DBL.">
+                    <input id="corner-floating-parity" type="checkbox" />
+                    <span>UF–UR 2E2C</span>
+                  </label>
+                  <p class="buffer-order-hint">Known only through your selected corner-buffer prefix; full floating also includes DBR–DBL.</p>
+                </div>
               </div>
 
               <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="weak-2e2e-capability-option" role="group" aria-labelledby="weak-2e2e-label">
                 <div class="field-label" id="weak-2e2e-label">Edge parity algset</div>
                 <div class="radio-group radio-group--compact" id="weak-2e2e-capability-group">
-                  <label class="radio-option">
+                  <label class="radio-option" title="No additional edge terminal algset.">
                     <input type="radio" name="weak-2e2e-capability" value="none" checked />
                     <span>None</span>
                   </label>
-                  <label class="radio-option">
+                  <label class="radio-option" title="Swaps the literal UF–UR stickers and performs another oriented edge 2-swap.">
                     <input type="radio" name="weak-2e2e-capability" value="2e2e" />
-                    <span>2E2E</span>
+                    <span>UF–UR 2E2E</span>
                   </label>
-                  <label class="radio-option" title="Includes 2E2E and adds the UF-slot-flipped terminal family.">
+                  <label class="radio-option" title="Includes UF–UR 2E2E. F2E solves the terminal family with the root edge in the UF slot flipped plus another flipped edge 2-swap.">
                     <input type="radio" name="weak-2e2e-capability" value="f2e" />
                     <span>F2E</span>
                   </label>
-                  <label class="radio-option" title="Includes 2E2E and F2E, then adds UR-floating FF2E.">
+                  <label class="radio-option" title="Includes UF–UR 2E2E and F2E. FF2E adds the terminal family with the root edge in the UR slot flipped plus another flipped edge 2-swap.">
                     <input type="radio" name="weak-2e2e-capability" value="ff2e" />
                     <span>FF2E</span>
                   </label>
                 </div>
+                <p class="buffer-order-hint">Each option includes every edge parity algset before it. The other 2-swap must touch your selected edge/midge-buffer prefix; full floating also includes BR–BL.</p>
               </div>
 
-              <label class="checkbox-option parameter-subgroup--separated is-hidden" id="ltef-option">
+              <label class="checkbox-option parameter-subgroup--separated is-hidden" id="ltef-option" title="Weak swap only and independent of 2E2E/F2E/FF2E. LTEF solves an oriented UF/UR piece in UR, the forced one-target UF→RU closure, and one additional flipped edge.">
                 <input id="ltef" type="checkbox" />
                 <span>LTEF</span>
               </label>
 
-              <div class="compact-setting-row compact-setting-row--first" id="flip-weight-setting">
-                <input id="flip-weight" class="number-input" type="number" min="1" step="0.01" value="1" />
-                <div class="field-label-row">
-                  <label class="field-label field-label--compact" for="flip-weight">2-flip weight</label>
-                  <span class="field-hint" tabindex="0" data-hint="Algs per floating 2-flip." aria-label="Algs per floating 2-flip.">?</span>
-                </div>
-              </div>
-
-              <div class="compact-setting-row">
-                <input id="twist-weight" class="number-input" type="number" min="1" step="0.01" value="1" />
-                <div class="field-label-row">
-                  <label class="field-label field-label--compact" for="twist-weight">2-twist weight</label>
-                  <span class="field-hint" tabindex="0" data-hint="Algs per floating 2-twist." aria-label="Algs per floating 2-twist.">?</span>
-                </div>
-              </div>
-
               <details class="parameter-subgroup parameter-subgroup--separated" id="terminal-weights">
-                <summary class="field-label">Terminal weights</summary>
-                <div class="compact-setting-row compact-setting-row--first">
+                <summary class="field-label">Weights</summary>
+                <div class="compact-setting-row compact-setting-row--first" id="flip-weight-setting">
+                  <input id="flip-weight" class="number-input" type="number" min="1" step="0.01" value="1" />
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="flip-weight">2-flip</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of one floating algorithm that flips any two edges." aria-label="Cost of one floating algorithm that flips any two edges.">?</span>
+                  </div>
+                </div>
+                <div class="compact-setting-row">
+                  <input id="twist-weight" class="number-input" type="number" min="1" step="0.01" value="1" />
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="twist-weight">2-twist</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of one floating algorithm that twists two corners in opposite directions." aria-label="Cost of one floating algorithm that twists two corners in opposite directions.">?</span>
+                  </div>
+                </div>
+                <div class="compact-setting-row" data-terminal-weight="parity">
                   <input id="weight-parity" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
-                  <label class="field-label field-label--compact" for="weight-parity">Classic parity</label>
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="weight-parity">UF–UR UFR–XYZ</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of one classic parity algorithm: UF–UR plus an oriented UFR–X corner 2-swap." aria-label="Cost of one classic parity algorithm: UF–UR plus an oriented UFR–X corner 2-swap.">?</span>
+                  </div>
                 </div>
-                <div class="compact-setting-row">
+                <div class="compact-setting-row is-hidden" data-terminal-weight="ltct">
                   <input id="weight-ltct" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
-                  <label class="field-label field-label--compact" for="weight-ltct">LTCT</label>
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="weight-ltct">LTCT</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of one LTCT finish: UF–UR, a twisted UFR–X swap, and one additional corner twist." aria-label="Cost of one LTCT finish: UF–UR, a twisted UFR–X swap, and one additional corner twist.">?</span>
+                  </div>
                 </div>
-                <div class="compact-setting-row">
+                <div class="compact-setting-row is-hidden" data-terminal-weight="t2c">
                   <input id="weight-t2c" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
-                  <label class="field-label field-label--compact" for="weight-t2c">T2C</label>
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="weight-t2c">T2C</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of one T2C finish: UF–UR, UFR twisted in place, and a twisted corner 2-swap elsewhere." aria-label="Cost of one T2C finish: UF–UR, UFR twisted in place, and a twisted corner 2-swap elsewhere.">?</span>
+                  </div>
                 </div>
-                <div class="compact-setting-row">
+                <div class="compact-setting-row is-hidden" data-terminal-weight="corner-floating-parity">
                   <input id="weight-corner-floating-parity" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
-                  <label class="field-label field-label--compact" for="weight-corner-floating-parity">Corner-floating parity</label>
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="weight-corner-floating-parity">UF–UR 2E2C</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of UF–UR plus an oriented corner 2-swap learned through your selected corner-buffer prefix." aria-label="Cost of UF–UR plus an oriented corner 2-swap learned through your selected corner-buffer prefix.">?</span>
+                  </div>
                 </div>
-                <div class="compact-setting-row edge-terminal-weight">
+                <div class="compact-setting-row is-hidden" data-terminal-weight="2e2e">
                   <input id="weight-2e2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
-                  <label class="field-label field-label--compact" for="weight-2e2e">2E2E</label>
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="weight-2e2e">UF–UR 2E2E</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of the literal UF–UR sticker swap plus another oriented edge 2-swap learned through your selected buffer prefix." aria-label="Cost of the literal UF–UR sticker swap plus another oriented edge 2-swap learned through your selected buffer prefix.">?</span>
+                  </div>
                 </div>
-                <div class="compact-setting-row edge-terminal-weight">
+                <div class="compact-setting-row is-hidden" data-terminal-weight="f2e">
                   <input id="weight-f2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
-                  <label class="field-label field-label--compact" for="weight-f2e">F2E</label>
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="weight-f2e">F2E</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of an F2E finish: the root edge is flipped in the UF slot, together with another flipped edge 2-swap." aria-label="Cost of an F2E finish: the root edge is flipped in the UF slot, together with another flipped edge 2-swap.">?</span>
+                  </div>
                 </div>
-                <div class="compact-setting-row edge-terminal-weight">
+                <div class="compact-setting-row is-hidden" data-terminal-weight="ff2e">
                   <input id="weight-ff2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
-                  <label class="field-label field-label--compact" for="weight-ff2e">FF2E</label>
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="weight-ff2e">FF2E</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of an FF2E finish: the root edge is flipped in the UR slot, together with another flipped edge 2-swap." aria-label="Cost of an FF2E finish: the root edge is flipped in the UR slot, together with another flipped edge 2-swap.">?</span>
+                  </div>
                 </div>
-                <div class="compact-setting-row edge-terminal-weight">
+                <div class="compact-setting-row is-hidden" data-terminal-weight="ltef">
                   <input id="weight-ltef" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
-                  <label class="field-label field-label--compact" for="weight-ltef">LTEF</label>
+                  <div class="field-label-row">
+                    <label class="field-label field-label--compact" for="weight-ltef">LTEF</label>
+                    <span class="field-hint" tabindex="0" data-hint="Cost of one weak-swap LTEF finish: oriented UF/UR in UR, one forced UF→RU target, and one additional flipped edge." aria-label="Cost of one weak-swap LTEF finish: oriented UF/UR in UR, one forced UF→RU target, and one additional flipped edge.">?</span>
+                  </div>
                 </div>
               </details>
             </div>
@@ -327,7 +354,7 @@
                 <strong class="metric-value" id="stat-floating-saved">0</strong>
               </article>
               <article class="metric-card is-hidden" id="finish-saved-metric">
-                <span class="metric-label" id="finish-saved-label">Advanced saved</span>
+                <span class="metric-label" id="finish-saved-label">Algsets saved</span>
                 <strong class="metric-value" id="stat-finish-saved">0</strong>
               </article>
             </div>
@@ -374,6 +401,6 @@
     </dialog>
 
     <script src="./buffer-selection.js?v=buffer-order-v1"></script>
-    <script src="./app.js?v=5x5-mvp-v1" type="module"></script>
+    <script src="./app.js?v=algset-controls-v1" type="module"></script>
   </body>
 </html>

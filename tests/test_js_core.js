@@ -539,7 +539,7 @@ function isCheckedInput(tag) {
 }
 
 assert.equal(isCheckedInput(inputTagById('dnf')), true, 'Include DNFs should default on');
-assert.match(appHtml, /<input[^>]*name="finish-capability"[^>]*value="none"[^>]*checked[^>]*>/, 'Advanced should default to None');
+assert.match(appHtml, /<input[^>]*name="finish-capability"[^>]*value="none"[^>]*checked[^>]*>/, 'classic corner parity should be the default');
 assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="none"[^>]*checked[^>]*>/, 'Weak floating should default to no assumed algset');
 assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="2e2e"[^>]*>/, 'Weak floating should expose normal 2E2E');
 assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="f2e"[^>]*>/, 'Floating should expose F2E');
@@ -560,8 +560,13 @@ for (const terminalWeightId of [
   assert.match(inputTagById(terminalWeightId), /max="2"/);
 }
 assert.match(inputTagById('finish-t2c'), /\sdisabled/, 'T2C should start disabled outside full floating');
-assert.match(appHtml, /id="advanced-label">Advanced</, 'Advanced group label');
-assert.match(appHtml, /Partial floating \(advanced\)/, 'partial floating should be marked advanced');
+assert.match(appHtml, /id="corner-parity-algset-label">Corner parity algset</, 'corner parity algset group label');
+assert.match(appHtml, /<span>Partial floating<\/span>/, 'partial floating should use its plain name');
+assert.doesNotMatch(appHtml, /Partial floating \(advanced\)/);
+assert.match(appHtml, /<span>UF–UR UFR–XYZ<\/span>/, 'classic parity should use its physical algset name');
+assert.match(appHtml, /<span>UF–UR 2E2E<\/span>/, '2E2E should identify its root swap');
+assert.match(appHtml, /<span>UFr–XYz<\/span>/, 'full wing parity should name a wing sticker');
+assert.match(appHtml, /<summary class="field-label">Weights<\/summary>/, 'all weights should share one panel');
 for (const id of ['show-overview', 'show-breakdown', 'show-compact-breakdown', 'show-distribution']) {
   assert.equal(isCheckedInput(inputTagById(id)), true, `#${id} should default on`);
 }

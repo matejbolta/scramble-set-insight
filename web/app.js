@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=5x5-mvp-v1');
+const worker = new Worker('./worker.js?v=algset-controls-v1');
 let requestId = 0;
 
 const {
@@ -35,6 +35,7 @@ const elements = {
   cornerFloatingParityOption: document.getElementById('corner-floating-parity-option'),
   cornerFloatingParity: document.getElementById('corner-floating-parity'),
   weak2e2eCapabilityOption: document.getElementById('weak-2e2e-capability-option'),
+  edgeParityAlgsetLabel: document.getElementById('weak-2e2e-label'),
   ltefOption: document.getElementById('ltef-option'),
   ltef: document.getElementById('ltef'),
   edgeMethodSettings: document.getElementById('edge-method-settings'),
@@ -91,7 +92,10 @@ const elements = {
     'ff2e',
     'ltef',
   ].map((type) => [type, document.getElementById(`weight-${type}`)])),
-  edgeTerminalWeights: [...document.querySelectorAll('.edge-terminal-weight')],
+  terminalWeightRows: Object.fromEntries(
+    [...document.querySelectorAll('[data-terminal-weight]')]
+      .map((row) => [row.dataset.terminalWeight, row]),
+  ),
 };
 
 const state = {
@@ -132,9 +136,34 @@ function getWingParityCapability() {
 }
 
 function getTerminalWeights() {
-  return Object.fromEntries(Object.entries(elements.terminalWeightInputs).map(
-    ([type, input]) => [type, Number(input.value)],
-  ));
+  return Object.fromEntries(Object.entries(elements.terminalWeightInputs)
+    .filter(([, input]) => !input.disabled)
+    .map(([type, input]) => [type, Number(input.value)]));
+}
+
+function syncTerminalWeightVisibility() {
+  const finishCapability = getFinishCapability();
+  const edgeCapability = elements.weak2e2eCapabilityOption.classList.contains('is-hidden')
+    ? 'none'
+    : getWeak2e2eCapability();
+  const edgeCapabilityRank = ['none', '2e2e', 'f2e', 'ff2e'].indexOf(edgeCapability);
+  const knownTerminals = {
+    parity: true,
+    ltct: finishCapability === 'ltct' || finishCapability === 't2c',
+    t2c: finishCapability === 't2c',
+    'corner-floating-parity': !elements.cornerFloatingParity.disabled
+      && elements.cornerFloatingParity.checked,
+    '2e2e': edgeCapabilityRank >= 1,
+    f2e: edgeCapabilityRank >= 2,
+    ff2e: edgeCapabilityRank >= 3,
+    ltef: !elements.ltef.disabled && elements.ltef.checked,
+  };
+
+  for (const [type, row] of Object.entries(elements.terminalWeightRows)) {
+    const isKnown = Boolean(knownTerminals[type]);
+    row.classList.toggle('is-hidden', !isKnown);
+    elements.terminalWeightInputs[type].disabled = !isKnown;
+  }
 }
 
 function setCheckedRadio(name, value) {
@@ -320,10 +349,10 @@ function updatePuzzleUI() {
   }
   elements.wingParitySettings.classList.toggle('is-hidden', !isBigCube);
   elements.edgeBufferSubtitle.textContent = isFiveByFive ? 'Midge buffers' : 'Edge buffers';
+  elements.edgeParityAlgsetLabel.textContent = isFiveByFive
+    ? 'Midge parity algset'
+    : 'Edge parity algset';
   elements.flipWeightSetting.classList.toggle('is-hidden', isFourByFour);
-  elements.edgeTerminalWeights.forEach((element) => {
-    element.classList.toggle('is-hidden', isFourByFour);
-  });
   elements.loadExampleButton.classList.toggle('is-hidden', isBigCube);
   elements.scrambleInput.placeholder = isBigCube
     ? `Paste one or more ${isFourByFour ? '4×4' : '5×5'} scrambles`
@@ -380,6 +409,7 @@ function syncPills() {
   const supportsLtef = getPuzzle() === '3x3' && getEdgeMethod() === 'weakswap';
   elements.ltefOption.classList.toggle('is-hidden', !supportsLtef);
   elements.ltef.disabled = !supportsLtef;
+  syncTerminalWeightVisibility();
 }
 
 function selectBufferLevel(group, value) {
@@ -881,7 +911,7 @@ function renderResult(rawResult) {
   elements.floatingSavedMetric.classList.toggle('is-hidden', floatingSavedAlgs <= 0);
   elements.statFinishSaved.textContent = String(finishSavedAlgs);
   elements.finishSavedLabel.textContent = finishCapability === 'none'
-    ? 'Advanced saved'
+    ? 'Algsets saved'
     : `${finishCapability.toUpperCase()} saved`;
   elements.finishSavedMetric.classList.toggle('is-hidden', finishSavedAlgs <= 0);
   state.breakdownSort = { key: 'index', direction: 'asc' };
@@ -1105,11 +1135,21 @@ function initialize() {
   });
 
   document.querySelectorAll('input[name="finish-capability"]').forEach((input) => {
-    input.addEventListener('change', saveSettings);
+    input.addEventListener('change', () => {
+      syncTerminalWeightVisibility();
+      saveSettings();
+    });
   });
 
   document.querySelectorAll('input[name="weak-2e2e-capability"]').forEach((input) => {
-    input.addEventListener('change', saveSettings);
+    input.addEventListener('change', () => {
+      syncTerminalWeightVisibility();
+      saveSettings();
+    });
+  });
+
+  [elements.cornerFloatingParity, elements.ltef].forEach((input) => {
+    input.addEventListener('change', syncTerminalWeightVisibility);
   });
 
   document.querySelectorAll('input[name="wing-parity-capability"]').forEach((input) => {
