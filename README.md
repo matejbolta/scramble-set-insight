@@ -16,18 +16,30 @@ It supports:
   weighted partial/full floating for both edge methods
 - custom tracing/scrambling orientation
 - `S / M / E` slice moves, including prime and double suffixes
+- `x / y / z` cube rotations anywhere in a scramble, in either upper or lower
+  case and with prime or double suffixes
+- redundant half-turn primes such as `R2'`, normalized as `R2`
 - custom 2-flip and 2-twist weights
 - optional DNF inclusion and Advanced `None / LTCT / T2C` counting
-- hierarchical weak-floating capability `None / 2E2E / 2E2E′`; normal
-  `2E2E` uses the literal `UF-UR-UF` subset, while `2E2E′` adds both rooted
-  misoriented sticker swaps
+- optional corner-floating parity (`UF-UR + 2E2C`)
+- hierarchical edge parity algsets `None / 2E2E / F2E / FF2E`, plus an
+  independent weakswap-only LTEF option
+- independent runtime weights from 1 to 2 for every terminal algset
 
 T2C is available with exact partial and full floating. Existing LTCT behavior
-remains available in every counting mode. In weak floating, `2E2E` and
-`2E2E′` each have fixed cost 1; custom 2-flip weighting remains independent.
+remains available in every counting mode. `F2E` adds the terminal family whose
+root swap has the edge in the UF slot flipped; `FF2E` additionally adds the
+UR-slot-flipped family. The fourth, both-flipped UF/UR root swap is not part of
+these sets.
+Every weak floating plan first follows the physical UF/UR weak state machine;
+the selected-buffer optimizer begins only after a legal closure or explicitly
+authorized open-root transition.
+`F2E` and `FF2E` authorize their specific open flipped-root transitions;
+`None` and normal `2E2E` do not.
 For partial floating, the second 2-swap must contain at least one selected
 non-primary buffer. Full floating additionally includes the learned `BR-BL`
-exception even though neither piece is a buffer.
+edge exception and `DBR-DBL` corner exception even though those pieces are not
+buffers.
 
 Partial floating follows the displayed learning order: choosing a buffer also
 includes every earlier buffer. Pseudo swap additionally supports the common

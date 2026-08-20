@@ -130,10 +130,14 @@
                     <span>T2C</span>
                   </label>
                 </div>
+                <label class="checkbox-option" id="corner-floating-parity-option">
+                  <input id="corner-floating-parity" type="checkbox" />
+                  <span>Corner-floating parity (2E2C)</span>
+                </label>
               </div>
 
               <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="weak-2e2e-capability-option" role="group" aria-labelledby="weak-2e2e-label">
-                <div class="field-label" id="weak-2e2e-label">Weak algset</div>
+                <div class="field-label" id="weak-2e2e-label">Edge parity algset</div>
                 <div class="radio-group radio-group--compact" id="weak-2e2e-capability-group">
                   <label class="radio-option">
                     <input type="radio" name="weak-2e2e-capability" value="none" checked />
@@ -143,12 +147,21 @@
                     <input type="radio" name="weak-2e2e-capability" value="2e2e" />
                     <span>2E2E</span>
                   </label>
-                  <label class="radio-option" title="2E2E′ includes the normal 2E2E subset.">
-                    <input type="radio" name="weak-2e2e-capability" value="2e2e-prime" />
-                    <span>2E2E′</span>
+                  <label class="radio-option" title="Includes 2E2E and adds the UF-slot-flipped terminal family.">
+                    <input type="radio" name="weak-2e2e-capability" value="f2e" />
+                    <span>F2E</span>
+                  </label>
+                  <label class="radio-option" title="Includes 2E2E and F2E, then adds UR-floating FF2E.">
+                    <input type="radio" name="weak-2e2e-capability" value="ff2e" />
+                    <span>FF2E</span>
                   </label>
                 </div>
               </div>
+
+              <label class="checkbox-option parameter-subgroup--separated is-hidden" id="ltef-option">
+                <input id="ltef" type="checkbox" />
+                <span>LTEF</span>
+              </label>
 
               <div class="compact-setting-row compact-setting-row--first">
                 <input id="flip-weight" class="number-input" type="number" min="1" step="0.01" value="1" />
@@ -165,6 +178,42 @@
                   <span class="field-hint" tabindex="0" data-hint="Algs per floating 2-twist." aria-label="Algs per floating 2-twist.">?</span>
                 </div>
               </div>
+
+              <details class="parameter-subgroup parameter-subgroup--separated" id="terminal-weights">
+                <summary class="field-label">Terminal weights</summary>
+                <div class="compact-setting-row compact-setting-row--first">
+                  <input id="weight-parity" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
+                  <label class="field-label field-label--compact" for="weight-parity">Classic parity</label>
+                </div>
+                <div class="compact-setting-row">
+                  <input id="weight-ltct" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
+                  <label class="field-label field-label--compact" for="weight-ltct">LTCT</label>
+                </div>
+                <div class="compact-setting-row">
+                  <input id="weight-t2c" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
+                  <label class="field-label field-label--compact" for="weight-t2c">T2C</label>
+                </div>
+                <div class="compact-setting-row">
+                  <input id="weight-corner-floating-parity" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
+                  <label class="field-label field-label--compact" for="weight-corner-floating-parity">Corner-floating parity</label>
+                </div>
+                <div class="compact-setting-row">
+                  <input id="weight-2e2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
+                  <label class="field-label field-label--compact" for="weight-2e2e">2E2E</label>
+                </div>
+                <div class="compact-setting-row">
+                  <input id="weight-f2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
+                  <label class="field-label field-label--compact" for="weight-f2e">F2E</label>
+                </div>
+                <div class="compact-setting-row">
+                  <input id="weight-ff2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
+                  <label class="field-label field-label--compact" for="weight-ff2e">FF2E</label>
+                </div>
+                <div class="compact-setting-row">
+                  <input id="weight-ltef" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
+                  <label class="field-label field-label--compact" for="weight-ltef">LTEF</label>
+                </div>
+              </details>
             </div>
 
             <div class="parameter-group parameter-card parameter-card--results" role="group" aria-labelledby="result-sections-label">
@@ -290,6 +339,6 @@
     </dialog>
 
     <script src="./buffer-selection.js?v=buffer-order-v1"></script>
-    <script src="./app.js?v=slice-moves-v3" type="module"></script>
+    <script src="./app.js?v=terminal-families-v1" type="module"></script>
   </body>
 </html>

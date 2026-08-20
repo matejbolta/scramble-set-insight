@@ -229,21 +229,109 @@ assert.notEqual(
   'weak class key must retain rooted UF-to-UR sticker phase',
 );
 assert.equal(weakPrimeBasic.total_algs, 2, 'basic weak floating has no PF + PF shortcut');
-assert.equal(weakPrimeMaximal.total_algs, 1, 'maximal weak floating uses one 2E2E prime');
+assert.equal(weakPrimeMaximal.total_algs, 1, 'maximal weak floating uses one F2E/FF2E terminal');
+assert.equal(
+  cycleResiduePlanner.planEdgeStateBySelectedBuffers(
+    normal2e2eState,
+    false,
+    ['UF', 'UB'],
+    1,
+    'ff2e',
+  ).total_algs,
+  2,
+  'pseudoswap UF + UB without UR must disable all rooted edge terminal families',
+);
 assert.deepEqual(
   cycleModel.decomposeEdgeState(prime2e2eState).active_cycles
     .map((cycle) => [cycle.length, cycle.orientation_sum]),
   [[2, 1], [2, 1]],
-  '2E2E prime is two orientation-open 2E prime cycles',
+  'F2E/FF2E consists of two orientation-open flipped 2-swaps',
 );
-console.log('PASS JS exact weak floating distinguishes literal 2E2E from non-subset P + P and 2E prime + 2E prime');
+console.log('PASS JS exact weak floating distinguishes literal 2E2E, F2E, and FF2E root frames');
+
+const unenteredUrCommState = {
+  ...solvedWeakEdges,
+  UR: 'UL', RU: 'LU',
+  UB: 'UR', BU: 'RU',
+  UL: 'UB', LU: 'BU',
+};
+assert.equal(
+  cycleResiduePlanner.planEdgeStateBySelectedBuffers(
+    unenteredUrCommState, false, weakThreeBuffers, 1,
+  ).total_algs,
+  1,
+  'the parity-relative pseudo planner may use the direct UR comm',
+);
+for (const capability of ['none', '2e2e', 'f2e', 'ff2e']) {
+  const weak = cycleResiduePlanner.planEdgeStateByWeakswapFloating(
+    unenteredUrCommState, false, weakThreeBuffers, capability, 1,
+  );
+  assert.equal(weak.total_algs, 2, `${capability} must first enter the physical weak frame`);
+  assert.equal(weak.weak_entry_mode, 'singleton');
+}
+console.log('PASS parity-relative state alone does not authorize an unentered UR comm');
+
+const firstRootEvenOrientedScramble = "L2 D' L2 D R2 F L U2 B2 U2 F2 L2 B2 D B2 L2 U R B2 Fw'";
+const firstRootEvenSingleton = ssiCore.analyzeScramble(
+  firstRootEvenOrientedScramble, '', 'weakswap', 1, 1, false, ['UFR'], ['UF'], 'none',
+);
+const firstRootEvenFloating = ssiCore.analyzeScramble(
+  firstRootEvenOrientedScramble,
+  '',
+  'weakswap',
+  1,
+  1,
+  false,
+  ['UFR'],
+  weakThreeBuffers,
+  'none',
+);
+assert.equal(firstRootEvenSingleton.edge_algs, 7);
+assert.equal(firstRootEvenFloating.edge_algs, 6);
+assert.equal(
+  firstRootEvenFloating.edges.weakswap_floating.entry_mode,
+  'first-root-even-oriented',
+);
+console.log('PASS first UF/UR root on an even oriented closure legally starts weak floating');
+
+const f2eOpenRootScramble = "U D2 R2 B2 R' D2 L' R2 U2 F' R2 D2 F2 B' R2 B' U2 R2 U F Rw' Uw";
+const withoutF2eOpenRoot = ssiCore.analyzeScramble(
+  f2eOpenRootScramble, '', 'weakswap', 1, 1, false, ['UFR'], weakThreeBuffers, '2e2e',
+);
+const withF2eOpenRoot = ssiCore.analyzeScramble(
+  f2eOpenRootScramble, '', 'weakswap', 1, 1, false, ['UFR'], weakThreeBuffers, 'f2e',
+);
+assert.equal(withoutF2eOpenRoot.edge_algs, 6);
+assert.equal(withF2eOpenRoot.edge_algs, 5);
+assert.equal(withF2eOpenRoot.edges.weakswap_floating.entry_mode, 'open-f2e-anchor');
+assert.equal(withF2eOpenRoot.edges.weakswap_floating.entry_required_capability, 'f2e');
+console.log('PASS F2E opens only its UF-slot-flipped weak root');
+
+const ff2eAnyBufferShotScramble = "B' R' D F2 L D F U B L U2 D2 L F2 R2 B2 D2 F2 L' B2 D2 Rw";
+const withoutFf2eShot = ssiCore.analyzeScramble(
+  ff2eAnyBufferShotScramble, '', 'weakswap', 1, 1, false, ['UFR'], weakThreeBuffers, 'f2e',
+);
+const withFf2eShot = ssiCore.analyzeScramble(
+  ff2eAnyBufferShotScramble, '', 'weakswap', 1, 1, false, ['UFR'], weakThreeBuffers, 'ff2e',
+);
+assert.equal(withoutFf2eShot.edge_algs, 7);
+assert.equal(withFf2eShot.edge_algs, 6);
+assert.equal(withFf2eShot.edges.weakswap_floating.entry_mode, 'open-ff2e-anchor');
+assert.equal(withFf2eShot.edges.weakswap_floating.entry_required_capability, 'ff2e');
+assert.ok(Number.isInteger(withFf2eShot.edges.weakswap_floating.entry_prefix_fixed_algs));
+console.log('PASS FF2E may close an odd weak prefix by shooting to a selected floating buffer');
 
 assert.equal(ssiCore.normalizeWeak2e2eCapability('none'), 'none');
 assert.equal(ssiCore.normalizeWeak2e2eCapability('2e2e'), '2e2e');
-assert.equal(ssiCore.normalizeWeak2e2eCapability('2e2e-prime'), '2e2e-prime');
+assert.equal(ssiCore.normalizeWeak2e2eCapability('f2e'), 'f2e');
+assert.equal(ssiCore.normalizeWeak2e2eCapability('ff2e'), 'ff2e');
+assert.equal(ssiCore.normalizeWeak2e2eCapability('2e2e-prime'), 'ff2e');
 assert.equal(ssiCore.normalizeWeak2e2eCapability(false), '2e2e', 'legacy false means basic');
-assert.equal(ssiCore.normalizeWeak2e2eCapability(true), '2e2e-prime', 'legacy true means maximal');
-assert.throws(() => ssiCore.normalizeWeak2e2eCapability('unknown'), /Unknown weak 2E2E capability/);
+assert.equal(ssiCore.normalizeWeak2e2eCapability(true), 'ff2e', 'legacy true means maximal');
+assert.throws(() => ssiCore.normalizeWeak2e2eCapability('unknown'), /Unknown edge finish capability/);
+assert.equal(cycleResidue.normalizeTerminalWeights({ f2e: 1.25 }).f2e, 1.25);
+assert.throws(() => cycleResidue.normalizeTerminalWeights({ f2e: 0.99 }), /from 1 to 2/);
+assert.throws(() => cycleResidue.normalizeTerminalWeights({ typo: 1 }), /Unknown terminal weight/);
 console.log('PASS JS weak algset capability hierarchy and legacy boolean compatibility');
 
 const literalTerminalScramble = "B' U' R2 D' R2 U2 L2 D' R2 B2 D R2 U' L' U F R U F R Rw Uw'";
@@ -269,15 +357,59 @@ assert.equal(weakLiteralTerminal.edge_algs, 3, 'literal 2E2E remains a legal fin
 assert.equal(pseudoIntermediateOnly.edge_algs, 6);
 assert.equal(
   weakIntermediateOnly.edge_algs,
-  6,
-  '2E2E cannot be used as an intermediate transition before further comms',
+  7,
+  'normal 2E2E cannot bypass a PF-only weak entry before further comms',
 );
 assert.equal(
   maximalIntermediateOnly.edge_algs,
   6,
-  '2E2E prime is also a terminal finish, not an intermediate transition',
+  'F2E/FF2E is also a terminal finish, not an intermediate transition',
 );
 console.log('PASS JS weak 2E2E is sticker-specific and terminal-only');
+
+const forcedUrWeakFloatingScramble = "D U R2' U' R2 U R2' D' R2 U R2' U' R2 U2 R2' S' R2 U2 R' E' R U2 R' E R S U' S' U' R' E' R2 E R' U S U";
+const weakFloatingOrder = ['UF', 'UR', 'UB', 'UL', 'FR', 'FL', 'DF', 'DB', 'DR', 'DL'];
+const forcedUrSingleton = ssiCore.analyzeScramble(
+  forcedUrWeakFloatingScramble,
+  '',
+  'weakswap',
+  1,
+  1,
+  false,
+  ['UFR'],
+  ['UF'],
+  'none',
+);
+assert.equal(forcedUrSingleton.edge_algs, 3);
+assert.equal(forcedUrSingleton.edges.weakswap_cycle.correct_ur_piece_flipped, true);
+assert.equal(forcedUrSingleton.edges.weakswap_cycle.forced_ur_break, true);
+for (let count = 2; count <= weakFloatingOrder.length; count += 1) {
+  const buffers = weakFloatingOrder.slice(0, count);
+  const none = ssiCore.analyzeScramble(
+    forcedUrWeakFloatingScramble, '', 'weakswap', 1, 1, false, ['UFR'], buffers, 'none',
+  );
+  const basic = ssiCore.analyzeScramble(
+    forcedUrWeakFloatingScramble, '', 'weakswap', 1, 1, false, ['UFR'], buffers, '2e2e',
+  );
+  const maximal = ssiCore.analyzeScramble(
+    forcedUrWeakFloatingScramble, '', 'weakswap', 1, 1, false, ['UFR'], buffers, 'ff2e',
+  );
+  assert.equal(none.edge_algs, 3, `forced UR must survive weak None at prefix ${count}`);
+  assert.equal(basic.edge_algs, 3, `normal 2E2E must not open a PF anchor at prefix ${count}`);
+  assert.equal(
+    maximal.edge_algs,
+    count >= 3 ? 2 : 3,
+    `FF2E PF entry at prefix ${count}`,
+  );
+  if (count >= 3) {
+    assert.equal(maximal.edges.weakswap_floating.entry_mode, 'open-ff2e-anchor');
+    assert.equal(
+      maximal.edges.weakswap_floating.entry_required_capability,
+      'ff2e',
+    );
+  }
+}
+console.log('PASS weak floating preserves forced UR unless FF2E opens the PF anchor');
 
 const pseudoswapPrimaryClosure = ssiCore.analyzeScramble(
   'U',
@@ -410,7 +542,23 @@ assert.equal(isCheckedInput(inputTagById('dnf')), true, 'Include DNFs should def
 assert.match(appHtml, /<input[^>]*name="finish-capability"[^>]*value="none"[^>]*checked[^>]*>/, 'Advanced should default to None');
 assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="none"[^>]*checked[^>]*>/, 'Weak floating should default to no assumed algset');
 assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="2e2e"[^>]*>/, 'Weak floating should expose normal 2E2E');
-assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="2e2e-prime"[^>]*>/, 'Weak floating should expose the hierarchical 2E2E prime capability');
+assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="f2e"[^>]*>/, 'Floating should expose F2E');
+assert.match(appHtml, /<input[^>]*name="weak-2e2e-capability"[^>]*value="ff2e"[^>]*>/, 'Floating should expose FF2E');
+assert.match(inputTagById('corner-floating-parity'), /type="checkbox"/, 'Floating should expose corner-floating parity');
+assert.match(inputTagById('ltef'), /type="checkbox"/, 'Weakswap should expose independent LTEF');
+for (const terminalWeightId of [
+  'weight-parity',
+  'weight-ltct',
+  'weight-t2c',
+  'weight-corner-floating-parity',
+  'weight-2e2e',
+  'weight-f2e',
+  'weight-ff2e',
+  'weight-ltef',
+]) {
+  assert.match(inputTagById(terminalWeightId), /min="1"/);
+  assert.match(inputTagById(terminalWeightId), /max="2"/);
+}
 assert.match(inputTagById('finish-t2c'), /\sdisabled/, 'T2C should start disabled outside full floating');
 assert.match(appHtml, /id="advanced-label">Advanced</, 'Advanced group label');
 assert.match(appHtml, /Partial floating \(advanced\)/, 'partial floating should be marked advanced');
@@ -741,3 +889,4 @@ require('./test_js_weighted_class_frontiers');
 require('./test_js_residue_planner');
 require('./test_js_selected_buffer_frontiers');
 require('./test_js_weakswap_floating_frontiers');
+require('./test_js_direct_state_expectations');

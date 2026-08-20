@@ -1,14 +1,14 @@
 self.importScripts(
-  './buffer-selection.js?v=slice-moves-v3',
-  './wide-move-translator.js?v=slice-moves-v3',
-  './scrambling.js?v=slice-moves-v3',
-  './corner-tracing.js?v=slice-moves-v3',
-  './edge-common.js?v=slice-moves-v3',
-  './cycle-model.js?v=slice-moves-v3',
-  './cycle-residue.js?v=slice-moves-v3',
-  './cycle-residue-planner.js?v=slice-moves-v3',
-  './finalizing.js?v=slice-moves-v3',
-  './ssi-core.js?v=slice-moves-v3',
+  './buffer-selection.js?v=terminal-families-v1',
+  './wide-move-translator.js?v=terminal-families-v1',
+  './scrambling.js?v=terminal-families-v1',
+  './corner-tracing.js?v=terminal-families-v1',
+  './edge-common.js?v=terminal-families-v1',
+  './cycle-model.js?v=terminal-families-v1',
+  './cycle-residue.js?v=terminal-families-v1',
+  './cycle-residue-planner.js?v=terminal-families-v1',
+  './finalizing.js?v=terminal-families-v1',
+  './ssi-core.js?v=terminal-families-v1',
 );
 
 const backend = self.SsiCore;
@@ -17,16 +17,8 @@ function rounded(value) {
   return Number(value.toFixed(5));
 }
 
-function getFinishSavedAlgs(breakdown) {
-  const saved = breakdown.finish_saved_algs ?? breakdown.ltct_saved_algs;
-  if (!Number.isFinite(saved)) {
-    throw new Error('Advanced comparison metadata is unavailable. Reload the page and try again.');
-  }
-  return saved;
-}
-
 self.onmessage = (event) => {
-    const { id, type, payload } = event.data;
+  const { id, type, payload } = event.data;
   try {
     if (type !== 'analyze') throw new Error(`Unknown worker message type: ${type}`);
     const finishCapability = backend.normalizeFinishCapability(
@@ -46,10 +38,21 @@ self.onmessage = (event) => {
       payload.cornerBuffers,
       payload.edgeBuffers,
       weak2e2eCapability,
+      payload.advancedOptions,
     );
 
     const hasFloatingComparison = payload.bufferMode !== 'standard';
-    const hasFinishComparison = finishCapability !== 'none';
+    const advancedOptions = payload.advancedOptions || {};
+    const hasFinishComparison = finishCapability !== 'none'
+      || Boolean(advancedOptions.corner_floating_parity)
+      || (advancedOptions.edge_finish_capability || 'none') !== 'none'
+      || Boolean(advancedOptions.ltef);
+    const noAdvancedOptions = {
+      corner_floating_parity: false,
+      edge_finish_capability: 'none',
+      ltef: false,
+      terminal_weights: advancedOptions.terminal_weights || {},
+    };
     let standardResult = null;
     let noFinishResult = null;
 
@@ -65,6 +68,7 @@ self.onmessage = (event) => {
         ['UFR'],
         ['UF'],
         'none',
+        noAdvancedOptions,
       );
     }
 
@@ -79,7 +83,8 @@ self.onmessage = (event) => {
         payload.dnf,
         payload.cornerBuffers,
         payload.edgeBuffers,
-        weak2e2eCapability,
+        'none',
+        noAdvancedOptions,
       );
     }
 
@@ -104,7 +109,7 @@ self.onmessage = (event) => {
         ? rounded(Math.max(0, standardResult[3] - (noFinishResult || result)[3]))
         : 0;
       const finishSavedAlgs = hasFinishComparison
-        ? result[9].reduce((sum, breakdown) => sum + getFinishSavedAlgs(breakdown), 0)
+        ? rounded(Math.max(0, noFinishResult[3] - result[3]))
         : 0;
       result[10] = {
         baseline_total_algs: baselineTotalAlgs,

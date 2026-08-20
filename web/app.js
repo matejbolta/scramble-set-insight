@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=slice-moves-v3');
+const worker = new Worker('./worker.js?v=terminal-families-v1');
 let requestId = 0;
 
 const {
@@ -20,7 +20,11 @@ const elements = {
   tracingOrientation: document.getElementById('tracing-orientation'),
   dnf: document.getElementById('dnf'),
   finishT2c: document.getElementById('finish-t2c'),
+  cornerFloatingParityOption: document.getElementById('corner-floating-parity-option'),
+  cornerFloatingParity: document.getElementById('corner-floating-parity'),
   weak2e2eCapabilityOption: document.getElementById('weak-2e2e-capability-option'),
+  ltefOption: document.getElementById('ltef-option'),
+  ltef: document.getElementById('ltef'),
   edgeMethodSettings: document.getElementById('edge-method-settings'),
   flipWeight: document.getElementById('flip-weight'),
   twistWeight: document.getElementById('twist-weight'),
@@ -63,6 +67,16 @@ const elements = {
   scrambleDialogNumber: document.getElementById('scramble-dialog-number'),
   scrambleDialogText: document.getElementById('scramble-dialog-text'),
   scrambleDialogClose: document.getElementById('scramble-dialog-close'),
+  terminalWeightInputs: Object.fromEntries([
+    'parity',
+    'ltct',
+    't2c',
+    'corner-floating-parity',
+    '2e2e',
+    'f2e',
+    'ff2e',
+    'ltef',
+  ].map((type) => [type, document.getElementById(`weight-${type}`)])),
 };
 
 const state = {
@@ -88,6 +102,12 @@ function getFinishCapability() {
 
 function getWeak2e2eCapability() {
   return document.querySelector('input[name="weak-2e2e-capability"]:checked').value;
+}
+
+function getTerminalWeights() {
+  return Object.fromEntries(Object.entries(elements.terminalWeightInputs).map(
+    ([type, input]) => [type, Number(input.value)],
+  ));
 }
 
 function setCheckedRadio(name, value) {
@@ -122,6 +142,11 @@ function getCurrentSettingsForStorage() {
     dnf: elements.dnf.checked,
     finishCapability: getFinishCapability(),
     weak2e2eCapability: getWeak2e2eCapability(),
+    cornerFloatingParity: elements.cornerFloatingParity.checked,
+    ltef: elements.ltef.checked,
+    terminalWeights: Object.fromEntries(Object.entries(elements.terminalWeightInputs).map(
+      ([type, input]) => [type, input.value],
+    )),
     tracingOrientation: elements.tracingOrientation.value,
     flipWeight: elements.flipWeight.value,
     twistWeight: elements.twistWeight.value,
@@ -160,9 +185,15 @@ function restoreSettings() {
   );
   setCheckedRadio(
     'weak-2e2e-capability',
-    saved.weak2e2eCapability
-      || (saved.weak2e2ePrime ? '2e2e-prime' : '2e2e'),
+    saved.weak2e2eCapability === '2e2e-prime'
+      ? 'ff2e'
+      : saved.weak2e2eCapability || (saved.weak2e2ePrime ? 'ff2e' : '2e2e'),
   );
+  elements.cornerFloatingParity.checked = Boolean(saved.cornerFloatingParity);
+  elements.ltef.checked = Boolean(saved.ltef);
+  for (const [type, input] of Object.entries(elements.terminalWeightInputs)) {
+    input.value = saved.terminalWeights?.[type] || '1';
+  }
   elements.tracingOrientation.value = saved.tracingOrientation || '';
   elements.flipWeight.value = saved.flipWeight || '1';
   elements.twistWeight.value = saved.twistWeight || '1';
@@ -255,13 +286,24 @@ function createPills(container, options, selectedValues, group) {
 function syncPills() {
   createPills(elements.cornerPills, CORNER_BUFFER_OPTIONS, selectedCornerBuffers(), 'corner');
   createPills(elements.edgePills, EDGE_BUFFER_OPTIONS, selectedEdgeBuffers(), 'edge');
-  const supportsWeak2e2e = getEdgeMethod() === 'weakswap'
-    && getBufferMode() !== 'standard'
-    && state.edgeBufferCount >= 3;
+  const selectedEdges = selectedEdgeBuffers();
+  const supportsWeak2e2e = getBufferMode() !== 'standard'
+    && selectedEdges.length >= 3
+    && selectedEdges.includes('UR');
   elements.weak2e2eCapabilityOption.classList.toggle('is-hidden', !supportsWeak2e2e);
   document.querySelectorAll('input[name="weak-2e2e-capability"]').forEach((input) => {
     input.disabled = !supportsWeak2e2e;
   });
+  const supportsCornerFloatingParity = getBufferMode() !== 'standard'
+    && state.cornerBufferCount >= 2;
+  elements.cornerFloatingParityOption.classList.toggle(
+    'is-hidden',
+    !supportsCornerFloatingParity,
+  );
+  elements.cornerFloatingParity.disabled = !supportsCornerFloatingParity;
+  const supportsLtef = getEdgeMethod() === 'weakswap';
+  elements.ltefOption.classList.toggle('is-hidden', !supportsLtef);
+  elements.ltef.disabled = !supportsLtef;
 }
 
 function selectBufferLevel(group, value) {
@@ -451,7 +493,7 @@ function renderAlgGrid(scrambleBreakdowns, showComparisons = false) {
       (result, index) => `
         <button class="alg-cell${result.dnf ? ' alg-cell--dnf' : ''}" type="button" data-scramble-index="${index}" aria-label="View scramble ${index + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${index + 1}${result.dnf ? ' (DNF)' : ''}">
           ${result.dnf ? '<span class="dnf-badge alg-cell__dnf">DNF</span>' : ''}
-          ${result.finish_type ? `<span class="metric-annotation alg-cell__finish">${result.finish_type.toUpperCase()}</span>` : ''}
+          ${result.finish_types?.length ? `<span class="metric-annotation alg-cell__finish">${result.finish_types.map(formatFinishType).join(' + ')}</span>` : ''}
           <div class="alg-cell__index">${index + 1}</div>
           <div class="alg-cell__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showComparisons)}</div>
           <div class="alg-cell__split" aria-label="${result.corner_algs} corner algs plus ${result.edge_algs} edge algs">
@@ -462,6 +504,11 @@ function renderAlgGrid(scrambleBreakdowns, showComparisons = false) {
         </button>`
     )
     .join('');
+}
+
+function formatFinishType(type) {
+  if (type === 'corner-floating-parity') return '2E2C';
+  return String(type).toUpperCase();
 }
 
 function renderMetricValue(actual, baseline, comparisonsEnabled, annotation = '') {
@@ -516,8 +563,8 @@ function renderBreakdown(scrambleBreakdowns) {
       <tr tabindex="0" data-scramble-index="${originalIndex}" aria-label="View scramble ${originalIndex + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${originalIndex + 1}${result.dnf ? ' (DNF)' : ''}">
         <td class="breakdown-results-table__index">${originalIndex + 1}</td>
         <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showSavings)}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
-        <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.corner_algs, result.baseline_corner_algs, showSavings, result.finish_type ? result.finish_type.toUpperCase() : '')}</strong></td>
-        <td><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.edge_algs, result.baseline_edge_algs, showSavings)}</strong></td>
+        <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.corner_algs, result.baseline_corner_algs, showSavings, result.finish_type ? formatFinishType(result.finish_type) : '')}</strong></td>
+        <td><strong class="metric-value breakdown-results-table__value">${renderMetricValue(result.edge_algs, result.baseline_edge_algs, showSavings, result.edge_finish_type ? formatFinishType(result.edge_finish_type) : '')}</strong></td>
         <td class="breakdown-results-table__minor breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${result.two_flips}</strong></td>
         <td class="breakdown-results-table__minor"><strong class="metric-value breakdown-results-table__value">${result.two_twists}</strong></td>
       </tr>`;
@@ -655,6 +702,12 @@ function collectSettings() {
   if (!Number.isFinite(twistWeight) || twistWeight < 1) {
     throw new Error('2-twist weight must be at least 1.');
   }
+  const terminalWeights = getTerminalWeights();
+  for (const [terminalType, weight] of Object.entries(terminalWeights)) {
+    if (!Number.isFinite(weight) || weight < 1 || weight > 2) {
+      throw new Error(`${terminalType} weight must be from 1 to 2.`);
+    }
+  }
 
   return {
     scrambles: elements.scrambleInput.value,
@@ -667,6 +720,15 @@ function collectSettings() {
     weak2e2eCapability: elements.weak2e2eCapabilityOption.classList.contains('is-hidden')
       ? 'none'
       : getWeak2e2eCapability(),
+    advancedOptions: {
+      corner_floating_parity: !elements.cornerFloatingParity.disabled
+        && elements.cornerFloatingParity.checked,
+      edge_finish_capability: elements.weak2e2eCapabilityOption.classList.contains('is-hidden')
+        ? 'none'
+        : getWeak2e2eCapability(),
+      ltef: !elements.ltef.disabled && elements.ltef.checked,
+      terminal_weights: terminalWeights,
+    },
     dnf: elements.dnf.checked,
     cornerBuffers,
     edgeBuffers,
@@ -744,7 +806,15 @@ function initialize() {
     });
   });
 
-  [elements.dnf, elements.tracingOrientation, elements.flipWeight, elements.twistWeight].forEach((input) => {
+  [
+    elements.dnf,
+    elements.tracingOrientation,
+    elements.flipWeight,
+    elements.twistWeight,
+    elements.cornerFloatingParity,
+    elements.ltef,
+    ...Object.values(elements.terminalWeightInputs),
+  ].forEach((input) => {
     input.addEventListener('input', saveSettings);
     input.addEventListener('change', saveSettings);
   });
