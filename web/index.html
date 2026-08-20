@@ -111,6 +111,10 @@
               <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="big-cube-orientation-setting">
                 <label class="field-label" for="big-cube-orientation">Sticker placed at UFR</label>
                 <select id="big-cube-orientation" class="text-input"></select>
+                <label class="checkbox-option is-hidden" id="compare-optimal-orientation-option">
+                  <input id="compare-optimal-orientation" type="checkbox" />
+                  <span>Compare with optimal</span>
+                </label>
               </div>
 
               <div class="parameter-subgroup parameter-subgroup--separated" id="edge-method-settings">
@@ -357,6 +361,10 @@
                 <span class="metric-label" id="finish-saved-label">Algsets saved</span>
                 <strong class="metric-value" id="stat-finish-saved">0</strong>
               </article>
+              <article class="metric-card is-hidden" id="orientation-missed-metric">
+                <span class="metric-label">Orientation missed</span>
+                <strong class="metric-value" id="stat-orientation-missed">0</strong>
+              </article>
             </div>
           </section>
 
@@ -401,6 +409,6 @@
     </dialog>
 
     <script src="./buffer-selection.js?v=buffer-order-v1"></script>
-    <script src="./app.js?v=fixed-ufr-t2c-v1" type="module"></script>
+    <script src="./app.js?v=big-cube-comparisons-v1" type="module"></script>
   </body>
 </html>

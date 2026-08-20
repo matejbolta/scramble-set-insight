@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=fixed-ufr-t2c-v1');
+const worker = new Worker('./worker.js?v=big-cube-comparisons-v1');
 let requestId = 0;
 
 const {
@@ -28,6 +28,8 @@ const elements = {
   threeByThreeOrientationSetting: document.getElementById('three-by-three-orientation-setting'),
   bigCubeOrientationSetting: document.getElementById('big-cube-orientation-setting'),
   bigCubeOrientation: document.getElementById('big-cube-orientation'),
+  compareOptimalOrientationOption: document.getElementById('compare-optimal-orientation-option'),
+  compareOptimalOrientation: document.getElementById('compare-optimal-orientation'),
   edgeBufferSubtitle: document.getElementById('edge-buffer-subtitle'),
   wingParitySettings: document.getElementById('wing-parity-settings'),
   dnf: document.getElementById('dnf'),
@@ -61,6 +63,8 @@ const elements = {
   statFinishSaved: document.getElementById('stat-finish-saved'),
   finishSavedLabel: document.getElementById('finish-saved-label'),
   finishSavedMetric: document.getElementById('finish-saved-metric'),
+  statOrientationMissed: document.getElementById('stat-orientation-missed'),
+  orientationMissedMetric: document.getElementById('orientation-missed-metric'),
   breakdownResultsTableShell: document.getElementById('breakdown-results-table-shell'),
   overviewCard: document.getElementById('overview-card'),
   breakdownCard: document.getElementById('breakdown-card'),
@@ -205,6 +209,7 @@ function getCurrentSettingsForStorage() {
     )),
     tracingOrientation: elements.tracingOrientation.value,
     bigCubeOrientation: elements.bigCubeOrientation.value,
+    compareOptimalOrientation: elements.compareOptimalOrientation.checked,
     wingParityCapability: getWingParityCapability(),
     flipWeight: elements.flipWeight.value,
     twistWeight: elements.twistWeight.value,
@@ -257,6 +262,7 @@ function restoreSettings() {
   elements.bigCubeOrientation.value = saved.bigCubeOrientation
     || saved.fourByFourOrientation
     || 'UFR';
+  elements.compareOptimalOrientation.checked = Boolean(saved.compareOptimalOrientation);
   setCheckedRadio('wing-parity-capability', saved.wingParityCapability || 'basic');
   elements.flipWeight.value = saved.flipWeight || '1';
   elements.twistWeight.value = saved.twistWeight || '1';
@@ -340,6 +346,7 @@ function updatePuzzleUI() {
   if (!isFourByFour && elements.bigCubeOrientation.value === 'optimal') {
     elements.bigCubeOrientation.value = 'UFR';
   }
+  syncOptimalOrientationComparisonUI();
   elements.wingParitySettings.classList.toggle('is-hidden', !isBigCube);
   elements.edgeBufferSubtitle.textContent = isFiveByFive ? 'Midge buffers' : 'Edge buffers';
   elements.edgeParityAlgsetLabel.textContent = isFiveByFive
@@ -352,6 +359,12 @@ function updatePuzzleUI() {
     : 'Paste from csTimer: Session Statistics / Round Statistics / ScrambleGenerator, or WCA archive';
   if (isFourByFour) state.edgeUbWithoutUr = false;
   updateBufferModeUI();
+}
+
+function syncOptimalOrientationComparisonUI() {
+  const available = getPuzzle() === '4x4' && elements.bigCubeOrientation.value !== 'optimal';
+  elements.compareOptimalOrientationOption.classList.toggle('is-hidden', !available);
+  elements.compareOptimalOrientation.disabled = !available;
 }
 
 function createPills(container, options, selectedValues, group) {
@@ -482,6 +495,8 @@ function resetResults() {
   elements.floatingSavedMetric.classList.add('is-hidden');
   elements.statFinishSaved.textContent = '0';
   elements.finishSavedMetric.classList.add('is-hidden');
+  elements.statOrientationMissed.textContent = '0';
+  elements.orientationMissedMetric.classList.add('is-hidden');
   elements.breakdownResultsTableShell.innerHTML = '';
   elements.distributionChart.className = 'distribution-chart empty-state';
   elements.distributionChart.textContent = 'Run an analysis to see the distribution.';
@@ -593,34 +608,39 @@ function renderAlgGrid(scrambleBreakdowns, showComparisons = false) {
       const isFiveByFive = result.puzzle === '5x5';
       const componentValues = isFiveByFive
         ? [
-            ['corner', result.corner_algs],
-            ['midge', result.midge_algs],
-            ['wing', result.wing_algs],
-            ['xcenter', result.xcenter_algs],
-            ['+center', result.pluscenter_algs],
+            ['corner', 'corner_algs'],
+            ['midge', 'midge_algs'],
+            ['wing', 'wing_algs'],
+            ['xcenter', 'xcenter_algs'],
+            ['+center', 'pluscenter_algs'],
           ]
         : isFourByFour
           ? [
-              ['corner', result.corner_algs],
-              ['wing', result.wing_algs],
-              ['xcenter', result.xcenter_algs],
+              ['corner', 'corner_algs'],
+              ['wing', 'wing_algs'],
+              ['xcenter', 'xcenter_algs'],
             ]
           : [
-              ['corner', result.corner_algs],
-              ['edge', result.edge_algs],
+              ['corner', 'corner_algs'],
+              ['edge', 'edge_algs'],
             ];
       const splitLabel = componentValues
-        .map(([label, value]) => `${value} ${label} algs`)
+        .map(([label, key]) => `${result[key]} ${label} algs`)
         .join(' plus ');
       const split = componentValues
-        .map(([, value]) => `<span>${value}</span>`)
+        .map(([, key]) => `<span>${isFourByFour || isFiveByFive
+          ? renderBigCubeMetric(result, key)
+          : result[key]}</span>`)
         .join('<span class="alg-cell__plus">+</span>');
+      const total = isFourByFour || isFiveByFive
+        ? renderBigCubeMetric(result, 'total_algs')
+        : renderMetricValue(result.total_algs, result.baseline_total_algs, showComparisons);
       return `
         <button class="alg-cell${result.dnf ? ' alg-cell--dnf' : ''}" type="button" data-scramble-index="${index}" aria-label="View scramble ${index + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${index + 1}${result.dnf ? ' (DNF)' : ''}">
           ${result.dnf ? '<span class="dnf-badge alg-cell__dnf">DNF</span>' : ''}
           ${result.finish_types?.length ? `<span class="metric-annotation alg-cell__finish">${result.finish_types.map(formatFinishType).join(' + ')}</span>` : ''}
           <div class="alg-cell__index">${index + 1}</div>
-          <div class="alg-cell__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showComparisons)}</div>
+          <div class="alg-cell__value">${total}</div>
           <div class="alg-cell__split" aria-label="${splitLabel}">${split}</div>
         </button>`;
     })
@@ -646,6 +666,25 @@ function renderMetricValue(actual, baseline, comparisonsEnabled, annotation = ''
     ${renderedValue}
     <span class="metric-annotation">${annotation}</span>
   </span>`;
+}
+
+function renderMetricSequence(values, format = String) {
+  const sequence = values
+    .filter(Number.isFinite)
+    .filter((value, index, all) => index === 0 || value !== all[index - 1]);
+  if (sequence.length <= 1) return format(sequence[0] ?? '');
+  return `<span class="metric-comparison">${sequence.map((value, index) => (
+    `${index ? '<span class="metric-comparison__arrow" aria-hidden="true">→</span>' : ''}`
+      + `<span${index === 0 ? ' class="metric-comparison__from"' : ''}>${format(value)}</span>`
+  )).join('')}</span>`;
+}
+
+function renderBigCubeMetric(result, key) {
+  return renderMetricSequence([
+    result[`finish_baseline_${key}`],
+    result[key],
+    result[`optimal_${key}`],
+  ]);
 }
 
 function getBreakdownSortValue(entry, key) {
@@ -760,11 +799,11 @@ function renderFourByFourBreakdown(scrambleBreakdowns) {
   const rows = sortedEntries.map(({ result, originalIndex }) => `
     <tr tabindex="0" data-scramble-index="${originalIndex}" aria-label="View scramble ${originalIndex + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${originalIndex + 1}${result.dnf ? ' (DNF)' : ''}">
       <td class="breakdown-results-table__index">${originalIndex + 1}</td>
-      <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${result.total_algs}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
-      <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${result.corner_algs}</strong></td>
-      <td><strong class="metric-value breakdown-results-table__value">${result.wing_algs}</strong></td>
-      <td><strong class="metric-value breakdown-results-table__value">${result.xcenter_algs}</strong></td>
-      <td class="breakdown-results-table__minor">${result.orientation.corner_sticker_at_UFR}</td>
+      <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'total_algs')}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
+      <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'corner_algs')}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'wing_algs')}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'xcenter_algs')}</strong></td>
+      <td class="breakdown-results-table__minor">${renderFourByFourOrientation(result)}</td>
       <td class="breakdown-results-table__minor">${result.wings.parity ? (result.wings.parity_finish === 'direct' ? 'direct' : 'via BUr') : '—'}</td>
     </tr>`).join('');
 
@@ -786,6 +825,14 @@ function renderFourByFourBreakdown(scrambleBreakdowns) {
   bindBreakdownSort(scrambleBreakdowns);
 }
 
+function renderFourByFourOrientation(result) {
+  const selected = result.orientation.corner_sticker_at_UFR;
+  const tied = result.optimal_orientation?.tied_optimal_stickers || [];
+  if (!result.optimal_orientation) return selected;
+  if (tied.includes(selected)) return `${selected} (optimal)`;
+  return `${selected} → ${result.optimal_orientation.corner_sticker_at_UFR}`;
+}
+
 function renderFiveByFiveBreakdown(scrambleBreakdowns) {
   const sortDirection = state.breakdownSort.direction === 'asc' ? 1 : -1;
   const sortedEntries = scrambleBreakdowns
@@ -798,12 +845,12 @@ function renderFiveByFiveBreakdown(scrambleBreakdowns) {
   const rows = sortedEntries.map(({ result, originalIndex }) => `
     <tr tabindex="0" data-scramble-index="${originalIndex}" aria-label="View scramble ${originalIndex + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${originalIndex + 1}${result.dnf ? ' (DNF)' : ''}">
       <td class="breakdown-results-table__index">${originalIndex + 1}</td>
-      <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${result.total_algs}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
-      <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${result.corner_algs}</strong></td>
-      <td><strong class="metric-value breakdown-results-table__value">${result.midge_algs}</strong></td>
-      <td><strong class="metric-value breakdown-results-table__value">${result.wing_algs}</strong></td>
-      <td><strong class="metric-value breakdown-results-table__value">${result.xcenter_algs}</strong></td>
-      <td><strong class="metric-value breakdown-results-table__value">${result.pluscenter_algs}</strong></td>
+      <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'total_algs')}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
+      <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'corner_algs')}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'midge_algs')}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'wing_algs')}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'xcenter_algs')}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${renderBigCubeMetric(result, 'pluscenter_algs')}</strong></td>
       <td class="breakdown-results-table__minor">${result.wings.parity ? (result.wings.parity_finish === 'direct' ? 'direct' : 'via BUr') : '—'}</td>
     </tr>`).join('');
 
@@ -826,12 +873,12 @@ function renderFiveByFiveBreakdown(scrambleBreakdowns) {
   bindBreakdownSort(scrambleBreakdowns);
 }
 
-function finishRenderingResult(distribution, scrambleBreakdowns) {
+function finishRenderingResult(distribution, scrambleBreakdowns, showComparisons = false) {
   state.breakdownSort = { key: 'index', direction: 'asc' };
   state.scrambleBreakdowns = scrambleBreakdowns;
   state.selectScramblesOnNextClick = true;
   renderBreakdown(scrambleBreakdowns);
-  renderAlgGrid(scrambleBreakdowns, false);
+  renderAlgGrid(scrambleBreakdowns, showComparisons);
   renderDistributionChart(distribution);
   applyResultSectionVisibility();
 
@@ -860,13 +907,34 @@ function renderBigCubeResult(result) {
   elements.resultsSection.classList.remove('is-hidden');
   elements.processedBanner.textContent = `Processed ${numberOfSolves} ${puzzleLabel} scramble${numberOfSolves === 1 ? '' : 's'}.`;
   elements.statSolves.textContent = String(numberOfSolves);
-  elements.statTotal.textContent = String(result.total_algs);
-  elements.statAverage.textContent = Number(result.average_algs).toFixed(2);
+  const comparison = result.comparison || {};
+  elements.statTotal.innerHTML = renderMetricSequence([
+    comparison.finish_baseline_total_algs,
+    result.total_algs,
+    comparison.optimal_total_algs,
+  ]);
+  elements.statAverage.innerHTML = renderMetricSequence([
+    comparison.finish_baseline_average_algs,
+    result.average_algs,
+    comparison.optimal_average_algs,
+  ], (value) => Number(value).toFixed(2));
   elements.twoFlipsMetric.classList.add('is-hidden');
   elements.twoTwistsMetric.classList.add('is-hidden');
   elements.floatingSavedMetric.classList.add('is-hidden');
-  elements.finishSavedMetric.classList.add('is-hidden');
-  finishRenderingResult(result.distribution, result.breakdowns);
+  elements.statFinishSaved.textContent = String(comparison.finish_saved_algs || 0);
+  elements.finishSavedLabel.textContent = comparison.finish_capability === 'none'
+    ? 'Algsets saved'
+    : `${String(comparison.finish_capability).toUpperCase()} saved`;
+  elements.finishSavedMetric.classList.toggle(
+    'is-hidden',
+    !comparison.has_finish_comparison || comparison.finish_saved_algs <= 0,
+  );
+  elements.statOrientationMissed.textContent = String(comparison.orientation_missed_algs || 0);
+  elements.orientationMissedMetric.classList.toggle(
+    'is-hidden',
+    !comparison.has_orientation_comparison,
+  );
+  finishRenderingResult(result.distribution, result.breakdowns, Boolean(result.comparison));
 }
 
 function renderResult(rawResult) {
@@ -907,6 +975,7 @@ function renderResult(rawResult) {
     ? 'Algsets saved'
     : `${finishCapability.toUpperCase()} saved`;
   elements.finishSavedMetric.classList.toggle('is-hidden', finishSavedAlgs <= 0);
+  elements.orientationMissedMetric.classList.add('is-hidden');
   state.breakdownSort = { key: 'index', direction: 'asc' };
   state.scrambleBreakdowns = scrambleBreakdowns;
   state.selectScramblesOnNextClick = true;
@@ -988,6 +1057,8 @@ function collectSettings() {
       twistWeight,
       finishCapability,
       wingParityCapability: getWingParityCapability(),
+      compareOptimalOrientation: !elements.compareOptimalOrientation.disabled
+        && elements.compareOptimalOrientation.checked,
       advancedOptions,
     };
   }
@@ -1111,7 +1182,7 @@ function initialize() {
   [
     elements.dnf,
     elements.tracingOrientation,
-    elements.bigCubeOrientation,
+    elements.compareOptimalOrientation,
     elements.flipWeight,
     elements.twistWeight,
     elements.cornerFloatingParity,
@@ -1120,6 +1191,11 @@ function initialize() {
   ].forEach((input) => {
     input.addEventListener('input', saveSettings);
     input.addEventListener('change', saveSettings);
+  });
+
+  elements.bigCubeOrientation.addEventListener('change', () => {
+    syncOptimalOrientationComparisonUI();
+    saveSettings();
   });
 
   document.querySelectorAll('input[name="finish-capability"]').forEach((input) => {

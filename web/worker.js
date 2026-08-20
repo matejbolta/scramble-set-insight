@@ -1,18 +1,18 @@
 self.importScripts(
-  './buffer-selection.js?v=fixed-ufr-t2c-v1',
-  './wide-move-translator.js?v=fixed-ufr-t2c-v1',
-  './scrambling.js?v=fixed-ufr-t2c-v1',
-  './corner-tracing.js?v=fixed-ufr-t2c-v1',
-  './edge-common.js?v=fixed-ufr-t2c-v1',
-  './cycle-model.js?v=fixed-ufr-t2c-v1',
-  './cycle-residue.js?v=fixed-ufr-t2c-v1',
-  './cycle-residue-planner.js?v=fixed-ufr-t2c-v1',
-  './finalizing.js?v=fixed-ufr-t2c-v1',
-  './big-cube-model.js?v=fixed-ufr-t2c-v1',
-  './big-cube-tracing.js?v=fixed-ufr-t2c-v1',
-  './four-by-four.js?v=fixed-ufr-t2c-v1',
-  './five-by-five.js?v=fixed-ufr-t2c-v1',
-  './ssi-core.js?v=fixed-ufr-t2c-v1',
+  './buffer-selection.js?v=big-cube-comparisons-v1',
+  './wide-move-translator.js?v=big-cube-comparisons-v1',
+  './scrambling.js?v=big-cube-comparisons-v1',
+  './corner-tracing.js?v=big-cube-comparisons-v1',
+  './edge-common.js?v=big-cube-comparisons-v1',
+  './cycle-model.js?v=big-cube-comparisons-v1',
+  './cycle-residue.js?v=big-cube-comparisons-v1',
+  './cycle-residue-planner.js?v=big-cube-comparisons-v1',
+  './finalizing.js?v=big-cube-comparisons-v1',
+  './big-cube-model.js?v=big-cube-comparisons-v1',
+  './big-cube-tracing.js?v=big-cube-comparisons-v1',
+  './four-by-four.js?v=big-cube-comparisons-v1',
+  './five-by-five.js?v=big-cube-comparisons-v1',
+  './ssi-core.js?v=big-cube-comparisons-v1',
 );
 
 const backend = self.SsiCore;
@@ -22,38 +22,96 @@ function rounded(value) {
   return Number(value.toFixed(5));
 }
 
+function bigCubeOptions(payload, overrides = {}) {
+  return {
+    dnf: payload.dnf,
+    orientedCornerSticker: payload.orientedCornerSticker,
+    cornerBuffers: payload.cornerBuffers,
+    cornerFinishCapability: payload.finishCapability,
+    cornerFloatingParity: payload.advancedOptions?.corner_floating_parity,
+    twistWeight: payload.twistWeight,
+    terminalWeights: payload.advancedOptions?.terminal_weights,
+    wingParityCapability: payload.wingParityCapability,
+    midgeBuffers: payload.midgeBuffers ?? payload.edgeBuffers,
+    midgeFinishCapability: payload.advancedOptions?.edge_finish_capability,
+    flipWeight: payload.flipWeight,
+    ...overrides,
+  };
+}
+
+function analyzeBigCubeSet(payload, overrides = {}) {
+  const options = bigCubeOptions(payload, overrides);
+  return payload.puzzle === '4x4'
+    ? bigCubeBackend.analyzeFourByFourSet(payload.scrambles, options)
+    : bigCubeBackend.analyzeFiveByFiveSet(payload.scrambles, options);
+}
+
+function attachBigCubeComparisons(result, noFinishResult, optimalResult, finishCapability) {
+  const componentKeys = result.puzzle === '4x4'
+    ? ['corner_algs', 'wing_algs', 'xcenter_algs']
+    : ['corner_algs', 'midge_algs', 'wing_algs', 'xcenter_algs', 'pluscenter_algs'];
+
+  result.breakdowns.forEach((breakdown, index) => {
+    const noFinish = noFinishResult?.breakdowns[index];
+    const optimal = optimalResult?.breakdowns[index];
+    if (noFinish) {
+      breakdown.finish_baseline_total_algs = noFinish.total_algs;
+      for (const key of componentKeys) breakdown[`finish_baseline_${key}`] = noFinish[key];
+    }
+    if (optimal) {
+      breakdown.optimal_total_algs = optimal.total_algs;
+      for (const key of componentKeys) breakdown[`optimal_${key}`] = optimal[key];
+      breakdown.optimal_orientation = optimal.orientation;
+    }
+  });
+
+  const hasFinishComparison = Boolean(noFinishResult);
+  const hasOrientationComparison = Boolean(optimalResult);
+  result.comparison = {
+    has_finish_comparison: hasFinishComparison,
+    finish_capability: finishCapability,
+    finish_baseline_total_algs: noFinishResult?.total_algs,
+    finish_baseline_average_algs: noFinishResult?.average_algs,
+    finish_saved_algs: hasFinishComparison
+      ? rounded(Math.max(0, noFinishResult.total_algs - result.total_algs))
+      : 0,
+    has_orientation_comparison: hasOrientationComparison,
+    optimal_total_algs: optimalResult?.total_algs,
+    optimal_average_algs: optimalResult?.average_algs,
+    orientation_missed_algs: hasOrientationComparison
+      ? rounded(Math.max(0, result.total_algs - optimalResult.total_algs))
+      : 0,
+  };
+}
+
 self.onmessage = (event) => {
   const { id, type, payload } = event.data;
   try {
     if (type !== 'analyze') throw new Error(`Unknown worker message type: ${type}`);
-    if (payload.puzzle === '4x4') {
-      const result = bigCubeBackend.analyzeFourByFourSet(payload.scrambles, {
-        dnf: payload.dnf,
-        orientedCornerSticker: payload.orientedCornerSticker,
-        cornerBuffers: payload.cornerBuffers,
-        cornerFinishCapability: payload.finishCapability,
-        cornerFloatingParity: payload.advancedOptions?.corner_floating_parity,
-        twistWeight: payload.twistWeight,
-        terminalWeights: payload.advancedOptions?.terminal_weights,
-        wingParityCapability: payload.wingParityCapability,
-      });
-      self.postMessage({ id, ok: true, result });
-      return;
-    }
-    if (payload.puzzle === '5x5') {
-      const result = bigCubeBackend.analyzeFiveByFiveSet(payload.scrambles, {
-        dnf: payload.dnf,
-        orientedCornerSticker: payload.orientedCornerSticker,
-        cornerBuffers: payload.cornerBuffers,
-        cornerFinishCapability: payload.finishCapability,
-        cornerFloatingParity: payload.advancedOptions?.corner_floating_parity,
-        twistWeight: payload.twistWeight,
-        midgeBuffers: payload.midgeBuffers ?? payload.edgeBuffers,
-        midgeFinishCapability: payload.advancedOptions?.edge_finish_capability,
-        flipWeight: payload.flipWeight,
-        terminalWeights: payload.advancedOptions?.terminal_weights,
-        wingParityCapability: payload.wingParityCapability,
-      });
+    if (payload.puzzle === '4x4' || payload.puzzle === '5x5') {
+      const result = analyzeBigCubeSet(payload);
+      const advancedOptions = payload.advancedOptions || {};
+      const hasFinishComparison = (payload.finishCapability || 'none') !== 'none'
+        || Boolean(advancedOptions.corner_floating_parity)
+        || (advancedOptions.edge_finish_capability || 'none') !== 'none';
+      const noFinishResult = hasFinishComparison
+        ? analyzeBigCubeSet(payload, {
+            cornerFinishCapability: 'none',
+            cornerFloatingParity: false,
+            midgeFinishCapability: 'none',
+          })
+        : null;
+      const optimalResult = payload.puzzle === '4x4'
+        && payload.compareOptimalOrientation
+        && payload.orientedCornerSticker !== 'optimal'
+        ? analyzeBigCubeSet(payload, { orientedCornerSticker: 'optimal' })
+        : null;
+      attachBigCubeComparisons(
+        result,
+        noFinishResult,
+        optimalResult,
+        payload.finishCapability || 'none',
+      );
       self.postMessage({ id, ok: true, result });
       return;
     }

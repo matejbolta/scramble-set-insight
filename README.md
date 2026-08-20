@@ -37,7 +37,9 @@ lowercase inner-slice shorthands, and `M / E / S`. The 5x5 parser additionally
 accepts triple-wide moves (`3Rw`, etc.) and lowercase `m / e / s`. Wing and
 center tracing are currently deterministic: there is no wing floating, and
 interchangeable center targets follow the documented non-U-first canonical
-order. Global center-target optimization and center floating are later steps.
+order. A fixed 4x4 orientation can be compared with the best of all 24
+orientations; weighted algset savings are reported for both big-cube MVPs.
+Global center-target optimization and center floating are later steps.
 
 T2C and LTCT are available in every corner-buffer mode, including fixed UFR;
 neither algset requires a secondary floating buffer. `F2E` adds the terminal

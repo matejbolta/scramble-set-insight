@@ -570,6 +570,8 @@ assert.doesNotMatch(appHtml, /Partial floating \(advanced\)/);
 assert.match(appHtml, /<span>UF–UR UFR–XYZ<\/span>/, 'classic parity should use its physical algset name');
 assert.match(appHtml, /<span>UF–UR 2E2E<\/span>/, '2E2E should identify its root swap');
 assert.match(appHtml, /<span>UFr–XYz<\/span>/, 'full wing parity should name a wing sticker');
+assert.match(inputTagById('compare-optimal-orientation'), /type="checkbox"/);
+assert.match(appHtml, /<span>Compare with optimal<\/span>/);
 assert.match(appHtml, /<summary class="field-label">Weights<\/summary>/, 'all weights should share one panel');
 for (const id of ['show-overview', 'show-breakdown', 'show-compact-breakdown', 'show-distribution']) {
   assert.equal(isCheckedInput(inputTagById(id)), true, `#${id} should default on`);
@@ -915,6 +917,55 @@ assert.equal(
   fourByFourWorkerResult.breakdowns[0].corner_algs
     + fourByFourWorkerResult.breakdowns[0].wing_algs
     + fourByFourWorkerResult.breakdowns[0].xcenter_algs,
+);
+assert.equal(fourByFourWorkerResult.comparison.has_finish_comparison, false);
+assert.equal(fourByFourWorkerResult.comparison.has_orientation_comparison, false);
+
+const weightedFourByFourLtct = runWorker({
+  puzzle: '4x4',
+  scrambles: "B' L' D2 F L2 F' U2 L2 F2 L2 F2 U2 F' D2 L' F U B R U2 R Fw' Uw'",
+  dnf: false,
+  orientedCornerSticker: 'UFR',
+  cornerBuffers: ['UFR'],
+  twistWeight: 1,
+  finishCapability: 'ltct',
+  wingParityCapability: 'basic',
+  advancedOptions: {
+    corner_floating_parity: false,
+    terminal_weights: { ltct: 1.99 },
+  },
+});
+assert.equal(weightedFourByFourLtct.breakdowns[0].corners.plan.finish.type, 'ltct');
+assert.equal(weightedFourByFourLtct.comparison.finish_saved_algs, 0.01);
+assert.equal(
+  Number((
+    weightedFourByFourLtct.breakdowns[0].finish_baseline_total_algs
+      - weightedFourByFourLtct.breakdowns[0].total_algs
+  ).toFixed(5)),
+  0.01,
+);
+
+const comparedFourByFourOrientation = runWorker({
+  puzzle: '4x4',
+  scrambles: ltctScramble,
+  dnf: false,
+  orientedCornerSticker: 'UFR',
+  compareOptimalOrientation: true,
+  cornerBuffers: ['UFR'],
+  twistWeight: 1,
+  finishCapability: 'none',
+  wingParityCapability: 'basic',
+  advancedOptions: {
+    corner_floating_parity: false,
+    terminal_weights: {},
+  },
+});
+assert.equal(comparedFourByFourOrientation.comparison.has_orientation_comparison, true);
+assert.equal(comparedFourByFourOrientation.comparison.orientation_missed_algs, 1);
+assert.equal(comparedFourByFourOrientation.breakdowns[0].optimal_total_algs, 22);
+assert.equal(
+  comparedFourByFourOrientation.breakdowns[0].optimal_orientation.candidates_checked,
+  24,
 );
 
 const fiveByFiveWorkerResult = runWorker({
