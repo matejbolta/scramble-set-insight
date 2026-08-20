@@ -11,8 +11,11 @@ Input a set of scrambles (for MBLD I suggest using csTimer's ScrambleGenerator, 
 It supports:
 
 - a 4x4 MVP with exact existing corner counting, UFr wing counting, Ubl/Ubr
-  xcenter counting, 24 selectable starting orientations, and basic or full
-  wing-parity finishes
+  xcenter counting, 24 selectable starting orientations (or an exact best-of-24
+  search per scramble), and basic or full wing-parity finishes
+- a 5x5 MVP with the same exact corner and wing models, exact pseudoswapped
+  midge counting, deterministic Ubl/Ubr xcenter and Ub/Ur +center counting,
+  and the same 24 starting orientations
 - weak swap and pseudo swap
 - corrected exact weighted UF/UFR pseudoswap counting, exact UFR corner
   counting with exact cycle-model singleton weakswap counting, and exact
@@ -29,12 +32,12 @@ It supports:
   independent weakswap-only LTEF option
 - independent runtime weights from 1 to 2 for every terminal algset
 
-The 4x4 MVP accepts ordinary and two-layer wide moves, cube rotations,
-lowercase inner-slice shorthands, and `M / E / S`. Wing and xcenter tracing are
-currently deterministic: there is no wing floating, and interchangeable
-xcenter targets follow the documented non-U-first canonical order. Global
-xcenter target optimization, center floating, and 5x5 counting are later
-steps.
+The 4x4 and 5x5 MVPs accept ordinary and two-layer wide moves, cube rotations,
+lowercase inner-slice shorthands, and `M / E / S`. The 5x5 parser additionally
+accepts triple-wide moves (`3Rw`, etc.) and lowercase `m / e / s`. Wing and
+center tracing are currently deterministic: there is no wing floating, and
+interchangeable center targets follow the documented non-U-first canonical
+order. Global center-target optimization and center floating are later steps.
 
 T2C is available with exact partial and full floating. Existing LTCT behavior
 remains available in every counting mode. `F2E` adds the terminal family whose

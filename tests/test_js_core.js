@@ -740,7 +740,10 @@ const workerMessages = [];
 global.self = {
   importScripts() {},
   SsiCore: ssiCore,
-  SsiCoreModules: require('../web/four-by-four'),
+  SsiCoreModules: {
+    ...require('../web/four-by-four'),
+    ...require('../web/five-by-five'),
+  },
   postMessage(message) {
     workerMessages.push(message);
   },
@@ -882,6 +885,38 @@ assert.equal(
     + fourByFourWorkerResult.breakdowns[0].xcenter_algs,
 );
 
+const fiveByFiveWorkerResult = runWorker({
+  puzzle: '5x5',
+  scrambles: "3Rw U2 F' Lw D B2 Uw' R m e'",
+  dnf: true,
+  orientedCornerSticker: 'LDF',
+  cornerBuffers: ['UFR', 'UFL'],
+  midgeBuffers: ['UF', 'UR', 'UB'],
+  flipWeight: 1.25,
+  twistWeight: 1.25,
+  finishCapability: 'ltct',
+  wingParityCapability: 'full',
+  advancedOptions: {
+    corner_floating_parity: true,
+    edge_finish_capability: '2e2e',
+    terminal_weights: {},
+  },
+});
+assert.equal(fiveByFiveWorkerResult.puzzle, '5x5');
+assert.equal(fiveByFiveWorkerResult.number_of_solves, 1);
+assert.equal(fiveByFiveWorkerResult.breakdowns[0].orientation.corner_sticker_at_UFR, 'LDF');
+assert.deepEqual(fiveByFiveWorkerResult.breakdowns[0].midges.buffers, ['UF', 'UR', 'UB']);
+assert.equal(
+  fiveByFiveWorkerResult.breakdowns[0].total_algs,
+  Number((
+    fiveByFiveWorkerResult.breakdowns[0].corner_algs
+      + fiveByFiveWorkerResult.breakdowns[0].midge_algs
+      + fiveByFiveWorkerResult.breakdowns[0].wing_algs
+      + fiveByFiveWorkerResult.breakdowns[0].xcenter_algs
+      + fiveByFiveWorkerResult.breakdowns[0].pluscenter_algs
+  ).toFixed(5)),
+);
+
 delete global.self;
 
 const appSource = fs.readFileSync(path.join(root, 'web', 'app.js'), 'utf8');
@@ -916,3 +951,4 @@ require('./test_js_selected_buffer_frontiers');
 require('./test_js_weakswap_floating_frontiers');
 require('./test_js_direct_state_expectations');
 require('./test_js_big_cube_model');
+require('./test_js_five_by_five');

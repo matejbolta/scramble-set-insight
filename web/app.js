@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=4x4-mvp-v1');
+const worker = new Worker('./worker.js?v=5x5-mvp-v1');
 let requestId = 0;
 
 const {
@@ -12,7 +12,7 @@ const {
 } = window.SsiBufferSelection;
 const LEGACY_CORNER_BUFFERS = ['UFR'];
 const LEGACY_EDGE_BUFFERS = ['UF'];
-const FOUR_BY_FOUR_ORIENTATION_STICKERS = [
+const BIG_CUBE_ORIENTATION_STICKERS = [
   'UFR', 'RUF', 'FUR', 'UBR', 'BUR', 'RUB',
   'UBL', 'LUB', 'BUL', 'UFL', 'FUL', 'LUF',
   'DFR', 'FDR', 'RDF', 'DFL', 'LDF', 'FDL',
@@ -26,8 +26,9 @@ const elements = {
   standardBufferLabel: document.getElementById('standard-buffer-label'),
   tracingOrientation: document.getElementById('tracing-orientation'),
   threeByThreeOrientationSetting: document.getElementById('three-by-three-orientation-setting'),
-  fourByFourOrientationSetting: document.getElementById('four-by-four-orientation-setting'),
-  fourByFourOrientation: document.getElementById('four-by-four-orientation'),
+  bigCubeOrientationSetting: document.getElementById('big-cube-orientation-setting'),
+  bigCubeOrientation: document.getElementById('big-cube-orientation'),
+  edgeBufferSubtitle: document.getElementById('edge-buffer-subtitle'),
   wingParitySettings: document.getElementById('wing-parity-settings'),
   dnf: document.getElementById('dnf'),
   finishT2c: document.getElementById('finish-t2c'),
@@ -110,6 +111,10 @@ function getEdgeMethod() {
   return document.querySelector('input[name="edge-method"]:checked').value;
 }
 
+function getEffectiveEdgeMethod() {
+  return getPuzzle() === '5x5' ? 'pseudoswap' : getEdgeMethod();
+}
+
 function getBufferMode() {
   return document.querySelector('input[name="buffer-mode"]:checked').value;
 }
@@ -141,7 +146,7 @@ function selectedCornerBuffers() {
   return cornerBuffersThroughCount(state.cornerBufferCount);
 }
 
-function selectedEdgeBuffers(edgeMethod = getEdgeMethod()) {
+function selectedEdgeBuffers(edgeMethod = getEffectiveEdgeMethod()) {
   return edgeBuffersThroughCount(
     state.edgeBufferCount,
     edgeMethod,
@@ -171,7 +176,7 @@ function getCurrentSettingsForStorage() {
       ([type, input]) => [type, input.value],
     )),
     tracingOrientation: elements.tracingOrientation.value,
-    fourByFourOrientation: elements.fourByFourOrientation.value,
+    bigCubeOrientation: elements.bigCubeOrientation.value,
     wingParityCapability: getWingParityCapability(),
     flipWeight: elements.flipWeight.value,
     twistWeight: elements.twistWeight.value,
@@ -221,7 +226,9 @@ function restoreSettings() {
     input.value = saved.terminalWeights?.[type] || '1';
   }
   elements.tracingOrientation.value = saved.tracingOrientation || '';
-  elements.fourByFourOrientation.value = saved.fourByFourOrientation || 'UFR';
+  elements.bigCubeOrientation.value = saved.bigCubeOrientation
+    || saved.fourByFourOrientation
+    || 'UFR';
   setCheckedRadio('wing-parity-capability', saved.wingParityCapability || 'basic');
   elements.flipWeight.value = saved.flipWeight || '1';
   elements.twistWeight.value = saved.twistWeight || '1';
@@ -254,7 +261,8 @@ function restoreSettings() {
     EDGE_BUFFER_OPTIONS,
     saved.edgeBuffers,
   );
-  state.edgeUbWithoutUr = getEdgeMethod() === 'pseudoswap'
+  const restoredEdgeMethod = saved.puzzle === '5x5' ? 'pseudoswap' : getEdgeMethod();
+  state.edgeUbWithoutUr = restoredEdgeMethod === 'pseudoswap'
     && state.edgeBufferCount === 3
     && (saved.edgeUbWithoutUr === true || isPseudoswapUbException(saved.edgeBuffers));
 }
@@ -262,13 +270,15 @@ function restoreSettings() {
 function updateBufferModeUI() {
   const mode = getBufferMode();
   const isFourByFour = getPuzzle() === '4x4';
+  const isBigCube = getPuzzle() !== '3x3';
+  const effectiveEdgeMethod = getEffectiveEdgeMethod();
   const supportsT2c = mode === 'full' || mode === 'partial';
   elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
-  elements.edgeMethodSettings.classList.toggle('is-hidden', isFourByFour);
+  elements.edgeMethodSettings.classList.toggle('is-hidden', isBigCube);
   elements.edgeBufferSubgroup.classList.toggle('is-hidden', isFourByFour);
   elements.edgeBufferExceptionHint.classList.toggle(
     'is-hidden',
-    isFourByFour || getEdgeMethod() !== 'pseudoswap',
+    isFourByFour || effectiveEdgeMethod !== 'pseudoswap',
   );
   elements.finishT2c.disabled = !supportsT2c;
   if (!supportsT2c && getFinishCapability() === 't2c') {
@@ -283,7 +293,7 @@ function updateBufferModeUI() {
     state.cornerBufferCount = CORNER_BUFFER_OPTIONS.length;
     state.edgeBufferCount = EDGE_BUFFER_OPTIONS.length;
     state.edgeUbWithoutUr = false;
-  } else if (getEdgeMethod() === 'weakswap' && state.edgeUbWithoutUr) {
+  } else if (effectiveEdgeMethod === 'weakswap' && state.edgeUbWithoutUr) {
     state.edgeUbWithoutUr = false;
   }
 
@@ -292,18 +302,31 @@ function updateBufferModeUI() {
 }
 
 function updatePuzzleUI() {
-  const isFourByFour = getPuzzle() === '4x4';
+  const puzzle = getPuzzle();
+  const isFourByFour = puzzle === '4x4';
+  const isFiveByFive = puzzle === '5x5';
+  const isBigCube = isFourByFour || isFiveByFive;
   elements.standardBufferLabel.textContent = isFourByFour ? 'UFR' : 'UF/UFR';
-  elements.threeByThreeOrientationSetting.classList.toggle('is-hidden', isFourByFour);
-  elements.fourByFourOrientationSetting.classList.toggle('is-hidden', !isFourByFour);
-  elements.wingParitySettings.classList.toggle('is-hidden', !isFourByFour);
+  elements.threeByThreeOrientationSetting.classList.toggle('is-hidden', isBigCube);
+  elements.bigCubeOrientationSetting.classList.toggle('is-hidden', !isBigCube);
+  const optimalOrientationOption = elements.bigCubeOrientation
+    .querySelector('option[value="optimal"]');
+  if (optimalOrientationOption) {
+    optimalOrientationOption.disabled = !isFourByFour;
+    optimalOrientationOption.hidden = !isFourByFour;
+  }
+  if (!isFourByFour && elements.bigCubeOrientation.value === 'optimal') {
+    elements.bigCubeOrientation.value = 'UFR';
+  }
+  elements.wingParitySettings.classList.toggle('is-hidden', !isBigCube);
+  elements.edgeBufferSubtitle.textContent = isFiveByFive ? 'Midge buffers' : 'Edge buffers';
   elements.flipWeightSetting.classList.toggle('is-hidden', isFourByFour);
   elements.edgeTerminalWeights.forEach((element) => {
     element.classList.toggle('is-hidden', isFourByFour);
   });
-  elements.loadExampleButton.classList.toggle('is-hidden', isFourByFour);
-  elements.scrambleInput.placeholder = isFourByFour
-    ? 'Paste one or more 4×4 scrambles'
+  elements.loadExampleButton.classList.toggle('is-hidden', isBigCube);
+  elements.scrambleInput.placeholder = isBigCube
+    ? `Paste one or more ${isFourByFour ? '4×4' : '5×5'} scrambles`
     : 'Paste from csTimer: Session Statistics / Round Statistics / ScrambleGenerator, or WCA archive';
   if (isFourByFour) state.edgeUbWithoutUr = false;
   updateBufferModeUI();
@@ -324,7 +347,7 @@ function createPills(container, options, selectedValues, group) {
     if (
       group === 'edge'
       && option === 'UR'
-      && getEdgeMethod() === 'pseudoswap'
+      && getEffectiveEdgeMethod() === 'pseudoswap'
       && state.edgeBufferCount === 3
     ) {
       button.title = 'Toggle the UF + UB without UR exception';
@@ -354,7 +377,7 @@ function syncPills() {
     !supportsCornerFloatingParity,
   );
   elements.cornerFloatingParity.disabled = !supportsCornerFloatingParity;
-  const supportsLtef = !isFourByFour && getEdgeMethod() === 'weakswap';
+  const supportsLtef = getPuzzle() === '3x3' && getEdgeMethod() === 'weakswap';
   elements.ltefOption.classList.toggle('is-hidden', !supportsLtef);
   elements.ltef.disabled = !supportsLtef;
 }
@@ -366,7 +389,7 @@ function selectBufferLevel(group, value) {
     const selection = selectEdgeBufferLevel(
       state.edgeBufferCount,
       state.edgeUbWithoutUr,
-      getEdgeMethod(),
+      getEffectiveEdgeMethod(),
       value,
     );
     state.edgeBufferCount = selection.count;
@@ -544,12 +567,31 @@ function renderAlgGrid(scrambleBreakdowns, showComparisons = false) {
   elements.algGrid.innerHTML = scrambleBreakdowns
     .map((result, index) => {
       const isFourByFour = result.puzzle === '4x4';
-      const splitLabel = isFourByFour
-        ? `${result.corner_algs} corner algs plus ${result.wing_algs} wing algs plus ${result.xcenter_algs} xcenter algs`
-        : `${result.corner_algs} corner algs plus ${result.edge_algs} edge algs`;
-      const split = isFourByFour
-        ? `<span>${result.corner_algs}</span><span class="alg-cell__plus">+</span><span>${result.wing_algs}</span><span class="alg-cell__plus">+</span><span>${result.xcenter_algs}</span>`
-        : `<span>${result.corner_algs}</span><span class="alg-cell__plus">+</span><span>${result.edge_algs}</span>`;
+      const isFiveByFive = result.puzzle === '5x5';
+      const componentValues = isFiveByFive
+        ? [
+            ['corner', result.corner_algs],
+            ['midge', result.midge_algs],
+            ['wing', result.wing_algs],
+            ['xcenter', result.xcenter_algs],
+            ['+center', result.pluscenter_algs],
+          ]
+        : isFourByFour
+          ? [
+              ['corner', result.corner_algs],
+              ['wing', result.wing_algs],
+              ['xcenter', result.xcenter_algs],
+            ]
+          : [
+              ['corner', result.corner_algs],
+              ['edge', result.edge_algs],
+            ];
+      const splitLabel = componentValues
+        .map(([label, value]) => `${value} ${label} algs`)
+        .join(' plus ');
+      const split = componentValues
+        .map(([, value]) => `<span>${value}</span>`)
+        .join('<span class="alg-cell__plus">+</span>');
       return `
         <button class="alg-cell${result.dnf ? ' alg-cell--dnf' : ''}" type="button" data-scramble-index="${index}" aria-label="View scramble ${index + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${index + 1}${result.dnf ? ' (DNF)' : ''}">
           ${result.dnf ? '<span class="dnf-badge alg-cell__dnf">DNF</span>' : ''}
@@ -606,6 +648,10 @@ function renderBreakdownSortHeader(label, key, className = '', accessibleLabel =
 function renderBreakdown(scrambleBreakdowns) {
   if (scrambleBreakdowns[0]?.puzzle === '4x4') {
     renderFourByFourBreakdown(scrambleBreakdowns);
+    return;
+  }
+  if (scrambleBreakdowns[0]?.puzzle === '5x5') {
+    renderFiveByFiveBreakdown(scrambleBreakdowns);
     return;
   }
   const sortDirection = state.breakdownSort.direction === 'asc' ? 1 : -1;
@@ -695,6 +741,7 @@ function renderFourByFourBreakdown(scrambleBreakdowns) {
       <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${result.corner_algs}</strong></td>
       <td><strong class="metric-value breakdown-results-table__value">${result.wing_algs}</strong></td>
       <td><strong class="metric-value breakdown-results-table__value">${result.xcenter_algs}</strong></td>
+      <td class="breakdown-results-table__minor">${result.orientation.corner_sticker_at_UFR}</td>
       <td class="breakdown-results-table__minor">${result.wings.parity ? (result.wings.parity_finish === 'direct' ? 'direct' : 'via BUr') : '—'}</td>
     </tr>`).join('');
 
@@ -707,6 +754,47 @@ function renderFourByFourBreakdown(scrambleBreakdowns) {
           ${renderBreakdownSortHeader('Corner algs', 'corner_algs', 'breakdown-results-table__group-start')}
           ${renderBreakdownSortHeader('Wing algs', 'wing_algs')}
           ${renderBreakdownSortHeader('Xcenter algs', 'xcenter_algs')}
+          <th class="breakdown-results-table__minor" scope="col">Orientation</th>
+          <th class="breakdown-results-table__minor" scope="col">Wing parity</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  bindBreakdownSort(scrambleBreakdowns);
+}
+
+function renderFiveByFiveBreakdown(scrambleBreakdowns) {
+  const sortDirection = state.breakdownSort.direction === 'asc' ? 1 : -1;
+  const sortedEntries = scrambleBreakdowns
+    .map((result, originalIndex) => ({ result, originalIndex }))
+    .sort((first, second) => {
+      const difference = getBreakdownSortValue(first, state.breakdownSort.key)
+        - getBreakdownSortValue(second, state.breakdownSort.key);
+      return difference ? difference * sortDirection : first.originalIndex - second.originalIndex;
+    });
+  const rows = sortedEntries.map(({ result, originalIndex }) => `
+    <tr tabindex="0" data-scramble-index="${originalIndex}" aria-label="View scramble ${originalIndex + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${originalIndex + 1}${result.dnf ? ' (DNF)' : ''}">
+      <td class="breakdown-results-table__index">${originalIndex + 1}</td>
+      <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${result.total_algs}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
+      <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${result.corner_algs}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${result.midge_algs}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${result.wing_algs}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${result.xcenter_algs}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${result.pluscenter_algs}</strong></td>
+      <td class="breakdown-results-table__minor">${result.wings.parity ? (result.wings.parity_finish === 'direct' ? 'direct' : 'via BUr') : '—'}</td>
+    </tr>`).join('');
+
+  elements.breakdownResultsTableShell.innerHTML = `
+    <table class="breakdown-results-table breakdown-results-table--indexed" aria-label="Per-scramble 5x5 breakdown">
+      <thead>
+        <tr>
+          ${renderBreakdownSortHeader('#', 'index', 'breakdown-results-table__index', 'scramble number')}
+          ${renderBreakdownSortHeader('Algs', 'total_algs', 'breakdown-results-table__primary')}
+          ${renderBreakdownSortHeader('Corner algs', 'corner_algs', 'breakdown-results-table__group-start')}
+          ${renderBreakdownSortHeader('Midge algs', 'midge_algs')}
+          ${renderBreakdownSortHeader('Wing algs', 'wing_algs')}
+          ${renderBreakdownSortHeader('Xcenter algs', 'xcenter_algs')}
+          ${renderBreakdownSortHeader('+center algs', 'pluscenter_algs')}
           <th class="breakdown-results-table__minor" scope="col">Wing parity</th>
         </tr>
       </thead>
@@ -743,10 +831,11 @@ function finishRenderingResult(distribution, scrambleBreakdowns) {
   });
 }
 
-function renderFourByFourResult(result) {
+function renderBigCubeResult(result) {
   const numberOfSolves = result.number_of_solves;
+  const puzzleLabel = result.puzzle === '5x5' ? '5×5' : '4×4';
   elements.resultsSection.classList.remove('is-hidden');
-  elements.processedBanner.textContent = `Processed ${numberOfSolves} 4×4 scramble${numberOfSolves === 1 ? '' : 's'}.`;
+  elements.processedBanner.textContent = `Processed ${numberOfSolves} ${puzzleLabel} scramble${numberOfSolves === 1 ? '' : 's'}.`;
   elements.statSolves.textContent = String(numberOfSolves);
   elements.statTotal.textContent = String(result.total_algs);
   elements.statAverage.textContent = Number(result.average_algs).toFixed(2);
@@ -758,8 +847,8 @@ function renderFourByFourResult(result) {
 }
 
 function renderResult(rawResult) {
-  if (!Array.isArray(rawResult) && rawResult?.puzzle === '4x4') {
-    renderFourByFourResult(rawResult);
+  if (!Array.isArray(rawResult) && ['4x4', '5x5'].includes(rawResult?.puzzle)) {
+    renderBigCubeResult(rawResult);
     return;
   }
   const [
@@ -831,9 +920,11 @@ function collectSettings() {
 
   if (!cornerBuffers.length) throw new Error('Select at least one corner buffer.');
   if (!cornerBuffers.includes('UFR')) throw new Error('Corner buffer selection must include UFR.');
-  if (puzzle === '3x3') {
+  if (puzzle !== '4x4') {
     if (!edgeBuffers.length) throw new Error('Select at least one edge buffer.');
-    if (!edgeBuffers.includes('UF')) throw new Error('Edge buffer selection must include UF.');
+    if (!edgeBuffers.includes('UF')) {
+      throw new Error(`${puzzle === '5x5' ? 'Midge' : 'Edge'} buffer selection must include UF.`);
+    }
   }
 
   const finishCapability = getFinishCapability();
@@ -845,7 +936,7 @@ function collectSettings() {
 
   const flipWeight = Number(elements.flipWeight.value);
   const twistWeight = Number(elements.twistWeight.value);
-  if (puzzle === '3x3' && (!Number.isFinite(flipWeight) || flipWeight < 1)) {
+  if (puzzle !== '4x4' && (!Number.isFinite(flipWeight) || flipWeight < 1)) {
     throw new Error('2-flip weight must be at least 1.');
   }
   if (!Number.isFinite(twistWeight) || twistWeight < 1) {
@@ -874,8 +965,25 @@ function collectSettings() {
       scrambles: elements.scrambleInput.value,
       bufferMode,
       dnf: elements.dnf.checked,
-      orientedCornerSticker: elements.fourByFourOrientation.value,
+      orientedCornerSticker: elements.bigCubeOrientation.value,
       cornerBuffers,
+      twistWeight,
+      finishCapability,
+      wingParityCapability: getWingParityCapability(),
+      advancedOptions,
+    };
+  }
+
+  if (puzzle === '5x5') {
+    return {
+      puzzle,
+      scrambles: elements.scrambleInput.value,
+      bufferMode,
+      dnf: elements.dnf.checked,
+      orientedCornerSticker: elements.bigCubeOrientation.value,
+      cornerBuffers,
+      midgeBuffers: edgeBuffers,
+      flipWeight,
       twistWeight,
       finishCapability,
       wingParityCapability: getWingParityCapability(),
@@ -949,9 +1057,11 @@ async function loadExample() {
 function initialize() {
   initializeTheme();
   resetResults();
-  elements.fourByFourOrientation.innerHTML = FOUR_BY_FOUR_ORIENTATION_STICKERS
-    .map((sticker) => `<option value="${sticker}">${sticker}</option>`)
-    .join('');
+  elements.bigCubeOrientation.innerHTML = [
+    ...BIG_CUBE_ORIENTATION_STICKERS
+      .map((sticker) => `<option value="${sticker}">${sticker}</option>`),
+    '<option value="optimal">Optimal (check all 24)</option>',
+  ].join('');
   restoreSettings();
   syncPills();
   updatePuzzleUI();
@@ -983,7 +1093,7 @@ function initialize() {
   [
     elements.dnf,
     elements.tracingOrientation,
-    elements.fourByFourOrientation,
+    elements.bigCubeOrientation,
     elements.flipWeight,
     elements.twistWeight,
     elements.cornerFloatingParity,

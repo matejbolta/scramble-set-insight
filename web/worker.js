@@ -1,16 +1,18 @@
 self.importScripts(
-  './buffer-selection.js?v=4x4-mvp-v1',
-  './wide-move-translator.js?v=4x4-mvp-v1',
-  './scrambling.js?v=4x4-mvp-v1',
-  './corner-tracing.js?v=4x4-mvp-v1',
-  './edge-common.js?v=4x4-mvp-v1',
-  './cycle-model.js?v=4x4-mvp-v1',
-  './cycle-residue.js?v=4x4-mvp-v1',
-  './cycle-residue-planner.js?v=4x4-mvp-v1',
-  './finalizing.js?v=4x4-mvp-v1',
-  './big-cube-model.js?v=4x4-mvp-v1',
-  './four-by-four.js?v=4x4-mvp-v1',
-  './ssi-core.js?v=4x4-mvp-v1',
+  './buffer-selection.js?v=5x5-mvp-v1',
+  './wide-move-translator.js?v=5x5-mvp-v1',
+  './scrambling.js?v=5x5-mvp-v1',
+  './corner-tracing.js?v=5x5-mvp-v1',
+  './edge-common.js?v=5x5-mvp-v1',
+  './cycle-model.js?v=5x5-mvp-v1',
+  './cycle-residue.js?v=5x5-mvp-v1',
+  './cycle-residue-planner.js?v=5x5-mvp-v1',
+  './finalizing.js?v=5x5-mvp-v1',
+  './big-cube-model.js?v=5x5-mvp-v1',
+  './big-cube-tracing.js?v=5x5-mvp-v1',
+  './four-by-four.js?v=5x5-mvp-v1',
+  './five-by-five.js?v=5x5-mvp-v1',
+  './ssi-core.js?v=5x5-mvp-v1',
 );
 
 const backend = self.SsiCore;
@@ -32,6 +34,23 @@ self.onmessage = (event) => {
         cornerFinishCapability: payload.finishCapability,
         cornerFloatingParity: payload.advancedOptions?.corner_floating_parity,
         twistWeight: payload.twistWeight,
+        terminalWeights: payload.advancedOptions?.terminal_weights,
+        wingParityCapability: payload.wingParityCapability,
+      });
+      self.postMessage({ id, ok: true, result });
+      return;
+    }
+    if (payload.puzzle === '5x5') {
+      const result = bigCubeBackend.analyzeFiveByFiveSet(payload.scrambles, {
+        dnf: payload.dnf,
+        orientedCornerSticker: payload.orientedCornerSticker,
+        cornerBuffers: payload.cornerBuffers,
+        cornerFinishCapability: payload.finishCapability,
+        cornerFloatingParity: payload.advancedOptions?.corner_floating_parity,
+        twistWeight: payload.twistWeight,
+        midgeBuffers: payload.midgeBuffers ?? payload.edgeBuffers,
+        midgeFinishCapability: payload.advancedOptions?.edge_finish_capability,
+        flipWeight: payload.flipWeight,
         terminalWeights: payload.advancedOptions?.terminal_weights,
         wingParityCapability: payload.wingParityCapability,
       });

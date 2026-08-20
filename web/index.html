@@ -76,7 +76,7 @@
                   <div class="pill-grid" id="corner-pills"></div>
                 </div>
                 <div class="buffer-subgroup" id="edge-buffer-subgroup">
-                  <div class="buffer-subtitle">Edge buffers</div>
+                  <div class="buffer-subtitle" id="edge-buffer-subtitle">Edge buffers</div>
                   <div class="pill-grid" id="edge-pills"></div>
                   <p class="buffer-order-hint" id="edge-buffer-exception-hint">Pseudo swap only: with UB as the last buffer, click UR to toggle the UF + UB exception.</p>
                 </div>
@@ -94,6 +94,10 @@
                   <input type="radio" name="puzzle" value="4x4" />
                   <span>4×4 MVP</span>
                 </label>
+                <label class="radio-option">
+                  <input type="radio" name="puzzle" value="5x5" />
+                  <span>5×5 MVP</span>
+                </label>
               </div>
 
               <div class="compact-setting-row parameter-subgroup--separated" id="three-by-three-orientation-setting">
@@ -104,9 +108,9 @@
                 </div>
               </div>
 
-              <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="four-by-four-orientation-setting">
-                <label class="field-label" for="four-by-four-orientation">Sticker placed at UFR</label>
-                <select id="four-by-four-orientation" class="text-input"></select>
+              <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="big-cube-orientation-setting">
+                <label class="field-label" for="big-cube-orientation">Sticker placed at UFR</label>
+                <select id="big-cube-orientation" class="text-input"></select>
               </div>
 
               <div class="parameter-subgroup parameter-subgroup--separated" id="edge-method-settings">
@@ -370,6 +374,6 @@
     </dialog>
 
     <script src="./buffer-selection.js?v=buffer-order-v1"></script>
-    <script src="./app.js?v=4x4-mvp-v1" type="module"></script>
+    <script src="./app.js?v=5x5-mvp-v1" type="module"></script>
   </body>
 </html>
