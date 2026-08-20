@@ -11,25 +11,38 @@
 
   const {
     buildBigCubeState,
-    CORNER_STICKERS,
+    countWingTrace,
     decomposeCornerState,
     extractBigCubeScrambleRecords,
+    isPseudoswapUbException,
     normalizeCornerBuffers,
-    planCornerStateBySelectedBuffers,
-    chooseXcenterTarget,
-    countWingTrace,
+    normalizeEdgeBuffers,
+    normalizeWeak2e2eCapability,
     normalizeWingParityCapability,
-    solvedWingState,
+    planCornerStateBySelectedBuffers,
+    planEdgeStateBySelectedBuffers,
+    tracePluscenterState,
     traceWingState,
     traceXcenterState,
-    wingGoalState,
-    WING_BUFFER,
-    WING_PARITY_TARGET,
-    XCENTER_BUFFER,
-    XCENTER_HELPER,
   } = deps;
 
-  function normalizeFourByFourOptions(options = {}) {
+  function normalizeFiveByFiveOptions(options = {}) {
+    const midgeBuffers = normalizeEdgeBuffers(
+      options.midge_buffers
+        ?? options.midgeBuffers
+        ?? options.edge_buffers
+        ?? options.edgeBuffers
+        ?? ['UF'],
+      'pseudoswap',
+    );
+    const requestedMidgeCapability = normalizeWeak2e2eCapability(
+      options.midge_finish_capability
+        ?? options.midgeFinishCapability
+        ?? options.edge_finish_capability
+        ?? options.edgeFinishCapability
+        ?? 'none',
+    );
+    const pseudoException = isPseudoswapUbException(midgeBuffers);
     return {
       oriented_corner_sticker: options.oriented_corner_sticker
         ?? options.orientedCornerSticker
@@ -44,6 +57,11 @@
         options.corner_floating_parity ?? options.cornerFloatingParity,
       ),
       twist_weight: options.twist_weight ?? options.twistWeight ?? 1,
+      midge_buffers: midgeBuffers,
+      midge_finish_capability: midgeBuffers.length >= 3 && !pseudoException
+        ? requestedMidgeCapability
+        : 'none',
+      flip_weight: options.flip_weight ?? options.flipWeight ?? 1,
       terminal_weights: options.terminal_weights ?? options.terminalWeights ?? {},
       wing_parity_capability: normalizeWingParityCapability(
         options.wing_parity_capability ?? options.wingParityCapability,
@@ -51,11 +69,16 @@
     };
   }
 
-  function analyzeFourByFourAtOrientation(scramble, normalized, orientedCornerSticker) {
+  function rounded(value) {
+    return Number(value.toFixed(5));
+  }
+
+  function analyzeFiveByFive(scramble, options = {}) {
+    const normalized = normalizeFiveByFiveOptions(options);
     const state = buildBigCubeState(
       scramble,
-      4,
-      orientedCornerSticker,
+      5,
+      normalized.oriented_corner_sticker,
     );
     const cornerPlan = planCornerStateBySelectedBuffers(
       state.corners,
@@ -66,26 +89,43 @@
       normalized.terminal_weights,
     );
     const cornerParity = Boolean(decomposeCornerState(state.corners).permutation_parity);
+    const midgePlan = planEdgeStateBySelectedBuffers(
+      state.midges,
+      cornerParity,
+      normalized.midge_buffers,
+      normalized.flip_weight,
+      normalized.midge_finish_capability,
+      normalized.terminal_weights,
+    );
     const wingTrace = traceWingState(state.wings, cornerParity);
     const wingCount = countWingTrace(wingTrace, normalized.wing_parity_capability);
     const xcenterTrace = traceXcenterState(state.xcenters);
+    const pluscenterTrace = tracePluscenterState(state.pluscenters);
     const cornerAlgs = rounded(cornerPlan.total_algs);
-    const totalAlgs = rounded(cornerAlgs + wingCount.algs + xcenterTrace.algs);
+    const midgeAlgs = rounded(midgePlan.total_algs);
+    const totalAlgs = rounded(
+      cornerAlgs
+      + midgeAlgs
+      + wingCount.algs
+      + xcenterTrace.algs
+      + pluscenterTrace.algs,
+    );
 
     return {
-      puzzle: '4x4',
+      puzzle: '5x5',
       scramble,
       orientation: {
-        corner_sticker_at_UFR: orientedCornerSticker,
+        corner_sticker_at_UFR: normalized.oriented_corner_sticker,
         tracing_orientation: state.tracing_orientation,
-        selection: 'fixed',
       },
       normalized_moves: [...state.normalized_moves],
       executed_moves: [...state.executed_moves],
       total_algs: totalAlgs,
       corner_algs: cornerAlgs,
+      midge_algs: midgeAlgs,
       wing_algs: wingCount.algs,
       xcenter_algs: xcenterTrace.algs,
+      pluscenter_algs: pluscenterTrace.algs,
       corner_parity: cornerParity,
       corners: {
         buffers: normalized.corner_buffers,
@@ -93,51 +133,26 @@
         floating_parity: normalized.corner_floating_parity,
         plan: cornerPlan,
       },
+      midges: {
+        buffers: normalized.midge_buffers,
+        finish_capability: normalized.midge_finish_capability,
+        plan: midgePlan,
+      },
       wings: {
         ...wingTrace,
         ...wingCount,
       },
       xcenters: xcenterTrace,
+      pluscenters: pluscenterTrace,
     };
   }
 
-  function analyzeFourByFour(scramble, options = {}) {
-    const normalized = normalizeFourByFourOptions(options);
-    if (normalized.oriented_corner_sticker !== 'optimal') {
-      return analyzeFourByFourAtOrientation(
-        scramble,
-        normalized,
-        normalized.oriented_corner_sticker,
-      );
-    }
-
-    const candidates = CORNER_STICKERS.map((sticker) => (
-      analyzeFourByFourAtOrientation(scramble, normalized, sticker)
-    ));
-    const minimumAlgs = Math.min(...candidates.map((candidate) => candidate.total_algs));
-    const optimalStickers = candidates
-      .filter((candidate) => candidate.total_algs === minimumAlgs)
-      .map((candidate) => candidate.orientation.corner_sticker_at_UFR);
-    const chosen = candidates.find((candidate) => candidate.total_algs === minimumAlgs);
-    chosen.orientation = {
-      ...chosen.orientation,
-      selection: 'optimal',
-      candidates_checked: candidates.length,
-      tied_optimal_stickers: optimalStickers,
-    };
-    return chosen;
-  }
-
-  function rounded(value) {
-    return Number(value.toFixed(5));
-  }
-
-  function analyzeFourByFourSet(text, options = {}) {
+  function analyzeFiveByFiveSet(text, options = {}) {
     const includeDnfs = Boolean(options.dnf ?? options.includeDnfs);
-    const records = extractBigCubeScrambleRecords(text, includeDnfs, 4);
-    if (!records.length) throw new Error('No valid 4x4 scrambles found.');
+    const records = extractBigCubeScrambleRecords(text, includeDnfs, 5);
+    if (!records.length) throw new Error('No valid 5x5 scrambles found.');
     const breakdowns = records.map((record) => ({
-      ...analyzeFourByFour(record.scramble, options),
+      ...analyzeFiveByFive(record.scramble, options),
       dnf: record.dnf,
     }));
     const distribution = {};
@@ -151,35 +166,26 @@
     );
     const totalAlgs = rounded(breakdowns.reduce((sum, result) => sum + result.total_algs, 0));
     return {
-      puzzle: '4x4',
+      puzzle: '5x5',
       number_of_solves: breakdowns.length,
       distribution: sortedDistribution,
       average_algs: breakdowns.length ? rounded(totalAlgs / breakdowns.length) : 0,
       total_algs: totalAlgs,
       total_corner_algs: rounded(breakdowns.reduce((sum, result) => sum + result.corner_algs, 0)),
+      total_midge_algs: rounded(breakdowns.reduce((sum, result) => sum + result.midge_algs, 0)),
       total_wing_algs: rounded(breakdowns.reduce((sum, result) => sum + result.wing_algs, 0)),
       total_xcenter_algs: rounded(breakdowns.reduce((sum, result) => sum + result.xcenter_algs, 0)),
+      total_pluscenter_algs: rounded(
+        breakdowns.reduce((sum, result) => sum + result.pluscenter_algs, 0),
+      ),
       breakdowns,
     };
   }
 
   const api = {
-    analyzeFourByFour,
-    analyzeFourByFourAtOrientation,
-    analyzeFourByFourSet,
-    chooseXcenterTarget,
-    countWingTrace,
-    extractBigCubeScrambleRecords,
-    normalizeFourByFourOptions,
-    normalizeWingParityCapability,
-    solvedWingState,
-    traceWingState,
-    traceXcenterState,
-    wingGoalState,
-    WING_BUFFER,
-    WING_PARITY_TARGET,
-    XCENTER_BUFFER,
-    XCENTER_HELPER,
+    analyzeFiveByFive,
+    analyzeFiveByFiveSet,
+    normalizeFiveByFiveOptions,
   };
 
   global.SsiCoreModules = global.SsiCoreModules || {};

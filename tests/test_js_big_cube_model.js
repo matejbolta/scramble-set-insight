@@ -8,6 +8,7 @@ const SOLVED_COLOR_MULTISET = 'BBBBDDDDFFFFLLLLRRRRUUUU';
 function assertStateInvariant(state) {
   assert.equal(new Set(Object.values(state.corners)).size, 24);
   assert.equal(new Set(Object.values(state.wings)).size, 24);
+  if (state.size === 5) assert.equal(new Set(Object.values(state.midges)).size, 24);
   assert.equal(Object.values(state.xcenters).sort().join(''), SOLVED_COLOR_MULTISET);
   if (state.size === 5) {
     assert.equal(Object.values(state.pluscenters).sort().join(''), SOLVED_COLOR_MULTISET);
@@ -17,6 +18,9 @@ function assertStateInvariant(state) {
 function assertSolved(state) {
   for (const [location, value] of Object.entries(state.corners)) assert.equal(value, location);
   for (const [location, value] of Object.entries(state.wings)) assert.equal(value, location);
+  if (state.midges) {
+    for (const [location, value] of Object.entries(state.midges)) assert.equal(value, location);
+  }
   for (const [location, value] of Object.entries(state.xcenters)) assert.equal(value, location[0]);
   if (state.pluscenters) {
     for (const [location, value] of Object.entries(state.pluscenters)) assert.equal(value, location[0]);
@@ -206,6 +210,25 @@ assert.equal(solvedAnalysis.total_algs, 0);
 assert.equal(solvedAnalysis.corner_algs, 0);
 assert.equal(solvedAnalysis.wing_algs, 0);
 assert.equal(solvedAnalysis.xcenter_algs, 0);
+
+const orientationScramble = "Rw U2 F' Lw D B2 Uw' R";
+const explicitOrientationResults = bigCube.CORNER_STICKERS.map((sticker) => (
+  fourByFour.analyzeFourByFour(orientationScramble, {
+    orientedCornerSticker: sticker,
+  })
+));
+const optimalOrientationResult = fourByFour.analyzeFourByFour(
+  orientationScramble,
+  { orientedCornerSticker: 'optimal' },
+);
+assert.equal(
+  optimalOrientationResult.total_algs,
+  Math.min(...explicitOrientationResults.map((result) => result.total_algs)),
+);
+assert.equal(optimalOrientationResult.orientation.selection, 'optimal');
+assert.equal(optimalOrientationResult.orientation.candidates_checked, 24);
+assert.equal(optimalOrientationResult.orientation.corner_sticker_at_UFR, 'FDL');
+assert.deepEqual(optimalOrientationResult.orientation.tied_optimal_stickers, ['FDL']);
 
 const setAnalysis = fourByFour.analyzeFourByFourSet(
   "1. Rw U2 F'\n2. DNF(12.34) Uw R2 @ 2026-08-20 12:00:00",
