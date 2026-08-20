@@ -1,4 +1,4 @@
-const worker = new Worker('./worker.js?v=terminal-families-v1');
+const worker = new Worker('./worker.js?v=4x4-mvp-v1');
 let requestId = 0;
 
 const {
@@ -12,12 +12,23 @@ const {
 } = window.SsiBufferSelection;
 const LEGACY_CORNER_BUFFERS = ['UFR'];
 const LEGACY_EDGE_BUFFERS = ['UF'];
+const FOUR_BY_FOUR_ORIENTATION_STICKERS = [
+  'UFR', 'RUF', 'FUR', 'UBR', 'BUR', 'RUB',
+  'UBL', 'LUB', 'BUL', 'UFL', 'FUL', 'LUF',
+  'DFR', 'FDR', 'RDF', 'DFL', 'LDF', 'FDL',
+  'DBR', 'RDB', 'BDR', 'DBL', 'BDL', 'LDB',
+];
 const THEME_STORAGE_KEY = 'ssi-theme';
 const SETTINGS_STORAGE_KEY = 'ssi-settings';
 
 const elements = {
   scrambleInput: document.getElementById('scramble-input'),
+  standardBufferLabel: document.getElementById('standard-buffer-label'),
   tracingOrientation: document.getElementById('tracing-orientation'),
+  threeByThreeOrientationSetting: document.getElementById('three-by-three-orientation-setting'),
+  fourByFourOrientationSetting: document.getElementById('four-by-four-orientation-setting'),
+  fourByFourOrientation: document.getElementById('four-by-four-orientation'),
+  wingParitySettings: document.getElementById('wing-parity-settings'),
   dnf: document.getElementById('dnf'),
   finishT2c: document.getElementById('finish-t2c'),
   cornerFloatingParityOption: document.getElementById('corner-floating-parity-option'),
@@ -26,6 +37,8 @@ const elements = {
   ltefOption: document.getElementById('ltef-option'),
   ltef: document.getElementById('ltef'),
   edgeMethodSettings: document.getElementById('edge-method-settings'),
+  edgeBufferSubgroup: document.getElementById('edge-buffer-subgroup'),
+  flipWeightSetting: document.getElementById('flip-weight-setting'),
   flipWeight: document.getElementById('flip-weight'),
   twistWeight: document.getElementById('twist-weight'),
   actionRow: document.getElementById('action-row'),
@@ -77,6 +90,7 @@ const elements = {
     'ff2e',
     'ltef',
   ].map((type) => [type, document.getElementById(`weight-${type}`)])),
+  edgeTerminalWeights: [...document.querySelectorAll('.edge-terminal-weight')],
 };
 
 const state = {
@@ -87,6 +101,10 @@ const state = {
   scrambleBreakdowns: [],
   selectScramblesOnNextClick: false,
 };
+
+function getPuzzle() {
+  return document.querySelector('input[name="puzzle"]:checked').value;
+}
 
 function getEdgeMethod() {
   return document.querySelector('input[name="edge-method"]:checked').value;
@@ -102,6 +120,10 @@ function getFinishCapability() {
 
 function getWeak2e2eCapability() {
   return document.querySelector('input[name="weak-2e2e-capability"]:checked').value;
+}
+
+function getWingParityCapability() {
+  return document.querySelector('input[name="wing-parity-capability"]:checked').value;
 }
 
 function getTerminalWeights() {
@@ -134,6 +156,7 @@ function savedBufferCount(value, options, fallbackBuffers) {
 
 function getCurrentSettingsForStorage() {
   return {
+    puzzle: getPuzzle(),
     edgeMethod: getEdgeMethod(),
     bufferMode: getBufferMode(),
     cornerBufferCount: state.cornerBufferCount,
@@ -148,6 +171,8 @@ function getCurrentSettingsForStorage() {
       ([type, input]) => [type, input.value],
     )),
     tracingOrientation: elements.tracingOrientation.value,
+    fourByFourOrientation: elements.fourByFourOrientation.value,
+    wingParityCapability: getWingParityCapability(),
     flipWeight: elements.flipWeight.value,
     twistWeight: elements.twistWeight.value,
     resultSections: {
@@ -176,6 +201,7 @@ function restoreSettings() {
   const saved = readSavedSettings();
   if (!saved) return;
 
+  setCheckedRadio('puzzle', saved.puzzle || '3x3');
   setCheckedRadio('edge-method', saved.edgeMethod);
   setCheckedRadio('buffer-mode', saved.bufferMode);
   elements.dnf.checked = Boolean(saved.dnf);
@@ -195,6 +221,8 @@ function restoreSettings() {
     input.value = saved.terminalWeights?.[type] || '1';
   }
   elements.tracingOrientation.value = saved.tracingOrientation || '';
+  elements.fourByFourOrientation.value = saved.fourByFourOrientation || 'UFR';
+  setCheckedRadio('wing-parity-capability', saved.wingParityCapability || 'basic');
   elements.flipWeight.value = saved.flipWeight || '1';
   elements.twistWeight.value = saved.twistWeight || '1';
 
@@ -233,10 +261,15 @@ function restoreSettings() {
 
 function updateBufferModeUI() {
   const mode = getBufferMode();
+  const isFourByFour = getPuzzle() === '4x4';
   const supportsT2c = mode === 'full' || mode === 'partial';
   elements.partialBuffers.classList.toggle('is-hidden', mode !== 'partial');
-  elements.edgeMethodSettings.classList.remove('is-hidden');
-  elements.edgeBufferExceptionHint.classList.toggle('is-hidden', getEdgeMethod() !== 'pseudoswap');
+  elements.edgeMethodSettings.classList.toggle('is-hidden', isFourByFour);
+  elements.edgeBufferSubgroup.classList.toggle('is-hidden', isFourByFour);
+  elements.edgeBufferExceptionHint.classList.toggle(
+    'is-hidden',
+    isFourByFour || getEdgeMethod() !== 'pseudoswap',
+  );
   elements.finishT2c.disabled = !supportsT2c;
   if (!supportsT2c && getFinishCapability() === 't2c') {
     setCheckedRadio('finish-capability', 'ltct');
@@ -256,6 +289,24 @@ function updateBufferModeUI() {
 
   syncPills();
   saveSettings();
+}
+
+function updatePuzzleUI() {
+  const isFourByFour = getPuzzle() === '4x4';
+  elements.standardBufferLabel.textContent = isFourByFour ? 'UFR' : 'UF/UFR';
+  elements.threeByThreeOrientationSetting.classList.toggle('is-hidden', isFourByFour);
+  elements.fourByFourOrientationSetting.classList.toggle('is-hidden', !isFourByFour);
+  elements.wingParitySettings.classList.toggle('is-hidden', !isFourByFour);
+  elements.flipWeightSetting.classList.toggle('is-hidden', isFourByFour);
+  elements.edgeTerminalWeights.forEach((element) => {
+    element.classList.toggle('is-hidden', isFourByFour);
+  });
+  elements.loadExampleButton.classList.toggle('is-hidden', isFourByFour);
+  elements.scrambleInput.placeholder = isFourByFour
+    ? 'Paste one or more 4×4 scrambles'
+    : 'Paste from csTimer: Session Statistics / Round Statistics / ScrambleGenerator, or WCA archive';
+  if (isFourByFour) state.edgeUbWithoutUr = false;
+  updateBufferModeUI();
 }
 
 function createPills(container, options, selectedValues, group) {
@@ -284,10 +335,12 @@ function createPills(container, options, selectedValues, group) {
 }
 
 function syncPills() {
+  const isFourByFour = getPuzzle() === '4x4';
   createPills(elements.cornerPills, CORNER_BUFFER_OPTIONS, selectedCornerBuffers(), 'corner');
   createPills(elements.edgePills, EDGE_BUFFER_OPTIONS, selectedEdgeBuffers(), 'edge');
   const selectedEdges = selectedEdgeBuffers();
-  const supportsWeak2e2e = getBufferMode() !== 'standard'
+  const supportsWeak2e2e = !isFourByFour
+    && getBufferMode() !== 'standard'
     && selectedEdges.length >= 3
     && selectedEdges.includes('UR');
   elements.weak2e2eCapabilityOption.classList.toggle('is-hidden', !supportsWeak2e2e);
@@ -301,7 +354,7 @@ function syncPills() {
     !supportsCornerFloatingParity,
   );
   elements.cornerFloatingParity.disabled = !supportsCornerFloatingParity;
-  const supportsLtef = getEdgeMethod() === 'weakswap';
+  const supportsLtef = !isFourByFour && getEdgeMethod() === 'weakswap';
   elements.ltefOption.classList.toggle('is-hidden', !supportsLtef);
   elements.ltef.disabled = !supportsLtef;
 }
@@ -489,20 +542,23 @@ function renderAlgGrid(scrambleBreakdowns, showComparisons = false) {
 
   elements.algGrid.className = 'alg-grid';
   elements.algGrid.innerHTML = scrambleBreakdowns
-    .map(
-      (result, index) => `
+    .map((result, index) => {
+      const isFourByFour = result.puzzle === '4x4';
+      const splitLabel = isFourByFour
+        ? `${result.corner_algs} corner algs plus ${result.wing_algs} wing algs plus ${result.xcenter_algs} xcenter algs`
+        : `${result.corner_algs} corner algs plus ${result.edge_algs} edge algs`;
+      const split = isFourByFour
+        ? `<span>${result.corner_algs}</span><span class="alg-cell__plus">+</span><span>${result.wing_algs}</span><span class="alg-cell__plus">+</span><span>${result.xcenter_algs}</span>`
+        : `<span>${result.corner_algs}</span><span class="alg-cell__plus">+</span><span>${result.edge_algs}</span>`;
+      return `
         <button class="alg-cell${result.dnf ? ' alg-cell--dnf' : ''}" type="button" data-scramble-index="${index}" aria-label="View scramble ${index + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${index + 1}${result.dnf ? ' (DNF)' : ''}">
           ${result.dnf ? '<span class="dnf-badge alg-cell__dnf">DNF</span>' : ''}
           ${result.finish_types?.length ? `<span class="metric-annotation alg-cell__finish">${result.finish_types.map(formatFinishType).join(' + ')}</span>` : ''}
           <div class="alg-cell__index">${index + 1}</div>
           <div class="alg-cell__value">${renderMetricValue(result.total_algs, result.baseline_total_algs, showComparisons)}</div>
-          <div class="alg-cell__split" aria-label="${result.corner_algs} corner algs plus ${result.edge_algs} edge algs">
-            <span>${result.corner_algs}</span>
-            <span class="alg-cell__plus">+</span>
-            <span>${result.edge_algs}</span>
-          </div>
-        </button>`
-    )
+          <div class="alg-cell__split" aria-label="${splitLabel}">${split}</div>
+        </button>`;
+    })
     .join('');
 }
 
@@ -548,6 +604,10 @@ function renderBreakdownSortHeader(label, key, className = '', accessibleLabel =
 }
 
 function renderBreakdown(scrambleBreakdowns) {
+  if (scrambleBreakdowns[0]?.puzzle === '4x4') {
+    renderFourByFourBreakdown(scrambleBreakdowns);
+    return;
+  }
   const sortDirection = state.breakdownSort.direction === 'asc' ? 1 : -1;
   const sortedEntries = scrambleBreakdowns
     .map((result, originalIndex) => ({ result, originalIndex }))
@@ -593,6 +653,10 @@ function renderBreakdown(scrambleBreakdowns) {
       <tbody>${rows}</tbody>
     </table>`;
 
+  bindBreakdownSort(scrambleBreakdowns);
+}
+
+function bindBreakdownSort(scrambleBreakdowns) {
   elements.breakdownResultsTableShell
     .querySelectorAll('[data-breakdown-sort]')
     .forEach((button) => {
@@ -615,7 +679,89 @@ function renderBreakdown(scrambleBreakdowns) {
     });
 }
 
+function renderFourByFourBreakdown(scrambleBreakdowns) {
+  const sortDirection = state.breakdownSort.direction === 'asc' ? 1 : -1;
+  const sortedEntries = scrambleBreakdowns
+    .map((result, originalIndex) => ({ result, originalIndex }))
+    .sort((first, second) => {
+      const difference = getBreakdownSortValue(first, state.breakdownSort.key)
+        - getBreakdownSortValue(second, state.breakdownSort.key);
+      return difference ? difference * sortDirection : first.originalIndex - second.originalIndex;
+    });
+  const rows = sortedEntries.map(({ result, originalIndex }) => `
+    <tr tabindex="0" data-scramble-index="${originalIndex}" aria-label="View scramble ${originalIndex + 1}${result.dnf ? ', DNF' : ''}" title="View scramble ${originalIndex + 1}${result.dnf ? ' (DNF)' : ''}">
+      <td class="breakdown-results-table__index">${originalIndex + 1}</td>
+      <td class="breakdown-results-table__primary"><span class="breakdown-results-table__primary-content"><strong class="metric-value breakdown-results-table__value">${result.total_algs}</strong>${result.dnf ? '<span class="dnf-badge">DNF</span>' : ''}</span></td>
+      <td class="breakdown-results-table__group-start"><strong class="metric-value breakdown-results-table__value">${result.corner_algs}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${result.wing_algs}</strong></td>
+      <td><strong class="metric-value breakdown-results-table__value">${result.xcenter_algs}</strong></td>
+      <td class="breakdown-results-table__minor">${result.wings.parity ? (result.wings.parity_finish === 'direct' ? 'direct' : 'via BUr') : '—'}</td>
+    </tr>`).join('');
+
+  elements.breakdownResultsTableShell.innerHTML = `
+    <table class="breakdown-results-table breakdown-results-table--indexed" aria-label="Per-scramble 4x4 breakdown">
+      <thead>
+        <tr>
+          ${renderBreakdownSortHeader('#', 'index', 'breakdown-results-table__index', 'scramble number')}
+          ${renderBreakdownSortHeader('Algs', 'total_algs', 'breakdown-results-table__primary')}
+          ${renderBreakdownSortHeader('Corner algs', 'corner_algs', 'breakdown-results-table__group-start')}
+          ${renderBreakdownSortHeader('Wing algs', 'wing_algs')}
+          ${renderBreakdownSortHeader('Xcenter algs', 'xcenter_algs')}
+          <th class="breakdown-results-table__minor" scope="col">Wing parity</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  bindBreakdownSort(scrambleBreakdowns);
+}
+
+function finishRenderingResult(distribution, scrambleBreakdowns) {
+  state.breakdownSort = { key: 'index', direction: 'asc' };
+  state.scrambleBreakdowns = scrambleBreakdowns;
+  state.selectScramblesOnNextClick = true;
+  renderBreakdown(scrambleBreakdowns);
+  renderAlgGrid(scrambleBreakdowns, false);
+  renderDistributionChart(distribution);
+  applyResultSectionVisibility();
+
+  requestAnimationFrame(() => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const preferredScrollTop = window.scrollY + elements.actionRow.getBoundingClientRect().top - 20;
+    const visibleResultCards = [
+      elements.overviewCard,
+      elements.breakdownCard,
+      elements.compactBreakdownCard,
+      elements.distributionCard,
+    ].filter((card) => !card.classList.contains('is-hidden'));
+    const lastVisibleResult = visibleResultCards.at(-1) || elements.processedBanner;
+    const resultBottom = window.scrollY + lastVisibleResult.getBoundingClientRect().bottom;
+    const maximumScrollTop = Math.max(0, resultBottom - window.innerHeight);
+    window.scrollTo({
+      top: Math.max(0, Math.min(preferredScrollTop, maximumScrollTop)),
+      behavior: reducedMotion ? 'auto' : 'smooth',
+    });
+  });
+}
+
+function renderFourByFourResult(result) {
+  const numberOfSolves = result.number_of_solves;
+  elements.resultsSection.classList.remove('is-hidden');
+  elements.processedBanner.textContent = `Processed ${numberOfSolves} 4×4 scramble${numberOfSolves === 1 ? '' : 's'}.`;
+  elements.statSolves.textContent = String(numberOfSolves);
+  elements.statTotal.textContent = String(result.total_algs);
+  elements.statAverage.textContent = Number(result.average_algs).toFixed(2);
+  elements.twoFlipsMetric.classList.add('is-hidden');
+  elements.twoTwistsMetric.classList.add('is-hidden');
+  elements.floatingSavedMetric.classList.add('is-hidden');
+  elements.finishSavedMetric.classList.add('is-hidden');
+  finishRenderingResult(result.distribution, result.breakdowns);
+}
+
 function renderResult(rawResult) {
+  if (!Array.isArray(rawResult) && rawResult?.puzzle === '4x4') {
+    renderFourByFourResult(rawResult);
+    return;
+  }
   const [
     numberOfSolves,
     distribution,
@@ -678,14 +824,17 @@ function renderResult(rawResult) {
 }
 
 function collectSettings() {
+  const puzzle = getPuzzle();
   const bufferMode = getBufferMode();
   const cornerBuffers = selectedCornerBuffers();
   const edgeBuffers = selectedEdgeBuffers();
 
   if (!cornerBuffers.length) throw new Error('Select at least one corner buffer.');
-  if (!edgeBuffers.length) throw new Error('Select at least one edge buffer.');
   if (!cornerBuffers.includes('UFR')) throw new Error('Corner buffer selection must include UFR.');
-  if (!edgeBuffers.includes('UF')) throw new Error('Edge buffer selection must include UF.');
+  if (puzzle === '3x3') {
+    if (!edgeBuffers.length) throw new Error('Select at least one edge buffer.');
+    if (!edgeBuffers.includes('UF')) throw new Error('Edge buffer selection must include UF.');
+  }
 
   const finishCapability = getFinishCapability();
   const supportsT2c = bufferMode === 'full'
@@ -696,7 +845,7 @@ function collectSettings() {
 
   const flipWeight = Number(elements.flipWeight.value);
   const twistWeight = Number(elements.twistWeight.value);
-  if (!Number.isFinite(flipWeight) || flipWeight < 1) {
+  if (puzzle === '3x3' && (!Number.isFinite(flipWeight) || flipWeight < 1)) {
     throw new Error('2-flip weight must be at least 1.');
   }
   if (!Number.isFinite(twistWeight) || twistWeight < 1) {
@@ -709,7 +858,33 @@ function collectSettings() {
     }
   }
 
+  const advancedOptions = {
+    corner_floating_parity: !elements.cornerFloatingParity.disabled
+      && elements.cornerFloatingParity.checked,
+    edge_finish_capability: elements.weak2e2eCapabilityOption.classList.contains('is-hidden')
+      ? 'none'
+      : getWeak2e2eCapability(),
+    ltef: !elements.ltef.disabled && elements.ltef.checked,
+    terminal_weights: terminalWeights,
+  };
+
+  if (puzzle === '4x4') {
+    return {
+      puzzle,
+      scrambles: elements.scrambleInput.value,
+      bufferMode,
+      dnf: elements.dnf.checked,
+      orientedCornerSticker: elements.fourByFourOrientation.value,
+      cornerBuffers,
+      twistWeight,
+      finishCapability,
+      wingParityCapability: getWingParityCapability(),
+      advancedOptions,
+    };
+  }
+
   return {
+    puzzle,
     scrambles: elements.scrambleInput.value,
     bufferMode,
     tracingOrientation: elements.tracingOrientation.value.trim(),
@@ -720,15 +895,7 @@ function collectSettings() {
     weak2e2eCapability: elements.weak2e2eCapabilityOption.classList.contains('is-hidden')
       ? 'none'
       : getWeak2e2eCapability(),
-    advancedOptions: {
-      corner_floating_parity: !elements.cornerFloatingParity.disabled
-        && elements.cornerFloatingParity.checked,
-      edge_finish_capability: elements.weak2e2eCapabilityOption.classList.contains('is-hidden')
-        ? 'none'
-        : getWeak2e2eCapability(),
-      ltef: !elements.ltef.disabled && elements.ltef.checked,
-      terminal_weights: terminalWeights,
-    },
+    advancedOptions,
     dnf: elements.dnf.checked,
     cornerBuffers,
     edgeBuffers,
@@ -782,9 +949,16 @@ async function loadExample() {
 function initialize() {
   initializeTheme();
   resetResults();
+  elements.fourByFourOrientation.innerHTML = FOUR_BY_FOUR_ORIENTATION_STICKERS
+    .map((sticker) => `<option value="${sticker}">${sticker}</option>`)
+    .join('');
   restoreSettings();
   syncPills();
-  updateBufferModeUI();
+  updatePuzzleUI();
+
+  document.querySelectorAll('input[name="puzzle"]').forEach((input) => {
+    input.addEventListener('change', updatePuzzleUI);
+  });
 
   document.querySelectorAll('input[name="buffer-mode"]').forEach((input) => {
     input.addEventListener('change', updateBufferModeUI);
@@ -809,6 +983,7 @@ function initialize() {
   [
     elements.dnf,
     elements.tracingOrientation,
+    elements.fourByFourOrientation,
     elements.flipWeight,
     elements.twistWeight,
     elements.cornerFloatingParity,
@@ -824,6 +999,10 @@ function initialize() {
   });
 
   document.querySelectorAll('input[name="weak-2e2e-capability"]').forEach((input) => {
+    input.addEventListener('change', saveSettings);
+  });
+
+  document.querySelectorAll('input[name="wing-parity-capability"]').forEach((input) => {
     input.addEventListener('change', saveSettings);
   });
 

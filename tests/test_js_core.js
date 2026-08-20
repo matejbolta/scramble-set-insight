@@ -740,6 +740,7 @@ const workerMessages = [];
 global.self = {
   importScripts() {},
   SsiCore: ssiCore,
+  SsiCoreModules: require('../web/four-by-four'),
   postMessage(message) {
     workerMessages.push(message);
   },
@@ -857,6 +858,30 @@ assert.equal(partialWeakT2c.corner.selected_buffer.finish.primary_role, 'is-T');
 assert.equal(ssiCore.normalizeFinishCapability(true), 'ltct');
 assert.equal(ssiCore.normalizeFinishCapability(false), 'none');
 
+const fourByFourWorkerResult = runWorker({
+  puzzle: '4x4',
+  scrambles: "Rw U2 F' Lw D B2 Uw' R",
+  dnf: true,
+  orientedCornerSticker: 'BDR',
+  cornerBuffers: ['UFR'],
+  twistWeight: 1,
+  finishCapability: 'none',
+  wingParityCapability: 'basic',
+  advancedOptions: {
+    corner_floating_parity: false,
+    terminal_weights: {},
+  },
+});
+assert.equal(fourByFourWorkerResult.puzzle, '4x4');
+assert.equal(fourByFourWorkerResult.number_of_solves, 1);
+assert.equal(fourByFourWorkerResult.breakdowns[0].orientation.corner_sticker_at_UFR, 'BDR');
+assert.equal(
+  fourByFourWorkerResult.breakdowns[0].total_algs,
+  fourByFourWorkerResult.breakdowns[0].corner_algs
+    + fourByFourWorkerResult.breakdowns[0].wing_algs
+    + fourByFourWorkerResult.breakdowns[0].xcenter_algs,
+);
+
 delete global.self;
 
 const appSource = fs.readFileSync(path.join(root, 'web', 'app.js'), 'utf8');
@@ -890,3 +915,4 @@ require('./test_js_residue_planner');
 require('./test_js_selected_buffer_frontiers');
 require('./test_js_weakswap_floating_frontiers');
 require('./test_js_direct_state_expectations');
+require('./test_js_big_cube_model');

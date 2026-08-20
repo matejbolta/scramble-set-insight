@@ -24,7 +24,7 @@
         <div class="hero-card__brand">
           <img class="hero-card__mark" src="./favicon.svg?v=2" alt="" width="76" height="76" />
           <div class="hero-card__copy">
-            <p class="eyebrow">3BLD / MBLD</p>
+            <p class="eyebrow">3BLD / 4BLD / MBLD</p>
             <h1>Scramble Set Insight</h1>
             <p class="hero-card__lede">
               Alg counts and distributions for your tracing setup.
@@ -57,7 +57,7 @@
               <div class="radio-group" id="buffer-mode-group">
                 <label class="radio-option">
                   <input type="radio" name="buffer-mode" value="standard" checked />
-                  <span>UF/UFR</span>
+                  <span id="standard-buffer-label">UF/UFR</span>
                 </label>
                 <label class="radio-option">
                   <input type="radio" name="buffer-mode" value="full" />
@@ -75,7 +75,7 @@
                   <div class="buffer-subtitle">Corner buffers</div>
                   <div class="pill-grid" id="corner-pills"></div>
                 </div>
-                <div class="buffer-subgroup">
+                <div class="buffer-subgroup" id="edge-buffer-subgroup">
                   <div class="buffer-subtitle">Edge buffers</div>
                   <div class="pill-grid" id="edge-pills"></div>
                   <p class="buffer-order-hint" id="edge-buffer-exception-hint">Pseudo swap only: with UB as the last buffer, click UR to toggle the UF + UB exception.</p>
@@ -84,12 +84,29 @@
             </div>
 
             <div class="parameter-group parameter-card parameter-card--edge">
-              <div class="compact-setting-row">
+              <div class="field-label">Puzzle</div>
+              <div class="radio-group radio-group--compact" id="puzzle-group">
+                <label class="radio-option">
+                  <input type="radio" name="puzzle" value="3x3" checked />
+                  <span>3×3</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="puzzle" value="4x4" />
+                  <span>4×4 MVP</span>
+                </label>
+              </div>
+
+              <div class="compact-setting-row parameter-subgroup--separated" id="three-by-three-orientation-setting">
                 <input id="tracing-orientation" class="text-input" type="text" maxlength="2" placeholder="e.g. x2" />
                 <div class="field-label-row">
                   <label class="field-label" for="tracing-orientation">Orientation</label>
                   <span class="field-hint" tabindex="0" data-hint="Tracing orientation is ___ away from scrambling orientation." aria-label="Tracing orientation is ___ away from scrambling orientation.">?</span>
                 </div>
+              </div>
+
+              <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="four-by-four-orientation-setting">
+                <label class="field-label" for="four-by-four-orientation">Sticker placed at UFR</label>
+                <select id="four-by-four-orientation" class="text-input"></select>
               </div>
 
               <div class="parameter-subgroup parameter-subgroup--separated" id="edge-method-settings">
@@ -102,6 +119,20 @@
                   <label class="radio-option">
                     <input type="radio" name="edge-method" value="weakswap" />
                     <span>Weak swap</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="parameter-subgroup parameter-subgroup--separated is-hidden" id="wing-parity-settings">
+                <div class="field-label">Wing parity</div>
+                <div class="radio-group radio-group--compact">
+                  <label class="radio-option">
+                    <input type="radio" name="wing-parity-capability" value="basic" checked />
+                    <span>UFr–BUr</span>
+                  </label>
+                  <label class="radio-option">
+                    <input type="radio" name="wing-parity-capability" value="full" />
+                    <span>UFr–XYZ</span>
                   </label>
                 </div>
               </div>
@@ -163,7 +194,7 @@
                 <span>LTEF</span>
               </label>
 
-              <div class="compact-setting-row compact-setting-row--first">
+              <div class="compact-setting-row compact-setting-row--first" id="flip-weight-setting">
                 <input id="flip-weight" class="number-input" type="number" min="1" step="0.01" value="1" />
                 <div class="field-label-row">
                   <label class="field-label field-label--compact" for="flip-weight">2-flip weight</label>
@@ -197,19 +228,19 @@
                   <input id="weight-corner-floating-parity" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
                   <label class="field-label field-label--compact" for="weight-corner-floating-parity">Corner-floating parity</label>
                 </div>
-                <div class="compact-setting-row">
+                <div class="compact-setting-row edge-terminal-weight">
                   <input id="weight-2e2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
                   <label class="field-label field-label--compact" for="weight-2e2e">2E2E</label>
                 </div>
-                <div class="compact-setting-row">
+                <div class="compact-setting-row edge-terminal-weight">
                   <input id="weight-f2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
                   <label class="field-label field-label--compact" for="weight-f2e">F2E</label>
                 </div>
-                <div class="compact-setting-row">
+                <div class="compact-setting-row edge-terminal-weight">
                   <input id="weight-ff2e" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
                   <label class="field-label field-label--compact" for="weight-ff2e">FF2E</label>
                 </div>
-                <div class="compact-setting-row">
+                <div class="compact-setting-row edge-terminal-weight">
                   <input id="weight-ltef" class="number-input" type="number" min="1" max="2" step="0.01" value="1" />
                   <label class="field-label field-label--compact" for="weight-ltef">LTEF</label>
                 </div>
@@ -339,6 +370,6 @@
     </dialog>
 
     <script src="./buffer-selection.js?v=buffer-order-v1"></script>
-    <script src="./app.js?v=terminal-families-v1" type="module"></script>
+    <script src="./app.js?v=4x4-mvp-v1" type="module"></script>
   </body>
 </html>

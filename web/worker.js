@@ -1,17 +1,20 @@
 self.importScripts(
-  './buffer-selection.js?v=terminal-families-v1',
-  './wide-move-translator.js?v=terminal-families-v1',
-  './scrambling.js?v=terminal-families-v1',
-  './corner-tracing.js?v=terminal-families-v1',
-  './edge-common.js?v=terminal-families-v1',
-  './cycle-model.js?v=terminal-families-v1',
-  './cycle-residue.js?v=terminal-families-v1',
-  './cycle-residue-planner.js?v=terminal-families-v1',
-  './finalizing.js?v=terminal-families-v1',
-  './ssi-core.js?v=terminal-families-v1',
+  './buffer-selection.js?v=4x4-mvp-v1',
+  './wide-move-translator.js?v=4x4-mvp-v1',
+  './scrambling.js?v=4x4-mvp-v1',
+  './corner-tracing.js?v=4x4-mvp-v1',
+  './edge-common.js?v=4x4-mvp-v1',
+  './cycle-model.js?v=4x4-mvp-v1',
+  './cycle-residue.js?v=4x4-mvp-v1',
+  './cycle-residue-planner.js?v=4x4-mvp-v1',
+  './finalizing.js?v=4x4-mvp-v1',
+  './big-cube-model.js?v=4x4-mvp-v1',
+  './four-by-four.js?v=4x4-mvp-v1',
+  './ssi-core.js?v=4x4-mvp-v1',
 );
 
 const backend = self.SsiCore;
+const bigCubeBackend = self.SsiCoreModules;
 
 function rounded(value) {
   return Number(value.toFixed(5));
@@ -21,6 +24,20 @@ self.onmessage = (event) => {
   const { id, type, payload } = event.data;
   try {
     if (type !== 'analyze') throw new Error(`Unknown worker message type: ${type}`);
+    if (payload.puzzle === '4x4') {
+      const result = bigCubeBackend.analyzeFourByFourSet(payload.scrambles, {
+        dnf: payload.dnf,
+        orientedCornerSticker: payload.orientedCornerSticker,
+        cornerBuffers: payload.cornerBuffers,
+        cornerFinishCapability: payload.finishCapability,
+        cornerFloatingParity: payload.advancedOptions?.corner_floating_parity,
+        twistWeight: payload.twistWeight,
+        terminalWeights: payload.advancedOptions?.terminal_weights,
+        wingParityCapability: payload.wingParityCapability,
+      });
+      self.postMessage({ id, ok: true, result });
+      return;
+    }
     const finishCapability = backend.normalizeFinishCapability(
       payload.finishCapability ?? payload.ltct,
     );
