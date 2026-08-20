@@ -23,6 +23,7 @@ function assertPermutationSolved(plan, label) {
   }
 }
 
+let earlyWeakFloatingEntryCount = 0;
 for (const [index, scramble] of scrambles.entries()) {
   const cornerState = scrambling.scrToScrambledStateCor(scramble, '');
   const edgeState = scrambling.scrToScrambledStateEdg(scramble, '');
@@ -62,6 +63,9 @@ for (const [index, scramble] of scrambles.entries()) {
     edges.permutation_parity,
     1,
   );
+  const weakEntryAudit = cycleResiduePlanner.enumerateWeakFloatingEntries(
+    weakPlan.relative_state,
+  );
   const [weakTargets, weakFlips] = weakswapTracing.traceStateEdgWeakswap(edgeState);
   assert.equal(
     weakPlan.target_count,
@@ -73,7 +77,20 @@ for (const [index, scramble] of scrambles.entries()) {
     weakFlips.length,
     `singleton weak cycle flip count at scramble ${index}`,
   );
+  assert.ok(weakEntryAudit.completion_target_counts.length > 0);
+  assert.ok(
+    weakEntryAudit.completion_target_counts.every((targetCount) => !(targetCount % 2)),
+    `every weak floating entry must end on a complete comm at scramble ${index}`,
+  );
+  assert.ok(
+    weakEntryAudit.entries.every((entry) => Number.isInteger(entry.prefix_fixed_algs)),
+    `every weak floating prefix must have integral alg cost at scramble ${index}`,
+  );
+  if (weakEntryAudit.completion_target_counts.some(
+    (targetCount) => targetCount < weakPlan.target_count,
+  )) earlyWeakFloatingEntryCount += 1;
 }
+assert.ok(earlyWeakFloatingEntryCount > 0, 'dedicated weak starts must expose pre-singleton floats');
 
 const solvedEdges = cycleModel.solvedStateFromPieceGroups(cycleModel.EDGE_PIECE_GROUPS);
 const twoSwappedEdges = {
@@ -285,15 +302,15 @@ for (const [index, scramble] of scrambles.slice(0, 100).entries()) {
     `full pseudoswap must not exceed a partial exact plan at scramble ${index}`,
   );
   assert.ok(
-    fullWeak.total_algs <= fullPseudo.total_algs + 1e-12,
-    `full weak 2E2E capability must not exceed exact pseudoswap at scramble ${index}`,
+    fullWeak.edge_algs <= partialWeak.edge_algs + 1e-12,
+    `adding weak buffers must not exceed the smaller weak prefix at scramble ${index}`,
   );
 }
 
 console.log(`PASS JS cycle model reconstruction and invariants (${scrambles.length} scrambles)`);
-console.log('PASS singleton weakswap cycle counts match the canonical tracer (10000 scrambles)');
+console.log('PASS singleton weak matches the canonical tracer and dedicated weak starts close on complete comms (10000 scrambles)');
 console.log('PASS JS cycle model distinguishes the final two-edge swap/flip states');
 console.log('PASS JS cycle model exposes sandwich as external BI-ZB versus internal IZ');
 console.log('PASS JS DLin planner finds 9 = 4 + 5 and full residue returns 11 = 5 + 6');
 console.log('PASS JS DLin planning/replay invariants (1000 scrambles)');
-console.log('PASS JS weighted exact partial/full pseudo and weak floating invariants (100 scrambles)');
+console.log('PASS JS weighted exact partial/full pseudo and weak-entry floating invariants (100 scrambles)');
