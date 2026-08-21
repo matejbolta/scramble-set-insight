@@ -2,4 +2,5 @@ dist/
 .DS_Store
 node_modules/
 AGENTS.md
+CLAUDE.md
 docs/HANDOFF.md

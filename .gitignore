@@ -105,12 +105,20 @@ Thumbs.db
 backend_v2.py
 test_backend_v2_baseline.py
 
-# Local agent handoff
+# Local project memory
 AGENTS.md
+CLAUDE.md
+/AGENT_HANDOFF.md
+/LLM_HANDOFF.md
+/AI_HANDOFF.md
+/CHANGELOG.md
+/VERSION
 /logic_book.md
 /design/
+/docs/HANDOFF.md
 /.agents/
 /.codex/
+/.claude/
 
 # Large local benchmark fixtures
 /baseline/testing-1m-scrams.txt
