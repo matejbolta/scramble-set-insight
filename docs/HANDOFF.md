@@ -29,10 +29,10 @@ The detailed deferred work is recorded in `AGENTS.md` and design documents.
 Future maintenance should gradually move long-lived architecture and backlog
 detail out of `AGENTS.md` while preserving every domain invariant.
 
-## Known verification failure on 2026-08-21
+## Resolved: 5x5 midge finish expectation
 
-`python3 tests/test_handwritten_truth.py` passes. The long JavaScript core suite
-passes its preceding 3x3, 4x4, frontier, and terminal audits, then fails in
-`tests/test_js_five_by_five.js:105`: expected `ff2e`, received `none`. The
-governance migration did not modify production or test logic, so this is
-recorded as a pre-existing product baseline failure for a dedicated follow-up.
+The 2026-08-21 baseline recorded `tests/test_js_five_by_five.js` failing with
+expected `ff2e`, received `none`. The expectation was wrong, not the product:
+`web/five-by-five.js` deliberately pins `midge_finish_capability` to `'none'`
+because midge parity terminal algsets do not exist, and corner parity execution
+fixes the parity-relative UF/UR midge goal. The test now asserts `none`.

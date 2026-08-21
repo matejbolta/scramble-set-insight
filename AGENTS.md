@@ -195,11 +195,9 @@ tests.
 - The unpacked csTimer extension lives at `extension/` in this repository.
   The parent SSI repository is its only Git worktree; never initialize or
   restore a nested `extension/.git` directory.
-- The August 2026 fusion is currently an uncommitted parent-repository change.
-  The extension's former one-commit Git metadata is retained only as a
-  recovery archive at
-  `../browser-extensions/.cstimer-alg-comment.git-archive`; it is not an active
-  worktree or a second source manager.
+- The August 2026 fusion is committed in this repository's history. The
+  extension's former standalone Git metadata was not carried over and no
+  recovery archive remains; this repository is the only source manager for it.
 - `web/` is the only handwritten engine source. The extension's
   `vendor/ssi-core/*.js` entries are generated regular-file mirrors because
   Chrome/Brave may reject unpacked content scripts reached through external
