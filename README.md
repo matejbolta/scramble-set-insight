@@ -15,7 +15,7 @@ It supports:
   search per scramble), and basic or full wing-parity finishes
 - a 5x5 MVP with the same exact corner and wing models, exact pseudoswapped
   midge counting, deterministic Ubl/Ubr xcenter and Ub/Ur +center counting,
-  and the same 24 starting orientations
+  and the center-determined fixed tracing orientation
 - weak swap and pseudo swap
 - corrected exact weighted UF/UFR pseudoswap counting, exact UFR corner
   counting with exact cycle-model singleton weakswap counting, and exact
@@ -72,3 +72,10 @@ The archived modular Python core lives in `python/legacy/`, beside the
 handwritten reference oracle. It is retained for historical inspection only;
 production lives in `web/`, and `python/ssi_handmade.py` plus
 `baseline/truth-*.json` define stored reference truth.
+
+### csTimer extension
+
+The local unpacked **csTimer Auto Algcount** extension lives in `extension/`
+and is maintained by this same repository. Its generated `vendor/ssi-core/`
+mirror comes exclusively from `web/`; see `extension/README.md` for local
+installation and verification.
