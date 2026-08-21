@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Popup format harness</title>
+    <link rel="stylesheet" href="../popup/popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <fieldset>
+        <legend>Comment preview</legend>
+
+        <div class="field-grid field-grid--two">
+          <label class="field">
+            <span>Buffers</span>
+            <select id="buffer-mode">
+              <option value="standard">UF/UFR</option>
+              <option value="full">Full floating</option>
+              <option value="partial">Partial floating</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Advanced</span>
+            <select id="finish-capability">
+              <option value="none">None</option>
+              <option value="ltct">LTCT</option>
+              <option value="t2c">T2C</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="field-grid field-grid--comment">
+          <div class="field">
+            <label for="comment-format">Algcount format</label>
+            <select id="comment-format"></select>
+            <small class="format-hint" id="comment-format-hint" hidden></small>
+          </div>
+
+          <label class="field arrow-field">
+            <span>Arrow</span>
+            <select id="comment-arrow">
+              <option value="ascii">-&gt;</option>
+              <option value="u2192">→</option>
+              <option value="u279c">➜</option>
+              <option value="u279d">➝</option>
+              <option value="u25b8">▸</option>
+              <option value="u2794">➔</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+    </main>
+
+    <script src="../src/comment-format.js"></script>
+    <script>
+      const bufferMode = document.getElementById('buffer-mode');
+      const finishCapability = document.getElementById('finish-capability');
+      const commentFormat = document.getElementById('comment-format');
+      const commentFormatHint = document.getElementById('comment-format-hint');
+      const commentArrow = document.getElementById('comment-arrow');
+
+      function update() {
+        const preferredTemplate = commentFormat.value || 'baseline_algs';
+        const allowComparisons = SsiCommentFormat.comparisonsAvailable(bufferMode.value, finishCapability.value);
+        commentArrow.disabled = !allowComparisons;
+        const normalizedTemplate = SsiCommentFormat.normalizeTemplate(preferredTemplate, allowComparisons);
+        commentFormat.replaceChildren(...SsiCommentFormat.availableTemplateOptions(allowComparisons)
+          .map((option) => {
+            const element = document.createElement('option');
+            element.value = option.value;
+            element.textContent = SsiCommentFormat.formatTemplateLabel(option, commentArrow.value);
+            return element;
+          }));
+        commentFormat.value = normalizedTemplate;
+
+        const hint = SsiCommentFormat.comparisonHint(bufferMode.value, finishCapability.value);
+        commentFormatHint.textContent = hint;
+        commentFormatHint.hidden = !hint;
+      }
+
+      bufferMode.addEventListener('change', update);
+      finishCapability.addEventListener('change', update);
+      commentArrow.addEventListener('change', update);
+      update();
+    </script>
+  </body>
+</html>

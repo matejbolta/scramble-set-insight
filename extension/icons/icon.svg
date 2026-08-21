@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Geometric cube">
+  <defs>
+    <linearGradient id="background" x1="16" y1="10" x2="112" y2="122" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#183b34" />
+      <stop offset="1" stop-color="#0d211d" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#background)" />
+  <path d="M64 13 110 39 64 66 18 39Z" fill="#d9fff8" stroke="#0d211d" stroke-width="4" stroke-linejoin="round" />
+  <path d="M18 39 64 66V116L18 89Z" fill="#2dd7b9" stroke="#0d211d" stroke-width="4" stroke-linejoin="round" />
+  <path d="M110 39 64 66V116L110 89Z" fill="#f4fffc" stroke="#0d211d" stroke-width="4" stroke-linejoin="round" />
+</svg>

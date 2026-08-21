@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>csTimer Auto Algcount</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="header">
+        <img class="brand-mark" src="../icons/icon.svg" alt="" width="46" height="46" />
+        <div class="brand-copy">
+          <div class="title-row">
+            <h1>csTimer Auto Algcount</h1>
+            <span class="version-badge" id="extension-version" hidden></span>
+          </div>
+          <p class="lede">Shows or saves algcount after each solve.</p>
+        </div>
+      </header>
+
+      <label class="master-toggle" for="extension-enabled">
+        <strong>Extension</strong>
+        <span class="master-toggle-control">
+          <span id="extension-enabled-text">Enabled</span>
+          <input id="extension-enabled" type="checkbox" role="switch" checked />
+          <span class="master-toggle-track" aria-hidden="true"></span>
+        </span>
+      </label>
+
+      <form id="settings-form">
+        <fieldset class="session-output-card" id="outputs-fieldset" disabled>
+          <legend>Current session</legend>
+          <div class="session-summary">
+            <div class="session-identity">
+              <strong class="session-name" id="session-name">Connecting…</strong>
+              <small class="session-guidance" id="session-guidance" hidden></small>
+            </div>
+            <span class="session-state" id="session-state" data-state="connecting">
+              <span class="session-state-dot" aria-hidden="true"></span>
+              <span id="session-state-text">Connecting</span>
+            </span>
+          </div>
+          <div class="output-grid">
+            <label class="output-option">
+              <input id="write-comment" type="checkbox" />
+              <span>
+                <strong>Save algcount to comment</strong>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset id="settings-fieldset" disabled>
+          <legend>Tracing setup</legend>
+
+          <div class="field-grid field-grid--two">
+            <label class="field">
+              <span>Buffers</span>
+              <select id="buffer-mode">
+                <option value="standard">UF/UFR</option>
+                <option value="full">Full floating</option>
+                <option value="partial">Partial floating (advanced)</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Edge tracing</span>
+              <select id="edge-method">
+                <option value="pseudoswap" selected>Pseudo swap</option>
+                <option value="weakswap">Weak swap</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="partial-buffers" id="partial-buffers" hidden>
+            <div>
+              <span class="field-title">Corner buffers</span>
+              <div class="pill-grid" id="corner-buffers"></div>
+            </div>
+            <div>
+              <span class="field-title">Edge buffers</span>
+              <div class="pill-grid" id="edge-buffers"></div>
+            </div>
+          </div>
+
+          <div class="field-grid field-grid--orientation">
+            <div class="field">
+              <div class="field-label-line">
+                <label for="orientation">Orientation</label>
+                <span class="field-hint-wrap">
+                  <button
+                    class="field-hint"
+                    type="button"
+                    aria-label="Explain orientation"
+                    aria-describedby="orientation-hint"
+                  >?</button>
+                  <span class="field-hint-tooltip" id="orientation-hint" role="tooltip">
+                    Tracing orientation is ___ away from scrambling orientation.
+                  </span>
+                </span>
+              </div>
+              <input id="orientation" type="text" maxlength="8" placeholder="e.g. x2" />
+            </div>
+
+            <div class="field">
+              <label for="finish-capability">Advanced</label>
+              <select id="finish-capability">
+                <option value="none" selected>None</option>
+                <option value="ltct">LTCT</option>
+                <option value="t2c" disabled>T2C</option>
+              </select>
+              <div class="checkbox-line">
+                <label class="checkbox-field checkbox-field--compact">
+                  <input id="comment-finish" type="checkbox" disabled />
+                  <span>Add finish label</span>
+                </label>
+                <span class="field-hint-wrap">
+                  <button
+                    class="field-hint"
+                    type="button"
+                    aria-label="Explain Add finish label"
+                    aria-describedby="comment-finish-hint"
+                  >?</button>
+                  <span
+                    class="field-hint-tooltip field-hint-tooltip--left"
+                    id="comment-finish-hint"
+                    role="tooltip"
+                  >Adds “LTCT” or “T2C” when an Advanced algset saves algs.</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-grid field-grid--two">
+            <label class="field">
+              <span>Floating 2-flip weight</span>
+              <input id="flip-weight" type="number" min="1" step="0.01" value="1" />
+            </label>
+
+            <label class="field">
+              <span>Floating 2-twist weight</span>
+              <input id="twist-weight" type="number" min="1" step="0.01" value="1" />
+            </label>
+          </div>
+
+          <div class="field-grid field-grid--comment">
+            <div class="field">
+              <label for="comment-format">Algcount format</label>
+              <select id="comment-format">
+                <option value="baseline_total">N</option>
+                <option value="baseline_algs" selected>N algs</option>
+                <option value="baseline_compact">N=C+E</option>
+                <option value="baseline_outer_spaces">N = C+E</option>
+                <option value="baseline_all_spaces">N = C + E</option>
+              </select>
+              <small class="format-hint" id="comment-format-hint" hidden></small>
+            </div>
+
+            <label class="field arrow-field">
+              <span>Arrow</span>
+              <select id="comment-arrow" disabled>
+                <option value="ascii" selected>-&gt;</option>
+                <option value="u2192">→</option>
+                <option value="u279c">➜</option>
+                <option value="u279d">➝</option>
+                <option value="u25b8">▸</option>
+                <option value="u2794">➔</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
+      </form>
+
+      <p class="status" id="status" role="status"></p>
+      <p class="privacy-note">Everything runs locally.</p>
+    </main>
+
+    <script src="../src/comment-format.js"></script>
+    <script src="./popup.js"></script>
+  </body>
+</html>

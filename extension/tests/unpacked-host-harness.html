@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Unpacked extension host harness</title>
+  </head>
+  <body>
+    <output id="result" data-status="waiting">Waiting for extension bridge…</output>
+
+    <script>
+      window.kernel = {
+        getProp(key) {
+          if (key === 'session') return 3;
+          if (key === 'sessionData') {
+            return JSON.stringify({ 3: { name: '3BLD', opt: { scrType: '333ni' } } });
+          }
+          if (key === 'scrType') return '333ni';
+          return undefined;
+        },
+        regListener() {},
+      };
+
+      window.stats = {
+        timesAt() { return undefined; },
+        getTimesStatsTable() { return { timesLen: 0 }; },
+        getSessionManager() { return { save() { return Promise.resolve(); } }; },
+      };
+
+      const result = document.getElementById('result');
+      window.addEventListener('message', (event) => {
+        const message = event.data;
+        if (event.source !== window || !message || message.source !== 'ssi-cstimer-page') return;
+        if (message.type === 'BRIDGE_READY') {
+          result.dataset.status = 'passed';
+          result.textContent = 'PASS extension bridge ready';
+        } else if (message.type === 'ERROR') {
+          result.dataset.status = 'failed';
+          result.textContent = `FAIL ${message.payload && message.payload.message}`;
+        }
+      });
+
+      setTimeout(() => {
+        if (result.dataset.status === 'waiting') {
+          result.dataset.status = 'failed';
+          result.textContent = 'FAIL extension bridge did not load';
+        }
+      }, 1500);
+    </script>
+  </body>
+</html>

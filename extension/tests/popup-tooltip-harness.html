@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Popup tooltip harness</title>
+    <link rel="stylesheet" href="../popup/popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <div class="field-grid field-grid--orientation" style="margin-top: 120px">
+        <div class="field">
+          <div class="field-label-line">
+            <label for="orientation">Orientation</label>
+            <span class="field-hint-wrap">
+              <button
+                class="field-hint"
+                type="button"
+                aria-label="Explain orientation"
+                aria-describedby="orientation-hint"
+              >?</button>
+              <span class="field-hint-tooltip" id="orientation-hint" role="tooltip">
+                Tracing orientation is ___ away from scrambling orientation.
+              </span>
+            </span>
+          </div>
+          <input id="orientation" type="text" maxlength="8" placeholder="e.g. x2" />
+        </div>
+
+        <div class="field">
+          <label for="finish-capability">Advanced</label>
+          <select id="finish-capability">
+            <option>None</option>
+            <option selected>LTCT</option>
+            <option>T2C</option>
+          </select>
+          <div class="checkbox-line">
+            <label class="checkbox-field checkbox-field--compact">
+              <input type="checkbox" />
+              <span>Add finish label</span>
+            </label>
+            <span class="field-hint-wrap">
+              <button
+                class="field-hint"
+                type="button"
+                aria-label="Explain Add finish label"
+                aria-describedby="comment-finish-hint"
+              >?</button>
+              <span
+                class="field-hint-tooltip field-hint-tooltip--left"
+                id="comment-finish-hint"
+                role="tooltip"
+              >Adds “LTCT” or “T2C” when an Advanced algset saves algs.</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

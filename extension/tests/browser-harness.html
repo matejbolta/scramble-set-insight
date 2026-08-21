@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>csTimer Auto Algcount browser harness</title>
+  </head>
+  <body>
+    <h1>csTimer Auto Algcount browser harness</h1>
+    <output id="result" data-status="running">Running…</output>
+
+    <div id="toolsDiv">
+      <div id="tool-slot">
+        <div id="algcount-tool-host"></div>
+        <span><br>Function<select id="tool-select">
+          <option value="bldhelper">BLD Helper</option>
+          <option value="stackmat">stackmat</option>
+        </select></span>
+      </div>
+    </div>
+
+    <script>
+      window.__ssiHarness = {
+        listeners: {},
+        saves: [],
+        solve: [
+          [0, 42000],
+          "R' F R2 D F2 U' F2 U L2 U' R2 D2 U' B F U F2 R2 F L U' Rw'",
+          '',
+          1234567890,
+        ],
+      };
+
+      window.kernel = {
+        getProp(key) {
+          if (key === 'session') return 3;
+          if (key === 'sessionData') {
+            return JSON.stringify({ 3: { name: '3BLD', opt: { scrType: '333ni' } } });
+          }
+          if (key === 'scrType') return '333ni';
+          return undefined;
+        },
+        regListener(_module, signal, callback) {
+          window.__ssiHarness.listeners[signal] = callback;
+        },
+      };
+
+      window.stats = {
+        timesAt(index) {
+          return index === 0 ? window.__ssiHarness.solve : undefined;
+        },
+        getTimesStatsTable() {
+          return { timesLen: 1 };
+        },
+        getSessionManager() {
+          return {
+            save(index) {
+              window.__ssiHarness.saves.push(index);
+              return Promise.resolve();
+            },
+          };
+        },
+      };
+      window.tools = {
+        regTool(name, label, exec) {
+          window.__ssiHarness.registeredTool = { name, label, exec };
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = label;
+          const select = document.getElementById('tool-select');
+          select.appendChild(option);
+          if (name === 'ssialgcount') select.value = name;
+        },
+      };
+    </script>
+    <script src="../vendor/ssi-core/wide-move-translator.js"></script>
+    <script src="../vendor/ssi-core/scrambling.js"></script>
+    <script src="../vendor/ssi-core/corner-tracing.js"></script>
+    <script src="../vendor/ssi-core/edge-common.js"></script>
+    <script src="../vendor/ssi-core/cycle-model.js"></script>
+    <script src="../vendor/ssi-core/cycle-residue.js"></script>
+    <script src="../vendor/ssi-core/cycle-residue-planner.js"></script>
+    <script src="../vendor/ssi-core/dlin-planner.js"></script>
+    <script src="../vendor/ssi-core/weakswap-tracing.js"></script>
+    <script src="../vendor/ssi-core/pseudoswap-tracing.js"></script>
+    <script src="../vendor/ssi-core/finalizing.js"></script>
+    <script src="../vendor/ssi-core/ssi-core.js"></script>
+    <script src="../src/comment-format.js"></script>
+    <script src="../src/page-adapter.js"></script>
+    <script>
+      const result = document.getElementById('result');
+      const config = {
+        version: 1,
+        sessions: {
+          3: {
+            sessionName: '3BLD',
+            settings: {
+              bufferMode: 'standard',
+              edgeMethod: 'weakswap',
+              writeComment: false,
+              commentTemplate: 'baseline_compact',
+            },
+          },
+        },
+      };
+      window.postMessage({
+        source: 'ssi-cstimer-extension',
+        type: 'CONFIG_SYNC',
+        payload: config,
+      }, '*');
+
+      setTimeout(async function () {
+        try {
+          const tool = window.__ssiHarness.registeredTool;
+          if (!tool || tool.name !== 'ssialgcount' || tool.label !== 'BLD Algcount') {
+            throw new Error(`Unexpected tool registration: ${tool && tool.name}`);
+          }
+          const toolOrder = [...document.querySelectorAll('#tool-select option')]
+            .map((option) => option.value);
+          if (toolOrder.join(',') !== 'bldhelper,stackmat,ssialgcount') {
+            throw new Error(`Unexpected tool order: ${toolOrder.join(',')}`);
+          }
+          const toolHost = document.getElementById('algcount-tool-host');
+          const expected = window.SsiCsTimerAdapter.calculateComment(
+            window.SsiCore,
+            window.__ssiHarness.solve[1],
+            config.sessions[3].settings,
+          );
+          if (!toolHost.textContent.includes(expected) || toolHost.textContent.includes('Latest solve')) {
+            throw new Error(`Restored tool did not display the latest algcount: ${toolHost.textContent}`);
+          }
+
+          document.getElementById('tool-select').value = 'stackmat';
+          toolHost.textContent = 'stackmat content';
+          tool.exec(toolHost);
+          if (!toolHost.textContent.includes(expected) || toolHost.textContent.includes('stackmat content')) {
+            throw new Error(`Manual switch did not render BLD Algcount: ${toolHost.textContent}`);
+          }
+          document.getElementById('tool-select').value = 'ssialgcount';
+
+          toolHost.replaceChildren();
+          window.__ssiHarness.listeners.session('session', null);
+          await new Promise((resolve) => setTimeout(resolve, 80));
+          if (!toolHost.textContent.includes(expected)) {
+            throw new Error(`Session switch did not restore the latest algcount: ${toolHost.textContent}`);
+          }
+
+          await window.__ssiHarness.listeners.timestd('timestd', window.__ssiHarness.solve);
+          const comment = window.__ssiHarness.solve[2];
+          if (comment !== '') {
+            throw new Error(`Comment should stay empty: ${comment}`);
+          }
+          if (window.__ssiHarness.saves.length !== 0) {
+            throw new Error(`Unexpected saves: ${window.__ssiHarness.saves.join(',')}`);
+          }
+
+          window.postMessage({
+            source: 'ssi-cstimer-extension',
+            type: 'CONFIG_SYNC',
+            payload: { ...config, enabled: false },
+          }, '*');
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          if (toolHost.textContent !== '') {
+            throw new Error(`Disabled tool should be empty: ${toolHost.textContent}`);
+          }
+          const disabledResult = await window.__ssiHarness.listeners.timestd(
+            'timestd',
+            window.__ssiHarness.solve,
+          );
+          if (disabledResult.reason !== 'extension-disabled') {
+            throw new Error(`Unexpected disabled result: ${disabledResult.reason}`);
+          }
+
+          window.postMessage({
+            source: 'ssi-cstimer-extension',
+            type: 'CONFIG_SYNC',
+            payload: { ...config, enabled: true },
+          }, '*');
+          await new Promise((resolve) => setTimeout(resolve, 60));
+          if (!toolHost.textContent.includes(expected)) {
+            throw new Error(`Re-enabled tool did not restore the algcount: ${toolHost.textContent}`);
+          }
+
+          result.dataset.status = 'passed';
+          result.textContent = `PASS ${expected}`;
+        } catch (error) {
+          result.dataset.status = 'failed';
+          result.textContent = `FAIL ${error.message}`;
+        }
+      }, 80);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "name": "csTimer Auto Algcount",
+  "version": "1.8.3",
+  "description": "Shows or saves algcount after each new csTimer solve.",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://cstimer.net/*",
+    "https://www.cstimer.net/*",
+    "http://cstimer.net/*",
+    "http://www.cstimer.net/*"
+  ],
+  "action": {
+    "default_title": "csTimer Auto Algcount",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://cstimer.net/*",
+        "https://www.cstimer.net/*",
+        "http://cstimer.net/*",
+        "http://www.cstimer.net/*"
+      ],
+      "js": [
+        "vendor/ssi-core/buffer-selection.js",
+        "vendor/ssi-core/wide-move-translator.js",
+        "vendor/ssi-core/scrambling.js",
+        "vendor/ssi-core/corner-tracing.js",
+        "vendor/ssi-core/edge-common.js",
+        "vendor/ssi-core/cycle-model.js",
+        "vendor/ssi-core/cycle-residue.js",
+        "vendor/ssi-core/cycle-residue-planner.js",
+        "vendor/ssi-core/dlin-planner.js",
+        "vendor/ssi-core/weakswap-tracing.js",
+        "vendor/ssi-core/pseudoswap-tracing.js",
+        "vendor/ssi-core/finalizing.js",
+        "vendor/ssi-core/ssi-core.js",
+        "src/comment-format.js",
+        "src/page-adapter.js"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://cstimer.net/*",
+        "https://www.cstimer.net/*",
+        "http://cstimer.net/*",
+        "http://www.cstimer.net/*"
+      ],
+      "js": [
+        "src/content.js"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ]
+}
