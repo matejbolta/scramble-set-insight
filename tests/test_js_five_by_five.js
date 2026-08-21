@@ -102,7 +102,11 @@ const fullOptions = fiveByFive.normalizeFiveByFiveOptions({
   midgeFinishCapability: 'ff2e',
   wingParityCapability: 'full',
 });
-assert.equal(fullOptions.midge_finish_capability, 'ff2e');
+assert.equal(
+  fullOptions.midge_finish_capability,
+  'none',
+  '5x5 midges must not expose edge parity terminal algsets',
+);
 assert.equal(fullOptions.wing_parity_capability, 'full');
 assert.equal(
   fiveByFive.normalizeFiveByFiveOptions({
@@ -110,7 +114,7 @@ assert.equal(
     midgeFinishCapability: 'ff2e',
   }).midge_finish_capability,
   'none',
-  'the pseudo UF + UB exception must disable learned parity terminal sets',
+  '5x5 midge terminal algsets stay disabled for every buffer selection',
 );
 
 const setAnalysis = fiveByFive.analyzeFiveByFiveSet(
